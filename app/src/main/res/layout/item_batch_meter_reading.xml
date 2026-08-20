@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_8"
+    style="@style/Card.MyBudget.Surface.Small">
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="@dimen/space_12"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:textSize="14sp"
+            android:id="@+id/batchMeterName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            style="@style/Text.MyBudget.Section"/>
+        <TextView
+            android:textSize="11sp"
+            android:id="@+id/batchMeterGroup"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_2"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <EditText
+            android:id="@+id/batchMeterValue"
+            android:background="@drawable/edittext_border"
+            android:padding="@dimen/space_8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_6"
+            android:hint="@string/meter_batch_value_hint"
+            android:inputType="numberDecimal"
+            android:importantForAutofill="no"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

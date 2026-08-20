@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_8"
+    android:foreground="?attr/selectableItemBackground"
+    style="@style/Card.MyBudget.Surface">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:padding="@dimen/space_12"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+            <TextView
+                android:textSize="15sp"
+                android:id="@+id/verificationMeterName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Text.MyBudget.Section"/>
+            <TextView
+                android:textSize="12sp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_2"
+                android:text="@string/meter_verification_caption"
+                style="@style/Text.MyBudget.Subtitle"/>
+        </LinearLayout>
+        <TextView
+            android:textSize="16sp"
+            android:textColor="@color/utilities_cyan"
+            android:layout_gravity="center_vertical"
+            android:id="@+id/verificationDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/Text.MyBudget.Amount"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

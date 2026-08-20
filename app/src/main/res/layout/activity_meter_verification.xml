@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:paddingLeft="@dimen/space_16"
+    android:paddingTop="@dimen/space_12"
+    android:paddingRight="@dimen/space_16"
+    android:paddingBottom="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="@dimen/space_16">
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        layout="@layout/include_screen_header"/>
+    <TextView
+        android:textSize="13sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:text="@string/meter_verification_subtitle"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/verificationRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+    <TextView
+        android:gravity="center"
+        android:id="@+id/verificationEmptyText"
+        android:padding="@dimen/space_24"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/meter_verification_empty"
+        style="@style/Text.MyBudget.Subtitle"/>
+</LinearLayout>

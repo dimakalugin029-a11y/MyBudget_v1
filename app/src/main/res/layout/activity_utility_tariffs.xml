@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:paddingLeft="@dimen/space_16"
+    android:paddingTop="@dimen/space_12"
+    android:paddingRight="@dimen/space_16"
+    android:paddingBottom="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="@dimen/space_16">
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        layout="@layout/include_screen_header"/>
+    <include
+        android:id="@+id/utilityTariffsHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        layout="@layout/include_dismissible_hint"/>
+    <TextView
+        android:textSize="12sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:text="@string/utility_tariffs_hint"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/tariffsRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+    <TextView
+        android:gravity="center"
+        android:id="@+id/tariffsEmpty"
+        android:padding="@dimen/space_24"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/utility_tariffs_empty"
+        style="@style/Text.MyBudget.Subtitle"/>
+</LinearLayout>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:icon="@android:drawable/ic_input_add"
+        android:enabled="true"
+        android:shortcutId="add_income"
+        android:shortcutShortLabel="@string/shortcut_income"
+        android:shortcutLongLabel="@string/shortcut_income_long">
+        <intent
+            android:targetPackage="ru.mybudget.app"
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ru.mybudget.app.IncomeActivity"/>
+    </shortcut>
+    <shortcut
+        android:icon="@android:drawable/ic_delete"
+        android:enabled="true"
+        android:shortcutId="add_expense"
+        android:shortcutShortLabel="@string/shortcut_expense"
+        android:shortcutLongLabel="@string/shortcut_expense_long">
+        <intent
+            android:targetPackage="ru.mybudget.app"
+            android:action="android.intent.action.VIEW"
+            android:targetClass="ru.mybudget.app.ExpenseActivity"/>
+    </shortcut>
+</shortcuts>

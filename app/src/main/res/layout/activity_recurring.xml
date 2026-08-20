@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:paddingLeft="@dimen/space_16"
+    android:paddingTop="@dimen/space_12"
+    android:paddingRight="@dimen/space_16"
+    android:paddingBottom="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="@dimen/space_16">
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        layout="@layout/include_screen_header"/>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/addRecurringButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:minHeight="@dimen/touch_min_size"
+        android:text="@string/recurring_add"
+        app:backgroundTint="@color/income_green"
+        app:cornerRadius="@dimen/radius_10"
+        style="@style/Widget.MaterialComponents.Button"/>
+    <TextView
+        android:gravity="center"
+        android:id="@+id/recurringEmptyState"
+        android:padding="@dimen/space_24"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:text="@string/recurring_empty"
+        android:layout_weight="1"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recurringRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+</LinearLayout>

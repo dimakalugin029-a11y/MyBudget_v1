@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="background_light">#121212</color>
+  <color name="border_light">#3a3a3a</color>
+  <color name="card_background">#1e1e1e</color>
+  <color name="card_background_white">#1e1e1e</color>
+  <color name="chart_grid">#3a3a3a</color>
+  <color name="goals_blue_grey">#78909c</color>
+  <color name="md_theme_onPrimary">#381e72</color>
+  <color name="md_theme_onSurface">#e6e1e5</color>
+  <color name="md_theme_outline">#938f99</color>
+  <color name="md_theme_primary">#d0bcff</color>
+  <color name="md_theme_surface">#141218</color>
+  <color name="md_theme_surfaceVariant">#49454f</color>
+  <color name="primary_green">#4caf50</color>
+  <color name="primary_green_light">#1b3d1b</color>
+  <color name="text_primary">#e0e0e0</color>
+  <color name="text_secondary">#9e9e9e</color>
+  <color name="utilities_cyan">#26c6da</color>
+</resources>

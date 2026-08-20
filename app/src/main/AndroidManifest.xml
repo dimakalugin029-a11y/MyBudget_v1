@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <application
+        android:name=".BudgetApplication"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyBudget">
+
+        <activity
+            android:name=".WelcomeActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MyBudget">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+        <activity android:name=".AboutActivity" android:exported="false" />
+        <activity android:name=".HelpActivity" android:exported="false" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
+        <activity
+            android:name=".DefaultAmountsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ExpensePlanActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".BudgetProfilesActivity" android:exported="false" />
+        <activity android:name=".BudgetActivity" android:exported="false" />
+        <activity android:name=".IncomeActivity" android:exported="false" />
+        <activity
+            android:name=".IncomeDistributionActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".RemainderDistributionActivity" android:exported="false" />
+        <activity android:name=".ExpenseActivity" android:exported="false" />
+        <activity
+            android:name=".ExpenseDistributionActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".TransactionsActivity" android:exported="false" />
+        <activity android:name=".StatisticsActivity" android:exported="false" />
+        <activity android:name=".RemindersActivity" android:exported="false" />
+        <activity android:name=".GoalsActivity" android:exported="false" />
+        <activity android:name=".PlannedObligationsActivity" android:exported="false" />
+        <activity android:name=".RecurringActivity" android:exported="false" />
+        <activity android:name=".UtilitiesActivity" android:exported="false" />
+        <activity android:name=".UtilityBillActivity" android:exported="false" />
+        <activity android:name=".UtilityMetersActivity" android:exported="false" />
+        <activity android:name=".UtilityMeterVerificationActivity" android:exported="false" />
+        <activity android:name=".UtilityMeterHistoryActivity" android:exported="false" />
+        <activity android:name=".UtilityMetersBatchActivity" android:exported="false" />
+        <activity android:name=".UtilityTemplateActivity" android:exported="false" />
+        <activity android:name=".UtilityTariffsActivity" android:exported="false" />
+        <activity android:name=".UtilityCompareActivity" android:exported="false" />
+        <activity
+            android:name=".LockActivity"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.MyBudget" />
+        <activity android:name=".PlanFactActivity" android:exported="false" />
+        <activity android:name=".MonthStartActivity" android:exported="false" />
+        <activity android:name=".RolloverActivity" android:exported="false" />
+        <activity android:name=".PaymentCalendarActivity" android:exported="false" />
+
+        <receiver
+            android:name=".BudgetWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="ru.mybudget.app.action.WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_budget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".RecurringActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="ru.mybudget.app.action.RECURRING_APPLY" />
+                <action android:name="ru.mybudget.app.action.RECURRING_SKIP" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

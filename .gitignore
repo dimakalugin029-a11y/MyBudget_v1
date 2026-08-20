@@ -1,0 +1,41 @@
+*.iml
+.gradle/
+.idea/
+.kotlin/
+.temp/
+.DS_Store
+local.properties
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Build artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+
+# JADX dump — local reference only
+decompiled/
+tools/jadx/
+tools/jadx.zip
+
+# Android SDK that ended up inside the project folder
+/build-tools/
+/emulator/
+/licenses/
+/platform-tools/
+/platforms/
+/sources/
+.knownPackages
+
+# Personal user data — never push
+MyBudget_backup_*.json
+MyBudget_*.xlsx
+*.jks
+keystore.properties
+secrets.properties
+.env
+.env.*

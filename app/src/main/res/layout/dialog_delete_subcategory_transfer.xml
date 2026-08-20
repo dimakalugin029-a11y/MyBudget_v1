@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <TextView
+        android:textSize="14sp"
+        android:id="@+id/deleteSubcategoryMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <TextView
+        android:textSize="13sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_12"
+        android:text="@string/budget_delete_transfer_target_label"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <Spinner
+        android:id="@+id/deleteSubcategoryTargetSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_6"
+        android:minHeight="@dimen/touch_min_size"/>
+</LinearLayout>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <dimen name="card_elevation_low">1dp</dimen>
+  <dimen name="chip_height">32dp</dimen>
+  <dimen name="radius_10">10dp</dimen>
+  <dimen name="radius_12">12dp</dimen>
+  <dimen name="radius_14">14dp</dimen>
+  <dimen name="radius_16">16dp</dimen>
+  <dimen name="radius_8">8dp</dimen>
+  <dimen name="space_10">10dp</dimen>
+  <dimen name="space_12">12dp</dimen>
+  <dimen name="space_16">16dp</dimen>
+  <dimen name="space_2">2dp</dimen>
+  <dimen name="space_20">20dp</dimen>
+  <dimen name="space_24">24dp</dimen>
+  <dimen name="space_4">4dp</dimen>
+  <dimen name="space_6">6dp</dimen>
+  <dimen name="space_8">8dp</dimen>
+  <dimen name="touch_min_size">44dp</dimen>
+</resources>

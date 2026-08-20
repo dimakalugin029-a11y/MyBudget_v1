@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:textSize="13sp"
+    android:textStyle="italic|bold"
+    android:id="@+id/groupLabel"
+    android:paddingTop="@dimen/space_8"
+    android:paddingBottom="@dimen/space_4"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/space_8"
+    android:paddingEnd="@dimen/space_8"
+    style="@style/Text.MyBudget.Subtitle"/>

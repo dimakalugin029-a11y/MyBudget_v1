@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <TextView
+        android:textSize="13sp"
+        android:id="@+id/verificationMeterLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <TextView
+        android:textSize="14sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_12"
+        android:text="@string/meter_field_verification"
+        style="@style/Text.MyBudget.Section"/>
+    <EditText
+        android:textColor="@color/text_primary"
+        android:id="@+id/verificationDateInput"
+        android:background="@drawable/edittext_border"
+        android:padding="@dimen/space_8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_4"
+        android:hint="@string/meter_field_verification"
+        android:inputType="text"/>
+</LinearLayout>

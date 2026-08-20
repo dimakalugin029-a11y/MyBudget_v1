@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/space_20"
+    android:paddingTop="@dimen/space_8"
+    android:paddingRight="@dimen/space_20"
+    android:paddingBottom="@dimen/space_4"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="@dimen/space_20">
+    <TextView
+        android:textSize="14sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:text="@string/utility_pay_category_setting_hint"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <Spinner
+        android:id="@+id/payCategorySpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/touch_min_size"/>
+</LinearLayout>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="addExpenseButton" type="id" />
+    <item name="addIncomeButton" type="id" />
+    <item name="deleteButton" type="id" />
+    <item name="editButton" type="id" />
+    <item name="transferButton" type="id" />
+</resources>

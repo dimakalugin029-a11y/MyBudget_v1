@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:paddingTop="@dimen/space_8"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+    <LinearLayout
+        android:orientation="horizontal"
+        android:paddingLeft="@dimen/space_16"
+        android:paddingRight="@dimen/space_16"
+        android:paddingBottom="@dimen/space_8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/space_16">
+        <com.google.android.material.button.MaterialButton
+            android:textSize="13sp"
+            android:id="@+id/selectAllCategoriesButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/touch_min_size"
+            android:text="@string/distribution_select_all"
+            android:layout_weight="1"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+        <com.google.android.material.button.MaterialButton
+            android:textSize="13sp"
+            android:id="@+id/selectDefaultsCategoriesButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/touch_min_size"
+            android:text="@string/distribution_select_with_defaults"
+            android:layout_weight="1"
+            app:strokeColor="@color/budget_blue"
+            app:strokeWidth="0dp"
+            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+    </LinearLayout>
+    <ListView
+        android:id="@+id/categoryPickList"
+        android:paddingLeft="@dimen/space_8"
+        android:paddingRight="@dimen/space_8"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="320dp"
+        android:divider="@color/border_light"
+        android:dividerHeight="1dp"
+        android:choiceMode="multipleChoice"
+        android:paddingHorizontal="@dimen/space_8"/>
+</LinearLayout>

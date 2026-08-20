@@ -1,0 +1,617 @@
+package ru.mybudget.app
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.data.UtilityLineItemEntity
+import ru.mybudget.app.utilities.UtilityBillDetail
+import ru.mybudget.app.utilities.UtilityPayCategoryHelper
+import ru.mybudget.app.utilities.UtilityUserTemplate
+import java.util.UUID
+
+class UtilityBillActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_OPEN_PAY = "utility_open_pay"
+    }
+
+    private lateinit var manager: BudgetManager
+    private lateinit var adapter: BillDetailAdapter
+    private var billId: Int = 0
+    private var lastDetail: UtilityBillDetail? = null
+    private var currentGrandTotal: Double = 0.0
+    private var hideZeroLines: Boolean = false
+    private var pendingOpenPay: Boolean = false
+
+    private val pickPhotoLauncher = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) persistPhotoUri(uri)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_utility_bill)
+        ScreenHeaderHelper.setup(
+            this,
+            getString(R.string.utility_bill_screen_title),
+            getString(R.string.main_icon_utilities),
+        )
+        billId = intent.getIntExtra(UtilitiesActivity.EXTRA_BILL_ID, 0)
+        pendingOpenPay = intent.getBooleanExtra(EXTRA_OPEN_PAY, false)
+        if (billId == 0) {
+            finish()
+            return
+        }
+        manager = BudgetManager.getInstance(this)
+        adapter = BillDetailAdapter(
+            onLineClick = { showEditLineDialog(it) },
+            onLineLongClick = { confirmDeleteLine(it) },
+        )
+        findViewById<RecyclerView>(R.id.billDetailsRecyclerView).apply {
+            layoutManager = LinearLayoutManager(this@UtilityBillActivity)
+            this.adapter = this@UtilityBillActivity.adapter
+        }
+        findViewById<View>(R.id.applyMetersButton).setOnClickListener {
+            Toast.makeText(this, R.string.utility_bill_meters_none, Toast.LENGTH_SHORT).show()
+        }
+        findViewById<View>(R.id.hideZeroLinesButton).setOnClickListener {
+            hideZeroLines = !hideZeroLines
+            lastDetail?.let { bindDetail(it) }
+        }
+        findViewById<View>(R.id.payFromBudgetButton).setOnClickListener { onPayFromBudgetClicked() }
+        findViewById<View>(R.id.receiptPhotoButton).setOnClickListener { onReceiptPhotoClicked() }
+        findViewById<View>(R.id.billAreaText).setOnClickListener { showEditAreaDialog() }
+        loadBill()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (billId != 0) loadBill()
+    }
+
+    private fun dao() = manager.utilityDao
+
+    private fun loadBill(after: ((UtilityBillDetail) -> Unit)? = null) {
+        lifecycleScope.launch {
+            val detail = withContext(Dispatchers.IO) { UtilityUserTemplate.loadBillDetail(dao(), billId) }
+            if (detail == null) {
+                finish()
+                return@launch
+            }
+            bindDetail(detail)
+            after?.invoke(detail)
+            if (pendingOpenPay && detail.bill.budgetPaidAt == null && detail.grandTotal > 0.0) {
+                pendingOpenPay = false
+                showPayFromBudgetDialog(detail)
+            }
+        }
+    }
+
+    private fun bindDetail(detail: UtilityBillDetail) {
+        lastDetail = detail
+        currentGrandTotal = detail.grandTotal
+        findViewById<TextView>(R.id.billPeriodTitle).text =
+            UtilityUserTemplate.titlePeriod(detail.bill.year, detail.bill.month)
+        findViewById<TextView>(R.id.billGrandTotal).text =
+            "Итого: ${MoneyFormat.formatRub(detail.grandTotal)}"
+        findViewById<TextView>(R.id.billAreaText).text =
+            UtilityUserTemplate.formatBillHeaderSubtitle(this, detail.bill.apartmentArea)
+        findViewById<MaterialButton>(R.id.hideZeroLinesButton).setText(
+            if (hideZeroLines) R.string.utility_bill_show_zeros else R.string.utility_bill_hide_zeros,
+        )
+        updatePayButtonState(detail.bill)
+        updatePhotoButton(detail.bill)
+        adapter.submit(buildRows(detail, hideZeroLines))
+    }
+
+    private fun updatePhotoButton(bill: UtilityBillEntity) {
+        findViewById<MaterialButton>(R.id.receiptPhotoButton).setText(
+            if (bill.receiptPhotoUri.isNullOrBlank()) {
+                R.string.utility_receipt_photo_add
+            } else {
+                R.string.utility_receipt_photo_view
+            },
+        )
+    }
+
+    private fun updatePayButtonState(bill: UtilityBillEntity) {
+        val btn = findViewById<MaterialButton>(R.id.payFromBudgetButton)
+        if (bill.budgetPaidAt != null) {
+            btn.setText(R.string.utility_edit_payment)
+            val lines = mutableListOf(
+                UtilityUserTemplate.formatAreaLine(this, bill.apartmentArea),
+                getString(R.string.utility_bill_lines_hint),
+            )
+            if (bill.budgetPaymentSummary.isNotBlank()) {
+                lines += getString(R.string.utility_paid_from_budget, bill.budgetPaymentSummary)
+            }
+            if (bill.budgetRemainderSummary.isNotBlank()) {
+                lines += getString(R.string.utility_remainder_in_envelope, bill.budgetRemainderSummary)
+            }
+            findViewById<TextView>(R.id.billAreaText).text = lines.joinToString("\n")
+        } else {
+            btn.setText(R.string.utility_pay_from_budget)
+        }
+    }
+
+    private fun onReceiptPhotoClicked() {
+        val bill = lastDetail?.bill ?: return
+        val uri = bill.receiptPhotoUri
+        if (uri.isNullOrBlank()) {
+            pickPhotoLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+            )
+            return
+        }
+        AlertDialog.Builder(this)
+            .setItems(
+                arrayOf(
+                    getString(R.string.utility_receipt_photo_view),
+                    getString(R.string.utility_receipt_photo_add),
+                    getString(R.string.utility_receipt_photo_remove),
+                ),
+            ) { _, which ->
+                when (which) {
+                    0 -> openReceiptPhoto(uri)
+                    1 -> pickPhotoLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                    2 -> savePhotoUri(null)
+                }
+            }
+            .show()
+    }
+
+    private fun openReceiptPhoto(uriString: String) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(uriString), "image/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(this, R.string.utility_receipt_photo_view, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun persistPhotoUri(uri: Uri) {
+        runCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        savePhotoUri(uri.toString())
+    }
+
+    private fun savePhotoUri(uri: String?) {
+        val detail = lastDetail ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            dao().updateBill(detail.bill.copy(receiptPhotoUri = uri))
+            withContext(Dispatchers.Main) {
+                if (uri != null) {
+                    Toast.makeText(this@UtilityBillActivity, R.string.utility_receipt_photo_saved, Toast.LENGTH_SHORT).show()
+                }
+                loadBill()
+            }
+        }
+    }
+
+    private fun showEditAreaDialog() {
+        val bill = lastDetail?.bill ?: return
+        val input = EditText(this).apply {
+            hint = getString(R.string.utility_bill_edit_area_hint)
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
+            if (bill.apartmentArea > 0.0) {
+                setText(MoneyFormat.formatQuantity(bill.apartmentArea))
+                setSelection(text.length)
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.utility_bill_edit_area_title)
+            .setView(padded(input))
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val raw = input.text.toString().trim().replace(',', '.')
+                val area = if (raw.isEmpty()) 0.0 else raw.toDoubleOrNull()
+                if (area == null || area < 0.0) {
+                    Toast.makeText(this, R.string.utility_tariff_invalid, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch(Dispatchers.IO) {
+                    dao().updateBill(bill.copy(apartmentArea = area))
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@UtilityBillActivity, R.string.utility_bill_area_saved, Toast.LENGTH_SHORT).show()
+                        loadBill()
+                    }
+                }
+            }
+            .setNeutralButton(R.string.utility_tariff_clear) { _, _ ->
+                if (bill.apartmentArea <= 0.0) return@setNeutralButton
+                lifecycleScope.launch(Dispatchers.IO) {
+                    dao().updateBill(bill.copy(apartmentArea = 0.0))
+                    withContext(Dispatchers.Main) { loadBill() }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun onPayFromBudgetClicked() {
+        val detail = lastDetail ?: return
+        if (currentGrandTotal <= 0.0) {
+            Toast.makeText(this, R.string.utility_pay_zero_total, Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (detail.bill.budgetPaidAt != null) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.utility_edit_payment)
+                .setMessage(getString(R.string.utility_edit_payment_message, detail.bill.budgetPaymentSummary))
+                .setPositiveButton(R.string.utility_edit_payment) { _, _ -> reversePaymentAndEdit(detail) }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        } else {
+            showPayFromBudgetDialog(detail)
+        }
+    }
+
+    private fun reversePaymentAndEdit(detail: UtilityBillDetail) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val bill = detail.bill
+                val groupId = bill.budgetPaymentGroupId
+                if (!groupId.isNullOrBlank()) {
+                    manager.repository.cancelTransactionGroup(groupId)
+                } else if (bill.budgetPaidAt != null) {
+                    val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
+                    manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
+                        manager.repository.cancelTransaction(tx)
+                    }
+                }
+                dao().clearBudgetPayment(bill.id)
+                manager.reloadCategoriesFromDatabase()
+            }
+            loadBill { refreshed ->
+                showPayFromBudgetDialog(
+                    refreshed.copy(
+                        bill = refreshed.bill.copy(
+                            budgetPaidAt = null,
+                            budgetPaymentSummary = "",
+                            budgetRemainderSummary = "",
+                            budgetPaymentGroupId = null,
+                        ),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun showPayFromBudgetDialog(detail: UtilityBillDetail) {
+        lifecycleScope.launch {
+            val budgetId = manager.getActiveBudgetId()
+            val options = withContext(Dispatchers.IO) {
+                UtilityPayCategoryHelper.loadLeafOptions(manager, budgetId)
+            }
+            if (options.isEmpty()) {
+                Toast.makeText(this@UtilityBillActivity, R.string.utility_pay_no_categories, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            openPayDialog(detail, options, budgetId)
+        }
+    }
+
+    private fun openPayDialog(
+        detail: UtilityBillDetail,
+        options: List<UtilityPayCategoryHelper.CategoryOption>,
+        budgetId: Int,
+    ) {
+        val total = currentGrandTotal
+        val period = UtilityUserTemplate.formatPeriod(detail.bill.year, detail.bill.month)
+        val labels = options.map { it.label }
+        val view = layoutInflater.inflate(R.layout.dialog_utility_pay_budget, null)
+        val payTotal = view.findViewById<TextView>(R.id.payTotalText)
+        val splitPreview = view.findViewById<TextView>(R.id.paySplitPreview)
+        val primarySpinner = view.findViewById<Spinner>(R.id.payPrimarySpinner)
+        val primaryBalance = view.findViewById<TextView>(R.id.payPrimaryBalance)
+        val shortfallPanel = view.findViewById<LinearLayout>(R.id.payShortfallPanel)
+        val shortfallText = view.findViewById<TextView>(R.id.payShortfallText)
+        val extraSpinner = view.findViewById<Spinner>(R.id.payExtraSpinner)
+        val extraBalance = view.findViewById<TextView>(R.id.payExtraBalance)
+        payTotal.text = getString(R.string.utility_pay_total, MoneyFormat.format(total))
+        val spinnerAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+        primarySpinner.adapter = spinnerAdapter
+        extraSpinner.adapter = spinnerAdapter
+        fun refreshSplitUi() {
+            val primary = options[primarySpinner.selectedItemPosition]
+            val bal1 = primary.category.currentBalance
+            val part1 = if (bal1 <= 0.0) 0.0 else minOf(bal1, total)
+            val shortfall = maxOf(0.0, total - part1)
+            primaryBalance.text = getString(R.string.utility_pay_balance, MoneyFormat.format(bal1))
+            if (shortfall <= 0.01) {
+                shortfallPanel.visibility = View.GONE
+                splitPreview.text = getString(R.string.utility_pay_single, MoneyFormat.format(total))
+            } else {
+                shortfallPanel.visibility = View.VISIBLE
+                val extra = options[extraSpinner.selectedItemPosition]
+                shortfallText.text = getString(
+                    R.string.utility_pay_shortfall,
+                    MoneyFormat.format(part1),
+                    MoneyFormat.format(shortfall),
+                )
+                extraBalance.text = getString(R.string.utility_pay_balance, MoneyFormat.format(extra.category.currentBalance))
+                splitPreview.text = shortfallText.text
+            }
+        }
+        val listener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) = refreshSplitUi()
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        primarySpinner.onItemSelectedListener = listener
+        extraSpinner.onItemSelectedListener = listener
+        val primaryIndex = UtilityPayCategoryHelper.primarySpinnerIndex(options, this, budgetId)
+        primarySpinner.setSelection(primaryIndex)
+        extraSpinner.setSelection(UtilityPayCategoryHelper.extraSpinnerIndex(options, this, budgetId, primaryIndex))
+        refreshSplitUi()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.utility_pay_title)
+            .setView(view)
+            .setPositiveButton(R.string.utility_pay_from_budget, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val primary = options[primarySpinner.selectedItemPosition]
+                val part1 = if (primary.category.currentBalance <= 0.0) {
+                    0.0
+                } else {
+                    minOf(primary.category.currentBalance, total)
+                }
+                val shortfall = maxOf(0.0, total - part1)
+                val parts = mutableListOf(primary.category to part1)
+                var extraCategory: BudgetCategory? = null
+                if (shortfall > 0.01) {
+                    val extra = options[extraSpinner.selectedItemPosition]
+                    if (extra.category.id == primary.category.id) {
+                        Toast.makeText(this, R.string.utility_pay_same_category, Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    extraCategory = extra.category
+                    parts += extra.category to shortfall
+                }
+                UtilityPayCategoryHelper.rememberSelection(this, budgetId, primary.category, extraCategory)
+                dialog.dismiss()
+                executeBudgetPayment(detail.bill, period, parts)
+            }
+        }
+        dialog.show()
+    }
+
+    private fun executeBudgetPayment(
+        bill: UtilityBillEntity,
+        periodLabel: String,
+        parts: List<Pair<BudgetCategory, Double>>,
+    ) {
+        lifecycleScope.launch {
+            val summary = withContext(Dispatchers.IO) {
+                val description = UtilityUserTemplate.PAYMENT_DESCRIPTION_PREFIX + periodLabel
+                val summaryParts = mutableListOf<String>()
+                val items = mutableListOf<Pair<Int, Double>>()
+                for ((cat, amount) in parts) {
+                    if (amount <= 0.0) continue
+                    val rounded = MoneyFormat.roundMoney(amount)
+                    items += cat.id to rounded
+                    summaryParts += "${cat.name}: ${MoneyFormat.formatRub(rounded)}"
+                }
+                if (items.isEmpty()) return@withContext null
+                val groupId = UUID.randomUUID().toString()
+                manager.repository.applyTransactionGroup(items, "expense", description, groupId)
+                manager.reloadCategoriesFromDatabase()
+                val updated = manager.getCategories()
+                val remainderParts = parts.map { (cat, _) ->
+                    val balance = updated.firstOrNull { it.id == cat.id }?.currentBalance ?: 0.0
+                    "${cat.name}: ${MoneyFormat.formatRub(balance)}"
+                }
+                val summaryText = summaryParts.joinToString("; ")
+                dao().updateBill(
+                    bill.copy(
+                        budgetPaidAt = System.currentTimeMillis(),
+                        budgetPaymentSummary = summaryText,
+                        budgetRemainderSummary = remainderParts.joinToString("; "),
+                        budgetPaymentGroupId = groupId,
+                    ),
+                )
+                summaryText
+            }
+            if (summary != null) {
+                Toast.makeText(this@UtilityBillActivity, getString(R.string.utility_pay_success, summary), Toast.LENGTH_LONG).show()
+            }
+            loadBill()
+        }
+    }
+
+    private fun buildRows(detail: UtilityBillDetail, hideZeros: Boolean): List<BillRow> {
+        val rows = mutableListOf<BillRow>()
+        for (section in detail.sections) {
+            val lines = section.lines.filter { line ->
+                !hideZeros || line.amount != 0.0 || line.quantity != null
+            }
+            if (lines.isEmpty()) continue
+            rows += BillRow.SectionHeader(section.section.name, lines.sumOf { it.amount })
+            var lastGroup = ""
+            for (line in lines) {
+                if (line.groupLabel.isNotBlank() && line.groupLabel != lastGroup) {
+                    rows += BillRow.GroupLabel(line.groupLabel)
+                    lastGroup = line.groupLabel
+                }
+                rows += BillRow.Line(line)
+            }
+        }
+        return rows
+    }
+
+    private fun showEditLineDialog(line: UtilityLineItemEntity) {
+        val view = layoutInflater.inflate(R.layout.dialog_edit_utility_line, null)
+        val qtyInput = view.findViewById<EditText>(R.id.quantityInput)
+        val tariffInput = view.findViewById<EditText>(R.id.tariffInput)
+        val amountInput = view.findViewById<EditText>(R.id.amountInput)
+        line.quantity?.let { qtyInput.setText(MoneyFormat.formatQuantity(it)) }
+        line.tariff?.let { tariffInput.setText(MoneyFormat.format(it)) }
+        amountInput.setText(MoneyFormat.format(line.amount))
+        var updatingAmount = false
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                if (updatingAmount) return
+                val computed = UtilityUserTemplate.computedAmount(
+                    MoneyFormat.parseQuantity(qtyInput.text),
+                    MoneyFormat.parse(tariffInput.text),
+                ) ?: return
+                updatingAmount = true
+                amountInput.setText(MoneyFormat.format(computed))
+                amountInput.setSelection(amountInput.text.length)
+                updatingAmount = false
+            }
+        }
+        qtyInput.addTextChangedListener(watcher)
+        tariffInput.addTextChangedListener(watcher)
+        AlertDialog.Builder(this)
+            .setTitle(line.name)
+            .setView(view)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val qty = MoneyFormat.parseQuantity(qtyInput.text)
+                val tariff = MoneyFormat.parse(tariffInput.text)
+                var amount = MoneyFormat.parse(amountInput.text) ?: line.amount
+                val computed = UtilityUserTemplate.computedAmount(qty, tariff)
+                if (computed != null && qty != null && tariff != null) amount = computed
+                val updated = line.copy(quantity = qty, tariff = tariff, amount = MoneyFormat.roundMoney(amount))
+                lifecycleScope.launch(Dispatchers.IO) {
+                    dao().updateLineItem(updated)
+                    withContext(Dispatchers.Main) { loadBill() }
+                }
+            }
+            .setNeutralButton(R.string.delete) { _, _ -> confirmDeleteLine(line) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmDeleteLine(line: UtilityLineItemEntity) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.utility_bill_delete_line_title)
+            .setMessage(getString(R.string.utility_bill_delete_line_msg, line.name))
+            .setPositiveButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    dao().deleteLineItemById(line.id)
+                    withContext(Dispatchers.Main) { loadBill() }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun padded(child: View): View {
+        val pad = (24 * resources.displayMetrics.density).toInt()
+        return android.widget.FrameLayout(this).apply {
+            setPadding(pad, pad / 2, pad, 0)
+            addView(child, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+    }
+
+    private sealed class BillRow {
+        data class SectionHeader(val title: String, val total: Double) : BillRow()
+        data class GroupLabel(val label: String) : BillRow()
+        data class Line(val item: UtilityLineItemEntity) : BillRow()
+    }
+
+    private class BillDetailAdapter(
+        private val onLineClick: (UtilityLineItemEntity) -> Unit,
+        private val onLineLongClick: (UtilityLineItemEntity) -> Unit,
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        private var rows: List<BillRow> = emptyList()
+
+        fun submit(list: List<BillRow>) {
+            rows = list
+            notifyDataSetChanged()
+        }
+
+        override fun getItemViewType(position: Int): Int = when (rows[position]) {
+            is BillRow.SectionHeader -> 0
+            is BillRow.GroupLabel -> 1
+            is BillRow.Line -> 2
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val inf = LayoutInflater.from(parent.context)
+            return when (viewType) {
+                0 -> SectionHolder(inf.inflate(R.layout.item_utility_section_header, parent, false))
+                1 -> GroupHolder(inf.inflate(R.layout.item_utility_group_label, parent, false))
+                else -> LineHolder(inf.inflate(R.layout.item_utility_line, parent, false))
+            }
+        }
+
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (val row = rows[position]) {
+                is BillRow.SectionHeader -> {
+                    val h = holder as SectionHolder
+                    h.title.text = row.title
+                    h.total.text = MoneyFormat.formatRub(row.total)
+                }
+                is BillRow.GroupLabel -> (holder as GroupHolder).label.text = row.label
+                is BillRow.Line -> {
+                    val h = holder as LineHolder
+                    val line = row.item
+                    h.name.text = line.name
+                    h.amount.text = MoneyFormat.formatRub(line.amount)
+                    val qty = line.quantity
+                    val tariff = line.tariff
+                    h.qtyTariff.text = when {
+                        qty != null && tariff != null ->
+                            "кол-во ${MoneyFormat.formatQuantity(qty)} × тариф ${MoneyFormat.format(tariff)}"
+                        qty != null -> "кол-во ${MoneyFormat.formatQuantity(qty)}"
+                        else -> ""
+                    }
+                    h.itemView.setOnClickListener { onLineClick(line) }
+                    h.itemView.setOnLongClickListener {
+                        onLineLongClick(line)
+                        true
+                    }
+                }
+            }
+        }
+
+        override fun getItemCount(): Int = rows.size
+
+        class SectionHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val title: TextView = v.findViewById(R.id.sectionTitle)
+            val total: TextView = v.findViewById(R.id.sectionTotal)
+        }
+
+        class GroupHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val label: TextView = v.findViewById(R.id.groupLabel)
+        }
+
+        class LineHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val name: TextView = v.findViewById(R.id.lineName)
+            val qtyTariff: TextView = v.findViewById(R.id.lineQtyTariff)
+            val amount: TextView = v.findViewById(R.id.lineAmount)
+        }
+    }
+}

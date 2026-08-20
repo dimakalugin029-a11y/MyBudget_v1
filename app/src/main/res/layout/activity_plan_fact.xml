@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:paddingLeft="@dimen/space_16"
+    android:paddingTop="@dimen/space_12"
+    android:paddingRight="@dimen/space_16"
+    android:paddingBottom="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingHorizontal="@dimen/space_16">
+    <include
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        layout="@layout/include_screen_header"/>
+    <TextView
+        android:textSize="13sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:text="@string/plan_fact_hint"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <include layout="@layout/include_transaction_budget_picker"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/planFactRecycler"
+        android:paddingTop="@dimen/space_8"
+        android:paddingBottom="@dimen/space_12"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+    <TextView
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:id="@+id/planFactEmpty"
+        android:padding="@dimen/space_24"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:text="@string/plan_fact_empty"
+        android:layout_weight="1"/>
+</LinearLayout>

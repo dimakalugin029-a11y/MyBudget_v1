@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <plurals name="main_overspend_summary">
+    <item quantity="one">Перерасход по %d статье в этом месяце</item>
+    <item quantity="few">Перерасход по %d статьям в этом месяце</item>
+    <item quantity="many">Перерасход по %d статьям в этом месяце</item>
+    <item quantity="other">Перерасход по %d статьям в этом месяце</item>
+  </plurals>
+  <plurals name="main_upcoming_payments_summary">
+    <item quantity="one">%d платёж на ближайшую неделю</item>
+    <item quantity="few">%d платежа на ближайшую неделю</item>
+    <item quantity="many">%d платежей на ближайшую неделю</item>
+    <item quantity="other">%d платежей на ближайшую неделю</item>
+  </plurals>
+  <plurals name="main_utilities_unpaid_summary">
+    <item quantity="one">Коммуналка: %d месяц не оплачен из бюджета</item>
+    <item quantity="few">Коммуналка: %d месяца не оплачены из бюджета</item>
+    <item quantity="many">Коммуналка: %d месяцев не оплачены из бюджета</item>
+    <item quantity="other">Коммуналка: %d месяцев не оплачены из бюджета</item>
+  </plurals>
+</resources>
