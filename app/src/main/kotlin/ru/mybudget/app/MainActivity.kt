@@ -4,12 +4,15 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.setup.MigrationPreferences
 import ru.mybudget.app.setup.MonthStartPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
 import ru.mybudget.app.setup.RolloverPreferences
@@ -27,8 +30,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.mainProfilePicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = { refreshHeader() })
         }
-        findViewById<View>(R.id.mainActiveBalanceText).setOnClickListener {
-            startActivity(Intent(this, BudgetActivity::class.java))
+        findViewById<TextView>(R.id.mainActiveBalanceText).apply {
+            setOnClickListener {
+                startActivity(Intent(this@MainActivity, BudgetActivity::class.java))
+            }
+            contentDescription = getString(R.string.main_balance_open_budget)
         }
         findViewById<View>(R.id.incomeButton).setOnClickListener {
             startActivity(Intent(this, IncomeActivity::class.java))
@@ -51,7 +57,17 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)
         AppNotificationsHelper.maybeRequestNotificationPermissionOnLaunch(this)
         AppNotificationsHelper.maybeShowExportReminder(this, prefs)
+        maybeShowUpgradeMigrationHint()
         maybeShowMonthStartWizard()
+        runAutoBackupIfNeeded()
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    finishAffinity()
+                }
+            },
+        )
     }
 
     override fun onResume() {
@@ -71,6 +87,17 @@ class MainActivity : AppCompatActivity() {
                 profile?.name ?: getString(R.string.budget_profiles_default_name)
             findViewById<TextView>(R.id.mainActiveBalanceText).text =
                 MoneyFormat.formatRub(manager.getTotalBalance(activeId))
+            val totalAllView = findViewById<TextView>(R.id.mainTotalAllText)
+            if (profiles.size > 1) {
+                val totalAll = manager.getTotalBalanceAll()
+                totalAllView.visibility = View.VISIBLE
+                totalAllView.text = getString(
+                    R.string.main_total_all_short,
+                    MoneyFormat.formatRub(totalAll),
+                )
+            } else {
+                totalAllView.visibility = View.GONE
+            }
             val summary = withContext(Dispatchers.IO) {
                 MainDashboardHelper.loadSummary(this@MainActivity, manager)
             }
@@ -198,6 +225,41 @@ class MainActivity : AppCompatActivity() {
                         RolloverPreferences.dismissPromptForMonth(this@MainActivity)
                     }
                     .show()
+            }
+        }
+    }
+
+    private fun maybeShowUpgradeMigrationHint() {
+        if (MigrationPreferences.isUpgradeHintShown(this)) return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.upgrade_hint_title)
+            .setMessage(R.string.upgrade_hint_message)
+            .setPositiveButton(R.string.upgrade_hint_import) { _, _ ->
+                MigrationPreferences.markUpgradeHintShown(this)
+                startActivity(Intent(this, SettingsActivity::class.java))
+            }
+            .setNegativeButton(R.string.upgrade_hint_dismiss) { _, _ ->
+                MigrationPreferences.markUpgradeHintShown(this)
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun runAutoBackupIfNeeded() {
+        lifecycleScope.launch {
+            val result = AutoBackupHelper.maybeRunAutoExport(this@MainActivity) ?: return@launch
+            if (result.success) {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.auto_backup_success_toast, result.filename.orEmpty()),
+                    Toast.LENGTH_LONG,
+                ).show()
+            } else if (!result.message.isNullOrBlank()) {
+                Toast.makeText(
+                    this@MainActivity,
+                    getString(R.string.auto_backup_failed_toast, result.message),
+                    Toast.LENGTH_LONG,
+                ).show()
             }
         }
     }

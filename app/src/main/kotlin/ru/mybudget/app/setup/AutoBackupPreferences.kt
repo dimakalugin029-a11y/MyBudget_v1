@@ -12,6 +12,7 @@ object AutoBackupPreferences {
     private const val KEY_INTERVAL_DAYS = "interval_days"
     private const val KEY_ENCRYPT = "encrypt"
     private const val KEY_FOLDER_URI = "folder_uri"
+    private const val KEY_LAST_EXPORT_MS = "last_export_ms"
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -59,4 +60,10 @@ object AutoBackupPreferences {
     fun canRun(context: Context): Boolean =
         isEnabled(context) && folderUri(context) != null &&
             (!isEncryptEnabled(context) || AutoBackupSecrets.hasPassword(context))
+
+    fun lastAutoExportMs(context: Context): Long = prefs(context).getLong(KEY_LAST_EXPORT_MS, 0L)
+
+    fun setLastAutoExportMs(context: Context, ms: Long) {
+        prefs(context).edit().putLong(KEY_LAST_EXPORT_MS, ms).apply()
+    }
 }

@@ -13,7 +13,9 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import ru.mybudget.app.AppNotificationsHelper
 import ru.mybudget.app.BackupManager
+import ru.mybudget.app.BudgetApplication
 import ru.mybudget.app.R
 import ru.mybudget.app.security.AutoBackupSecrets
 import ru.mybudget.app.setup.AutoBackupPreferences
@@ -52,6 +54,12 @@ class AutoBackupWorker(
             file.delete()
             return fail(applicationContext.getString(R.string.auto_backup_write_failed))
         }
+        val now = System.currentTimeMillis()
+        AutoBackupPreferences.setLastAutoExportMs(applicationContext, now)
+        applicationContext.getSharedPreferences(BudgetApplication.PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(AppNotificationsHelper.KEY_LAST_EXPORT_PROMPT_MS, now)
+            .apply()
         val message = applicationContext.getString(R.string.auto_backup_success_toast, displayName)
         notifyUser(message)
         return Result.success()
