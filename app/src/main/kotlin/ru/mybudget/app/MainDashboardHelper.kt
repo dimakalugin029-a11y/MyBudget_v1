@@ -1,0 +1,152 @@
+package ru.mybudget.app
+
+import android.content.Context
+import kotlinx.coroutines.flow.first
+import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.setup.OverspendPreferences
+import ru.mybudget.app.setup.PendingDistributionPreferences
+import ru.mybudget.app.utilities.PaymentCalendarHelper
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.util.Calendar
+import java.util.Locale
+
+data class MainDashboardSummary(
+    val remindersLine: String? = null,
+    val overspendLine: String? = null,
+    val utilitiesLine: String? = null,
+    val obligationsLine: String? = null,
+    val pendingDistributionLine: String? = null,
+    val upcomingPaymentsLine: String? = null,
+    val goalsLine: String? = null,
+)
+
+object MainDashboardHelper {
+    suspend fun loadSummary(context: Context, budgetManager: BudgetManager): MainDashboardSummary {
+        val db = BudgetDatabase.getInstance(context)
+        val dao = db.budgetDao()
+        val utilityDao = db.utilityDao()
+        val todayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val today = todayFmt.format(Calendar.getInstance().time)
+
+        val upcomingReminders = dao.getUpcomingReminders(today, 3)
+        val remindersLine = if (upcomingReminders.isEmpty()) {
+            null
+        } else {
+            upcomingReminders.joinToString(" · ") { reminder ->
+                val title = reminder.title.ifBlank { context.getString(R.string.reminder_default_title) }
+                "${reminder.dueDate}: $title"
+            }
+        }
+
+        val overspendCount = countOverspentCategories(context, budgetManager)
+        val overspendLine = if (overspendCount > 0) {
+            context.resources.getQuantityString(R.plurals.main_overspend_summary, overspendCount, overspendCount)
+        } else {
+            null
+        }
+
+        val cal = Calendar.getInstance()
+        val unpaid = utilityDao.countUnpaidBillsForMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
+        val utilitiesLine = if (unpaid > 0) {
+            context.resources.getQuantityString(R.plurals.main_utilities_unpaid_summary, unpaid, unpaid)
+        } else {
+            null
+        }
+
+        val activeId = budgetManager.getActiveBudgetId()
+        val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
+        val obligationsLine = if (obligations.isEmpty()) {
+            null
+        } else {
+            context.getString(
+                R.string.main_obligations_summary,
+                MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
+                MoneyFormat.formatRub(PlannedObligationHelper.totalPerPaycheck(obligations)),
+            )
+        }
+
+        val pending = PendingDistributionPreferences.getPending(context)
+        val pendingDistributionLine = if (pending != null && pending.budgetId == activeId && pending.amount > 0.01) {
+            context.getString(R.string.main_pending_distribution, MoneyFormat.formatRub(pending.amount))
+        } else {
+            null
+        }
+
+        val endCal = Calendar.getInstance().apply { add(Calendar.DATE, 7) }
+        val endStr = todayFmt.format(endCal.time)
+        val remindersWeek = dao.getRemindersInRange(today, endStr)
+        val recurringWeek = dao.getRecurringInRange(today, endStr)
+        val categories = budgetManager.getCategoriesAsync()
+        val categoryNames = categories.associate { it.id to it.name }
+        val calendarCount = PaymentCalendarHelper.buildEntries(
+            reminders = remindersWeek,
+            recurring = recurringWeek,
+            unpaidBills = emptyList(),
+            obligations = obligations,
+            categoryNames = categoryNames,
+            todayEpochDay = LocalDate.now().toEpochDay(),
+            horizonDays = 7,
+        ).size
+        val upcomingPaymentsLine = if (calendarCount > 0) {
+            context.resources.getQuantityString(
+                R.plurals.main_upcoming_payments_summary,
+                calendarCount,
+                calendarCount,
+            )
+        } else {
+            null
+        }
+
+        return MainDashboardSummary(
+            remindersLine = remindersLine,
+            overspendLine = overspendLine,
+            utilitiesLine = utilitiesLine,
+            obligationsLine = obligationsLine,
+            pendingDistributionLine = pendingDistributionLine,
+            upcomingPaymentsLine = upcomingPaymentsLine,
+            goalsLine = buildUrgentGoalsLine(context, budgetManager),
+        )
+    }
+
+    private suspend fun countOverspentCategories(context: Context, budgetManager: BudgetManager): Int {
+        if (!OverspendPreferences.isEnabled(context)) return 0
+        val threshold = OverspendPreferences.getThresholdPercent(context) / 100.0
+        val monthStart = Calendar.getInstance().apply {
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val expenseByCategory = BudgetDatabase.getInstance(context)
+            .budgetDao()
+            .getExpenseSumsSince(monthStart)
+            .associate { it.categoryId to it.total }
+        val categories = budgetManager.getCategoriesAsync()
+        return categories.count { category ->
+            !budgetManager.hasSubcategories(category.id) &&
+                category.plannedAmount > 0.0 &&
+                (expenseByCategory[category.id] ?: 0.0) >= category.plannedAmount * threshold
+        }
+    }
+
+    private suspend fun buildUrgentGoalsLine(context: Context, budgetManager: BudgetManager): String? {
+        val goals = budgetManager.repository.getAllSavingsGoals().first().filter { it.isActive }
+        val lines = goals.mapNotNull { goal ->
+            val progress = GoalProgressHelper.progressPercent(
+                budgetManager.getCategoryBalanceWithSubcategories(goal.categoryId),
+                goal.targetAmount,
+            )
+            val days = GoalProgressHelper.daysUntilDeadline(goal.deadline) ?: return@mapNotNull null
+            if (days > 7 && progress >= 20) return@mapNotNull null
+            val deadlineLabel = when {
+                days == 0 -> context.getString(R.string.goals_deadline_today)
+                days > 0 -> context.getString(R.string.goals_days_left, days)
+                else -> context.getString(R.string.goals_days_overdue, -days)
+            }
+            "${goal.name}: $progress% • $deadlineLabel"
+        }.take(2)
+        return lines.joinToString("\n").ifBlank { null }
+    }
+}

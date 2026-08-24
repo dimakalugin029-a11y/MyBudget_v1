@@ -232,6 +232,42 @@ class BudgetManager private constructor(context: Context) {
         }
     }
 
+    suspend fun deleteSubcategoryWithTransfer(
+        categoryId: Int,
+        targetCategoryId: Int? = null,
+        recordAudit: Boolean = true,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val category = categoriesCache.firstOrNull { it.id == categoryId } ?: return@withContext false
+        if (category.parentId == 0) return@withContext false
+        val balance = category.currentBalance
+        if (balance != 0.0) {
+            val targetId = targetCategoryId ?: return@withContext false
+            if (targetId == categoryId) return@withContext false
+            repository.transferBetweenLeafCategories(categoryId, targetId, balance)
+        }
+        repository.deleteCategory(categoryId)
+        if (recordAudit) {
+            val targetName = targetCategoryId?.let { id ->
+                categoriesCache.firstOrNull { it.id == id }?.name
+                    ?: repository.getCategoryById(id)?.name
+            }
+            AuditLogHelper.recordCategoryDeleted(
+                repository,
+                AuditLogHelper.CategoryDeletePayload(
+                    categoryId = category.id,
+                    categoryName = category.name,
+                    parentId = category.parentId,
+                    budgetId = category.budgetId,
+                    balance = balance,
+                    targetCategoryId = targetCategoryId,
+                    targetCategoryName = targetName,
+                ),
+            )
+        }
+        reloadCategoriesFromDatabase()
+        true
+    }
+
     fun getTotalBalance(budgetId: Int = getActiveBudgetId()): Double {
         return getRootCategories(budgetId).sumOf { getCategoryBalanceWithSubcategories(it.id) }
     }
@@ -251,11 +287,14 @@ class BudgetManager private constructor(context: Context) {
 
     fun getCategoryBalanceWithSubcategories(categoryId: Int): Double {
         val category = categoriesCache.firstOrNull { it.id == categoryId } ?: return 0.0
-        val subs = getSubCategories(categoryId)
-        return if (subs.isNotEmpty()) subs.sumOf { it.currentBalance } else category.currentBalance
+        return category.currentBalance
     }
 
-    fun getParentRemainingBalance(categoryId: Int): Double = 0.0
+    fun getParentRemainingBalance(categoryId: Int): Double {
+        val parent = categoriesCache.firstOrNull { it.id == categoryId } ?: return 0.0
+        val childrenSum = getSubCategories(categoryId).sumOf { it.currentBalance }
+        return (parent.currentBalance - childrenSum).coerceAtLeast(0.0)
+    }
 
     fun getTotalBalanceIncludingParent(categoryId: Int): Double {
         return getCategoryBalanceWithSubcategories(categoryId)
@@ -278,9 +317,32 @@ class BudgetManager private constructor(context: Context) {
     }
 
     suspend fun transferSubcategoryBalance(fromId: Int, toId: Int, amount: Double): Boolean {
+        if (amount <= 0.0 || fromId == toId) return false
         return withContext(Dispatchers.IO) {
+            getCategoriesAsync()
+            val from = categoriesCache.firstOrNull { it.id == fromId } ?: return@withContext false
+            val to = categoriesCache.firstOrNull { it.id == toId } ?: return@withContext false
+            if (from.parentId == 0 || to.parentId == 0) return@withContext false
+            if (hasSubcategories(fromId) || hasSubcategories(toId)) return@withContext false
+            if (from.currentBalance + 1.0E-9 < amount) return@withContext false
             repository.transferBetweenLeafCategories(fromId, toId, amount)
             loadCategoriesFromDatabase(persistParentFixes = false)
+            true
+        }
+    }
+
+    suspend fun distributeParentRemainder(
+        parentId: Int,
+        items: List<Pair<Int, Double>>,
+        description: String,
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            loadCategoriesFromDatabase(persistParentFixes = false)
+            val leftover = getParentRemainingBalance(parentId)
+            val total = items.sumOf { it.second }
+            if (items.isEmpty() || total <= 0.0 || total > leftover + 0.01) return@withContext false
+            applyTransactionGroup(items, "income", description)
+            recordTransaction(parentId, total, "expense", description)
             true
         }
     }
@@ -291,7 +353,7 @@ class BudgetManager private constructor(context: Context) {
             val children = source.filter { it.parentId == parent.id && it.isActive }
             if (children.isEmpty()) continue
             val total = children.sumOf { it.currentBalance }
-            if (parent.currentBalance != total) {
+            if (parent.currentBalance + 0.005 < total) {
                 parent.currentBalance = total
                 repository.updateCategory(parent)
             }

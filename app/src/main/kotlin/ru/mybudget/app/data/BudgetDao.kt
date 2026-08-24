@@ -314,6 +314,12 @@ abstract class BudgetDao {
     @Query("DELETE FROM planned_obligations")
     abstract suspend fun deleteAllPlannedObligations()
 
+    @Query("DELETE FROM monthly_category_plans")
+    abstract suspend fun deleteAllMonthlyPlans()
+
+    @Query("DELETE FROM audit_actions")
+    abstract suspend fun deleteAllAuditActions()
+
     @Transaction
     open suspend fun applyAmountToCategoryAndUpdateParent(categoryId: Int, amount: Double) {
         recordTransaction(
@@ -331,9 +337,8 @@ abstract class BudgetDao {
         val category = getCategoryById(categoryId) ?: return
         updateCategory(category.copy(currentBalance = category.currentBalance + amount))
         if (category.parentId == 0) return
-        val subs = getSubCategoriesOnce(category.parentId)
         val parent = getCategoryById(category.parentId) ?: return
-        updateCategory(parent.copy(currentBalance = subs.sumOf { it.currentBalance }))
+        updateCategory(parent.copy(currentBalance = parent.currentBalance + amount))
     }
 
     @Transaction

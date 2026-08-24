@@ -45,4 +45,21 @@ object PlannedObligationHelper {
     fun unlinkedCount(obligations: List<PlannedObligationEntity>): Int {
         return obligations.count { it.categoryId <= 0 }
     }
+
+    fun monthlyPlanByCategory(obligations: List<PlannedObligationEntity>): Map<Int, Double> {
+        val map = linkedMapOf<Int, Double>()
+        obligations.filter { it.isActive && it.categoryId > 0 }.forEach { item ->
+            val current = map[item.categoryId] ?: 0.0
+            map[item.categoryId] = MoneyFormat.roundMoney(current + monthlyEquivalent(item))
+        }
+        return map
+    }
+
+    fun effectivePlan(plannedAmount: Double, obligationMonthly: Double): Double {
+        return when {
+            plannedAmount > 0.0 -> plannedAmount
+            obligationMonthly > 0.0 -> obligationMonthly
+            else -> 0.0
+        }
+    }
 }

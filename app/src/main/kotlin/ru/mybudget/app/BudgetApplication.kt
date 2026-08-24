@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import ru.mybudget.app.backup.AutoBackupScheduler
 import ru.mybudget.app.setup.AppLockPreferences
 
 class BudgetApplication : Application(), Application.ActivityLifecycleCallbacks {
@@ -23,6 +24,8 @@ class BudgetApplication : Application(), Application.ActivityLifecycleCallbacks 
         registerActivityLifecycleCallbacks(this)
         applyThemeFromPreferences()
         BudgetManager.getInstance(this)
+        AutoBackupScheduler.ensureScheduled(this)
+        ReminderScheduler.ensureScheduled(this)
     }
 
     private fun applyThemeFromPreferences() {

@@ -34,6 +34,8 @@ object ScreenHintHelper {
         const val REMINDERS = "hint_reminders"
         const val UTILITY_TEMPLATE = "hint_utility_template"
         const val UTILITY_TARIFFS = "hint_utility_tariffs"
+        const val UTILITY_METERS_EXCEL = "hint_utility_meters_excel"
+        const val UTILITIES_SETUP = "hint_utilities_setup"
     }
 
     fun bind(

@@ -1,15 +1,113 @@
 package ru.mybudget.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.RadioGroup
+import android.widget.Spinner
+import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import ru.mybudget.app.backup.AutoBackupScheduler
+import ru.mybudget.app.backup.AutoBackupWorker
+import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.security.AutoBackupSecrets
+import ru.mybudget.app.security.BackupCrypto
+import ru.mybudget.app.setup.AppLockPreferences
+import ru.mybudget.app.setup.AutoBackupPreferences
+import ru.mybudget.app.setup.BudgetTemplateId
+import ru.mybudget.app.setup.BudgetTemplates
+import ru.mybudget.app.setup.ParticipantPreferences
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
+    private lateinit var backupManager: BackupManager
+    private var loadingDialog: AlertDialog? = null
+    private var pendingExportPassword: String? = null
+    private var pendingImportUri: Uri? = null
+
+    private val exportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json"),
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val password = pendingExportPassword
+        pendingExportPassword = null
+        showLoadingDialog(getString(R.string.settings_export_loading))
+        lifecycleScope.launch {
+            val ok = withContext(Dispatchers.IO) {
+                backupManager.exportToFile(uri, password)
+            }
+            hideLoadingDialog()
+            if (ok) {
+                Toast.makeText(this@SettingsActivity, R.string.settings_backup_export_done, Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this@SettingsActivity, R.string.settings_backup_export_failed, Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    private val importLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            val content = withContext(Dispatchers.IO) { backupManager.readFileContent(uri) }
+            if (content.isNullOrBlank()) {
+                Toast.makeText(
+                    this@SettingsActivity,
+                    R.string.backup_import_cannot_read_file,
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@launch
+            }
+            if (BackupCrypto.isEncryptedJson(content)) {
+                pendingImportUri = uri
+                showImportPasswordDialog()
+            } else {
+                confirmImport(uri, null)
+            }
+        }
+    }
+
+    private val autoBackupFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        val persisted = runCatching {
+            contentResolver.takePersistableUriPermission(uri, flags)
+        }.isSuccess || runCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }.isSuccess
+        if (!persisted) {
+            Toast.makeText(this, R.string.auto_backup_folder_unavailable, Toast.LENGTH_LONG).show()
+            return@registerForActivityResult
+        }
+        AutoBackupPreferences.setFolderUri(this, uri)
+        refreshAutoBackupFolderLabel()
+        if (AutoBackupPreferences.isEnabled(this)) {
+            AutoBackupScheduler.applyFromSettings(this, runImmediately = true)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -19,6 +117,53 @@ class SettingsActivity : AppCompatActivity() {
             getString(R.string.main_icon_settings),
         )
 
+        backupManager = BackupManager(this)
+        setupThemeSelector()
+        setupAppLockSettings()
+        setupBackupButtons()
+        setupAutoBackup()
+        setupParticipants()
+
+        findViewById<View>(R.id.defaultAmountsButton).setOnClickListener {
+            startActivity(Intent(this, DefaultAmountsActivity::class.java))
+        }
+        findViewById<View>(R.id.rolloverButton).setOnClickListener {
+            startActivity(Intent(this, RolloverActivity::class.java))
+        }
+        findViewById<View>(R.id.monthStartButton).setOnClickListener {
+            startActivity(Intent(this, MonthStartActivity::class.java))
+        }
+        findViewById<View>(R.id.templatesButton).setOnClickListener {
+            showTemplatesDialog()
+        }
+        findViewById<View>(R.id.helpButton).setOnClickListener {
+            startActivity(Intent(this, HelpActivity::class.java))
+        }
+        findViewById<View>(R.id.aboutButton).setOnClickListener {
+            startActivity(Intent(this, AboutActivity::class.java))
+        }
+    }
+
+    override fun onDestroy() {
+        hideLoadingDialog()
+        super.onDestroy()
+    }
+
+    private fun setupParticipants() {
+        val input = findViewById<EditText>(R.id.participantsInput)
+        input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
+        findViewById<Button>(R.id.saveParticipantsButton).setOnClickListener {
+            val names = input.text.toString()
+                .split('\n', ',')
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+            ParticipantPreferences.setNames(this, names)
+            input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
+            Toast.makeText(this, R.string.settings_participants_saved, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupThemeSelector() {
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)
         val current = prefs.getString(BudgetApplication.KEY_THEME, BudgetApplication.VALUE_LIGHT)
         val checkedId = when (current) {
@@ -42,36 +187,388 @@ class SettingsActivity : AppCompatActivity() {
                 },
             )
         }
+    }
 
-        findViewById<View>(R.id.defaultAmountsButton).setOnClickListener {
-            startActivity(Intent(this, DefaultAmountsActivity::class.java))
-        }
-        findViewById<View>(R.id.rolloverButton).setOnClickListener {
-            startActivity(Intent(this, RolloverActivity::class.java))
-        }
-        findViewById<View>(R.id.monthStartButton).setOnClickListener {
-            startActivity(Intent(this, MonthStartActivity::class.java))
-        }
-        findViewById<View>(R.id.templatesButton).setOnClickListener {
-            startActivity(Intent(this, BudgetActivity::class.java))
-        }
-        findViewById<View>(R.id.helpButton).setOnClickListener {
-            startActivity(Intent(this, HelpActivity::class.java))
-        }
-        findViewById<View>(R.id.aboutButton).setOnClickListener {
-            startActivity(Intent(this, AboutActivity::class.java))
-        }
-        findViewById<View>(R.id.exportButton).setOnClickListener {
-            Toast.makeText(this, R.string.settings_backup_hint, Toast.LENGTH_LONG).show()
-        }
-        findViewById<View>(R.id.importButton).setOnClickListener {
-            Toast.makeText(this, R.string.settings_backup_hint, Toast.LENGTH_LONG).show()
-        }
-        findViewById<SwitchCompat>(R.id.appLockSwitch).setOnCheckedChangeListener { button, checked ->
-            if (checked) {
+    private fun setupAppLockSettings() {
+        val lockSwitch = findViewById<SwitchCompat>(R.id.appLockSwitch)
+        val setPinButton = findViewById<Button>(R.id.setPinButton)
+        lockSwitch.isChecked = AppLockPreferences.isEnabled(this)
+        setPinButton.setText(
+            if (AppLockPreferences.hasPin(this)) R.string.lock_change_pin else R.string.lock_set_pin,
+        )
+        setPinButton.setOnClickListener { showSetPinDialog() }
+        lockSwitch.setOnCheckedChangeListener { button, checked ->
+            if (checked && !AppLockPreferences.hasPin(this)) {
                 button.isChecked = false
-                Toast.makeText(this, R.string.lock_settings_hint, Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.lock_set_pin, Toast.LENGTH_SHORT).show()
+                showSetPinDialog()
+            } else {
+                AppLockPreferences.setEnabled(this, checked)
+                if (checked) AppLockPreferences.markUnlocked(this)
             }
         }
+    }
+
+    private fun showSetPinDialog() {
+        val first = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            hint = getString(R.string.lock_pin_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.lock_set_pin_title)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val pin1 = first.text.toString()
+                if (pin1.length < 4) {
+                    Toast.makeText(this, R.string.lock_pin_too_short, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val confirm = EditText(this).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_NUMBER or
+                        android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                }
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.lock_confirm_pin_title)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        if (confirm.text.toString() != pin1) {
+                            Toast.makeText(this, R.string.lock_pin_mismatch, Toast.LENGTH_SHORT).show()
+                            return@setPositiveButton
+                        }
+                        AppLockPreferences.setPin(this, pin1)
+                        AppLockPreferences.setEnabled(this, true)
+                        findViewById<SwitchCompat>(R.id.appLockSwitch).isChecked = true
+                        findViewById<Button>(R.id.setPinButton).setText(R.string.lock_change_pin)
+                        Toast.makeText(this, R.string.lock_pin_set_done, Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .showWithIme(confirm)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .showWithIme(first)
+    }
+
+    private fun setupBackupButtons() {
+        findViewById<MaterialButton>(R.id.exportButton).setOnClickListener {
+            showExportModeDialog()
+        }
+        findViewById<MaterialButton>(R.id.importButton).setOnClickListener {
+            importLauncher.launch(arrayOf("application/json", "*/*"))
+        }
+    }
+
+    private fun setupAutoBackup() {
+        val enableSwitch = findViewById<SwitchCompat>(R.id.autoBackupSwitch)
+        val encryptSwitch = findViewById<SwitchCompat>(R.id.autoBackupEncryptSwitch)
+        val intervalSpinner = findViewById<Spinner>(R.id.autoBackupIntervalSpinner)
+        val labels = listOf(
+            getString(R.string.auto_backup_interval_7),
+            getString(R.string.auto_backup_interval_14),
+            getString(R.string.auto_backup_interval_30),
+            getString(R.string.auto_backup_interval_60),
+        )
+        intervalSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, labels)
+        intervalSpinner.setSelection(AutoBackupPreferences.intervalIndex(this), false)
+        intervalSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val days = AutoBackupPreferences.INTERVAL_DAYS.getOrElse(position) { 7 }
+                if (days == AutoBackupPreferences.intervalDays(this@SettingsActivity)) return
+                AutoBackupPreferences.setIntervalDays(this@SettingsActivity, days)
+                if (AutoBackupPreferences.isEnabled(this@SettingsActivity)) {
+                    AutoBackupScheduler.applyFromSettings(this@SettingsActivity, runImmediately = false)
+                }
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        enableSwitch.setOnCheckedChangeListener(null)
+        enableSwitch.isChecked = AutoBackupPreferences.isEnabled(this)
+        enableSwitch.setOnCheckedChangeListener { button, checked ->
+            if (checked && AutoBackupPreferences.folderUri(this) == null) {
+                button.isChecked = false
+                Toast.makeText(this, R.string.auto_backup_no_folder, Toast.LENGTH_LONG).show()
+                return@setOnCheckedChangeListener
+            }
+            AutoBackupPreferences.setEnabled(this, checked)
+            if (!checked) {
+                encryptSwitch.setOnCheckedChangeListener(null)
+                encryptSwitch.isChecked = false
+                encryptSwitch.setOnCheckedChangeListener(encryptListener)
+            }
+            AutoBackupScheduler.applyFromSettings(this, runImmediately = checked)
+        }
+        encryptSwitch.setOnCheckedChangeListener(null)
+        encryptSwitch.isChecked = AutoBackupPreferences.isEncryptEnabled(this)
+        encryptSwitch.setOnCheckedChangeListener(encryptListener)
+        findViewById<Button>(R.id.autoBackupFolderButton).setOnClickListener {
+            autoBackupFolderLauncher.launch(AutoBackupPreferences.folderUri(this))
+        }
+        refreshAutoBackupFolderLabel()
+    }
+
+    private val encryptListener = CompoundButton.OnCheckedChangeListener { button, checked ->
+        if (checked) {
+            showAutoBackupPasswordDialog(button)
+        } else {
+            AutoBackupPreferences.setEncrypt(this, false)
+            if (AutoBackupPreferences.isEnabled(this)) {
+                AutoBackupScheduler.applyFromSettings(this, runImmediately = false)
+            }
+        }
+    }
+
+    private fun showAutoBackupPasswordDialog(switch: CompoundButton) {
+        val first = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = getString(R.string.settings_backup_password_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.auto_backup_password_title)
+            .setMessage(R.string.auto_backup_password_message)
+            .setView(first)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val password = first.text.toString()
+                if (password.length < 4) {
+                    switch.isChecked = false
+                    Toast.makeText(this, R.string.settings_backup_password_too_short, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val confirm = EditText(this).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+                }
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.settings_backup_password_confirm_title)
+                    .setView(confirm)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        if (confirm.text.toString() != password) {
+                            switch.isChecked = false
+                            Toast.makeText(this, R.string.settings_backup_password_mismatch, Toast.LENGTH_SHORT).show()
+                            return@setPositiveButton
+                        }
+                        if (!AutoBackupSecrets.savePassword(this, password)) {
+                            switch.isChecked = false
+                            Toast.makeText(this, R.string.auto_backup_encrypt_unavailable, Toast.LENGTH_LONG).show()
+                            return@setPositiveButton
+                        }
+                        AutoBackupPreferences.setEncrypt(this, true)
+                        if (AutoBackupPreferences.isEnabled(this)) {
+                            AutoBackupScheduler.applyFromSettings(this, runImmediately = true)
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel) { _, _ -> switch.isChecked = false }
+                    .showWithIme(confirm)
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ -> switch.isChecked = false }
+            .showWithIme(first)
+    }
+
+    private fun refreshAutoBackupFolderLabel() {
+        val text = findViewById<TextView>(R.id.autoBackupFolderText)
+        val uri = AutoBackupPreferences.folderUri(this)
+        text.text = if (uri == null) {
+            getString(R.string.auto_backup_folder_not_selected)
+        } else {
+            getString(
+                R.string.auto_backup_folder_selected,
+                AutoBackupWorker.folderDisplayName(this, uri),
+            )
+        }
+    }
+
+    private fun showExportModeDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_export_mode_title)
+            .setItems(
+                arrayOf(
+                    getString(R.string.settings_export_mode_plain),
+                    getString(R.string.settings_export_mode_encrypted),
+                ),
+            ) { _, which ->
+                when (which) {
+                    0 -> launchExport(null, encrypted = false)
+                    1 -> showExportPasswordDialog()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showExportPasswordDialog() {
+        val first = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = getString(R.string.settings_backup_password_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_backup_password_title)
+            .setView(first)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val password = first.text.toString()
+                if (password.length < 4) {
+                    Toast.makeText(this, R.string.settings_backup_password_too_short, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val confirm = EditText(this).apply {
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                        android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+                }
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.settings_backup_password_confirm_title)
+                    .setView(confirm)
+                    .setPositiveButton(android.R.string.ok) { _, _ ->
+                        if (confirm.text.toString() != password) {
+                            Toast.makeText(this, R.string.settings_backup_password_mismatch, Toast.LENGTH_SHORT).show()
+                        } else {
+                            launchExport(password, encrypted = true)
+                        }
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .showWithIme(confirm)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .showWithIme(first)
+    }
+
+    private fun launchExport(password: String?, encrypted: Boolean) {
+        pendingExportPassword = password
+        val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+        val suffix = if (encrypted) "_encrypted" else ""
+        exportLauncher.launch("MyBudget_backup_${date}$suffix.json")
+    }
+
+    private fun showImportPasswordDialog() {
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = getString(R.string.settings_backup_password_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_backup_import_password_title)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val uri = pendingImportUri ?: return@setPositiveButton
+                val password = input.text.toString()
+                if (password.isBlank()) {
+                    Toast.makeText(this, R.string.backup_import_password_required, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                pendingImportUri = null
+                confirmImport(uri, password)
+            }
+            .setNegativeButton(android.R.string.cancel) { _, _ ->
+                pendingImportUri = null
+            }
+            .showWithIme(input)
+    }
+
+    private fun confirmImport(uri: Uri, password: String?) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_import_title)
+            .setMessage(R.string.settings_import_confirm)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                showLoadingDialog(getString(R.string.settings_import_loading))
+                lifecycleScope.launch {
+                    val result = withContext(Dispatchers.IO) {
+                        backupManager.importFromFile(uri, password)
+                    }
+                    hideLoadingDialog()
+                    if (result.success) {
+                        withContext(Dispatchers.IO) {
+                            BudgetManager.getInstance(this@SettingsActivity).reloadCategoriesFromDatabase()
+                        }
+                        Toast.makeText(
+                            this@SettingsActivity,
+                            result.message ?: getString(R.string.backup_import_success_version, result.backupVersion),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this@SettingsActivity,
+                            result.message ?: getString(R.string.backup_import_failed, ""),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showTemplatesDialog() {
+        val labels = arrayOf(
+            getString(R.string.template_minimal),
+            getString(R.string.template_extended),
+            getString(R.string.template_full),
+            getString(R.string.template_custom),
+        )
+        val ids = arrayOf(
+            BudgetTemplateId.MINIMAL,
+            BudgetTemplateId.EXTENDED,
+            BudgetTemplateId.FULL,
+            BudgetTemplateId.CUSTOM,
+        )
+        AlertDialog.Builder(this)
+            .setTitle(R.string.template_dialog_title)
+            .setItems(labels) { _, which ->
+                confirmApplyTemplate(ids[which], labels[which])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmApplyTemplate(templateId: BudgetTemplateId, label: String) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.template_confirm_title)
+            .setMessage(getString(R.string.template_confirm_message, label))
+            .setPositiveButton(R.string.template_apply) { _, _ ->
+                applyTemplate(templateId)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun applyTemplate(templateId: BudgetTemplateId) {
+        showLoadingDialog(getString(R.string.template_applying))
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val db = BudgetDatabase.getInstance(this@SettingsActivity)
+                BudgetTemplates.apply(db.budgetDao(), db.utilityDao(), templateId, this@SettingsActivity)
+                BudgetManager.getInstance(this@SettingsActivity).reloadCategoriesFromDatabase()
+                delay(200)
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    BudgetWidgetProvider.updateAll(this@SettingsActivity)
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        R.string.template_applied,
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    hideLoadingDialog()
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        R.string.welcome_apply_error,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+        }
+    }
+
+    private fun showLoadingDialog(message: String) {
+        hideLoadingDialog()
+        loadingDialog = AlertDialog.Builder(this)
+            .setMessage(message)
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun hideLoadingDialog() {
+        loadingDialog?.dismiss()
+        loadingDialog = null
     }
 }

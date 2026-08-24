@@ -51,6 +51,14 @@ object MonthlyPlanHelper {
         return 0.0
     }
 
+    fun effectivePlannedAmount(category: BudgetCategory, monthlyPlan: MonthlyCategoryPlanEntity?): Double {
+        if (monthlyPlan != null) {
+            if (!monthlyPlan.isEnabled) return 0.0
+            if (monthlyPlan.plannedAmount > 0.0) return monthlyPlan.plannedAmount
+        }
+        return if (category.plannedAmount > 0.0) category.plannedAmount else 0.0
+    }
+
     fun shiftMonth(year: Int, month: Int, delta: Int): MonthKey {
         val cal = Calendar.getInstance().apply {
             set(Calendar.YEAR, year)

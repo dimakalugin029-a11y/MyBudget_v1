@@ -36,7 +36,7 @@ class BudgetProfilesActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.addBudgetProfileButton).setOnClickListener { showAddDialog() }
         findViewById<View>(R.id.transferBetweenBudgetsButton).setOnClickListener {
-            Toast.makeText(this, R.string.budget_transfer_title, Toast.LENGTH_SHORT).show()
+            BudgetTransferDialog.show(this, manager) { reload() }
         }
     }
 

@@ -2,7 +2,10 @@ package ru.mybudget.app.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import ru.mybudget.app.BudgetApplication
 import ru.mybudget.app.BudgetCategory
+import ru.mybudget.app.MoneyFormat
+import ru.mybudget.app.OverspendNotifier
 
 class BudgetRepository(private val budgetDao: BudgetDao) {
 
@@ -97,6 +100,9 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         date: Long = System.currentTimeMillis(),
     ) {
         budgetDao.recordTransaction(categoryId, amount, type, description, groupId, date)
+        if (type == "expense") {
+            OverspendNotifier.checkAfterExpense(BudgetApplication.instance, categoryId)
+        }
     }
 
     suspend fun applyTransactionGroup(
@@ -114,6 +120,12 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
             groupId = groupId,
             date = date,
         )
+        if (type == "expense") {
+            val app = BudgetApplication.instance
+            for ((categoryId, _) in items) {
+                OverspendNotifier.checkAfterExpense(app, categoryId)
+            }
+        }
     }
 
     suspend fun addTransaction(
@@ -164,6 +176,30 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun cancelTransaction(transaction: TransactionEntity) {
         budgetDao.revertAndDeleteTransaction(transaction)
+    }
+
+    suspend fun correctTransaction(
+        original: TransactionEntity,
+        newCategoryId: Int,
+        newAmount: Double,
+        newType: String,
+        newDescription: String,
+        newParticipantLabel: String = original.participantLabel,
+    ) {
+        val rounded = MoneyFormat.roundMoney(newAmount)
+        val revert = if (original.type == "income") -original.amount else original.amount
+        budgetDao.applyBalanceDelta(original.categoryId, revert)
+        val apply = if (newType == "income") rounded else -rounded
+        budgetDao.applyBalanceDelta(newCategoryId, apply)
+        budgetDao.updateTransaction(
+            original.copy(
+                categoryId = newCategoryId,
+                amount = rounded,
+                type = newType,
+                description = newDescription,
+                participantLabel = newParticipantLabel.trim(),
+            ),
+        )
     }
 
     suspend fun cancelTransactionGroup(groupId: String) = budgetDao.cancelTransactionGroup(groupId)

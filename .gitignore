@@ -29,6 +29,9 @@ tools/jadx.zip
 /platform-tools/
 /platforms/
 /sources/
+/system-images/
+/skins/
+/.downloadIntermediates/
 .knownPackages
 
 # Personal user data — never push

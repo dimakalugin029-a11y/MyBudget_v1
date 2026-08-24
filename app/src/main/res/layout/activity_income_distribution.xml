@@ -6,6 +6,7 @@
     android:layout_height="match_parent">
     <LinearLayout
         android:orientation="vertical"
+        android:id="@+id/incomeDistributionContent"
         android:paddingLeft="@dimen/space_16"
         android:paddingTop="@dimen/space_12"
         android:paddingRight="@dimen/space_16"
@@ -133,6 +134,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:elevation="@dimen/card_elevation_low"
+        app:behavior_fitToContents="true"
+        app:behavior_hideable="false"
+        app:behavior_peekHeight="64dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
         <include layout="@layout/include_bottom_sheet_handle"/>
         <LinearLayout

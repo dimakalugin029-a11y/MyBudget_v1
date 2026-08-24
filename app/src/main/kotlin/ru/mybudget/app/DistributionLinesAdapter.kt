@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 class DistributionLinesAdapter(
     private val onAmountChanged: (categoryId: Int, amount: Double) -> Unit,
     private val onRemove: (categoryId: Int) -> Unit,
+    private val onAmountFocused: () -> Unit = {},
 ) : RecyclerView.Adapter<DistributionLinesAdapter.Holder>() {
     private var items: List<Line> = emptyList()
 
@@ -56,6 +57,15 @@ class DistributionLinesAdapter(
 
         init {
             amount.addTextChangedListener(watcher)
+            amount.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus) return@setOnFocusChangeListener
+                onAmountFocused()
+                val parent = itemView.parent as? RecyclerView ?: return@setOnFocusChangeListener
+                parent.post {
+                    val rect = android.graphics.Rect(0, 0, itemView.width, itemView.height)
+                    parent.requestChildRectangleOnScreen(itemView, rect, false)
+                }
+            }
         }
 
         fun bind(line: Line) {

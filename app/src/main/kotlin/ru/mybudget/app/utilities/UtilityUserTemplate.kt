@@ -21,13 +21,15 @@ object UtilityUserTemplate {
     const val LINE_AMOUNT_ONLY = UtilityTemplateLineEntity.LINE_MODE_AMOUNT_ONLY
     const val PAYMENT_DESCRIPTION_PREFIX = "Коммуналка "
 
+    private val RU = Locale("ru")
+
     fun formatPeriod(year: Int, month: Int): String {
         val cal = Calendar.getInstance().apply {
             set(Calendar.YEAR, year)
             set(Calendar.MONTH, month - 1)
             set(Calendar.DAY_OF_MONTH, 1)
         }
-        return SimpleDateFormat("LLLL yyyy", Locale.getDefault()).format(cal.time)
+        return SimpleDateFormat("LLLL yyyy", RU).format(cal.time)
     }
 
     fun computedAmount(quantity: Double?, tariff: Double?): Double? {
@@ -55,7 +57,7 @@ object UtilityUserTemplate {
         val period = formatPeriod(year, month)
         if (period.isEmpty()) return period
         return period.replaceFirstChar { ch ->
-            if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
+            if (ch.isLowerCase()) ch.titlecase(RU) else ch.toString()
         }
     }
 
@@ -65,6 +67,17 @@ object UtilityUserTemplate {
             UtilitySectionWithLines(section, dao.getLineItemsForSection(section.id))
         }
         return UtilityBillDetail(bill, sections)
+    }
+
+    suspend fun clearAllData(dao: UtilityDao) {
+        dao.deleteAllMeterInfo()
+        dao.deleteAllMeterReadings()
+        dao.deleteAllTariffs()
+        dao.deleteAllTemplateLines()
+        dao.deleteAllTemplateSections()
+        dao.deleteAllLineItems()
+        dao.deleteAllSections()
+        dao.deleteAllBills()
     }
 
     suspend fun getTemplateWithLines(dao: UtilityDao): List<UtilityTemplateSectionWithLines> {
@@ -159,6 +172,57 @@ object UtilityUserTemplate {
                         quantity = null,
                         tariff = tariff,
                         amount = 0.0,
+                        sortOrder = line.sortOrder,
+                    ),
+                )
+            }
+        }
+        return billId
+    }
+
+    suspend fun copyBillFromPreviousMonth(
+        dao: UtilityDao,
+        targetYear: Int,
+        targetMonth: Int,
+        copyAmounts: Boolean,
+    ): Int? {
+        dao.getBillByPeriod(targetYear, targetMonth)?.let { return it.id }
+        val previous = dao.getAllBills()
+            .filter { it.year < targetYear || (it.year == targetYear && it.month < targetMonth) }
+            .maxWithOrNull(compareBy({ it.year }, { it.month }))
+            ?: return null
+        val detail = loadBillDetail(dao, previous.id) ?: return null
+        val billId = dao.insertBill(
+            UtilityBillEntity(
+                year = targetYear,
+                month = targetMonth,
+                apartmentArea = previous.apartmentArea,
+            ),
+        ).toInt()
+        for (sectionWithLines in detail.sections) {
+            val sectionId = dao.insertSection(
+                UtilitySectionEntity(
+                    billId = billId,
+                    name = sectionWithLines.section.name,
+                    sortOrder = sectionWithLines.section.sortOrder,
+                ),
+            ).toInt()
+            for (line in sectionWithLines.lines) {
+                val quantity = if (copyAmounts) line.quantity else null
+                val tariff = line.tariff
+                val amount = if (copyAmounts) {
+                    line.amount
+                } else {
+                    computedAmount(quantity, tariff) ?: 0.0
+                }
+                dao.insertLineItem(
+                    UtilityLineItemEntity(
+                        sectionId = sectionId,
+                        groupLabel = line.groupLabel,
+                        name = line.name,
+                        quantity = quantity,
+                        tariff = tariff,
+                        amount = amount,
                         sortOrder = line.sortOrder,
                     ),
                 )

@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import ru.mybudget.app.setup.PendingDistributionPreferences
 
 class IncomeActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
@@ -156,6 +157,7 @@ class IncomeActivity : AppCompatActivity() {
             .putExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
         val note = descriptionInput.text.toString().trim()
         if (note.isNotEmpty()) intent.putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, note)
+        PendingDistributionPreferences.setPending(this, manager.getActiveBudgetId(), amount, note)
         startActivity(intent)
         amountInput.text.clear()
         descriptionInput.text.clear()

@@ -81,7 +81,20 @@ class ExpenseDistributionActivity : AppCompatActivity() {
             manager.getCategoriesAsync()
             leaves = manager.getCategoriesForExpenses()
             parents = manager.getRootCategories().associate { it.id to it.name }
+            applyPrefill()
             refreshList()
+        }
+    }
+
+    private fun applyPrefill() {
+        val ids = intent.getIntArrayExtra(EXTRA_PREFILL_CATEGORY_IDS) ?: return
+        val values = intent.getDoubleArrayExtra(EXTRA_PREFILL_AMOUNTS) ?: return
+        selectedIds = ids.toMutableList()
+        amounts.clear()
+        ids.forEachIndexed { index, id ->
+            if (index < values.size && values[index] > 0.0) {
+                amounts[id] = MoneyFormat.roundMoney(values[index])
+            }
         }
     }
 
@@ -179,5 +192,7 @@ class ExpenseDistributionActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_EXPENSE_NOTE = "expense_note"
         const val EXTRA_TOTAL_EXPENSE = "total_expense"
+        const val EXTRA_PREFILL_CATEGORY_IDS = "prefill_category_ids"
+        const val EXTRA_PREFILL_AMOUNTS = "prefill_amounts"
     }
 }
