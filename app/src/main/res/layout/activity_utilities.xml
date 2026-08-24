@@ -25,8 +25,16 @@
             android:textSize="13sp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
+            android:layout_marginBottom="@dimen/space_4"
             android:text="@string/utilities_subtitle"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <TextView
+            android:textSize="11sp"
+            android:textColor="@color/text_secondary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
+            android:text="@string/utility_month_checklist_legend"
             style="@style/Text.MyBudget.Subtitle"/>
         <FrameLayout
             android:layout_width="match_parent"

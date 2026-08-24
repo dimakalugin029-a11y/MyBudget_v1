@@ -418,13 +418,24 @@ class UtilitiesActivity : AppCompatActivity() {
             val builder = AlertDialog.Builder(this@UtilitiesActivity)
                 .setTitle(getString(R.string.utility_new_month_title, period))
                 .setMessage(R.string.utility_new_month_message)
-                .setPositiveButton(R.string.utility_new_month_create) { _, _ ->
-                    createMonthFromTemplate(year, month)
-                }
                 .setNegativeButton(android.R.string.cancel, null)
             if (hasPrev) {
-                builder.setNeutralButton(R.string.utility_copy_prev_with_amounts) { _, _ ->
-                    copyMonthFromPrevious(year, month, copyAmounts = true)
+                builder.setItems(
+                    arrayOf(
+                        getString(R.string.utility_new_month_create),
+                        getString(R.string.utility_copy_prev_with_amounts),
+                        getString(R.string.utility_copy_prev_structure),
+                    ),
+                ) { _, which ->
+                    when (which) {
+                        0 -> createMonthFromTemplate(year, month)
+                        1 -> copyMonthFromPrevious(year, month, copyAmounts = true)
+                        2 -> copyMonthFromPrevious(year, month, copyAmounts = false)
+                    }
+                }
+            } else {
+                builder.setPositiveButton(R.string.utility_new_month_create) { _, _ ->
+                    createMonthFromTemplate(year, month)
                 }
             }
             builder.show()

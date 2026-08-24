@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.utilities.UtilityBillDetail
+import ru.mybudget.app.utilities.UtilityMeterBillLinker
 import ru.mybudget.app.utilities.UtilityPayCategoryHelper
 import ru.mybudget.app.utilities.UtilityUserTemplate
 import java.util.UUID
@@ -75,9 +76,7 @@ class UtilityBillActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@UtilityBillActivity)
             this.adapter = this@UtilityBillActivity.adapter
         }
-        findViewById<View>(R.id.applyMetersButton).setOnClickListener {
-            Toast.makeText(this, R.string.utility_bill_meters_none, Toast.LENGTH_SHORT).show()
-        }
+        findViewById<View>(R.id.applyMetersButton).setOnClickListener { applyMetersToBill() }
         findViewById<View>(R.id.hideZeroLinesButton).setOnClickListener {
             hideZeroLines = !hideZeroLines
             lastDetail?.let { bindDetail(it) }
@@ -254,6 +253,62 @@ class UtilityBillActivity : AppCompatActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+
+    private fun applyMetersToBill() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = UtilityMeterBillLinker.applyMeterReadingsToBill(dao(), billId)
+            withContext(Dispatchers.Main) {
+                showMetersApplyResultDialog(result)
+                if (result.updatedLines > 0) loadBill()
+            }
+        }
+    }
+
+    private fun showMetersApplyResultDialog(result: UtilityMeterBillLinker.ApplyResult) {
+        if (result.updatedLines == 0 && result.changes.isEmpty()) {
+            val message = result.details.firstOrNull()
+                ?: getString(R.string.utility_bill_meters_dialog_empty)
+            AlertDialog.Builder(this)
+                .setTitle(R.string.utility_bill_meters_dialog_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+        val body = buildString {
+            append(
+                getString(
+                    R.string.utility_bill_meters_dialog_summary,
+                    result.updatedLines,
+                    result.skippedLines,
+                ),
+            )
+            append("\n\n")
+            result.changes.forEach { change ->
+                append(
+                    getString(
+                        R.string.utility_bill_meters_line_change,
+                        change.name,
+                        formatMeterQuantity(change.oldQuantity),
+                        formatMeterQuantity(change.newQuantity),
+                        formatMeterAmountChange(change.oldAmount, change.newAmount),
+                    ),
+                )
+                append("\n")
+            }
+        }.trim()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.utility_bill_meters_dialog_title)
+            .setMessage(body)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun formatMeterQuantity(value: Double?): String =
+        if (value == null) "—" else MoneyFormat.formatQuantity(value)
+
+    private fun formatMeterAmountChange(oldAmount: Double, newAmount: Double): String =
+        "${MoneyFormat.formatRub(oldAmount)} → ${MoneyFormat.formatRub(newAmount)}"
 
     private fun onPayFromBudgetClicked() {
         val detail = lastDetail ?: return
