@@ -1,49 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="@dimen/space_16"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/space_16">
     <TextView
-        android:textSize="12sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
         android:text="@string/meter_reading_date_label"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel" />
     <EditText
-        android:textColor="@color/text_primary"
         android:id="@+id/readingDateInput"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
-        android:focusable="false"
-        android:clickable="true"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
-        android:hint="@string/meter_reading_date_pick"
+        android:background="@drawable/edittext_border"
+        android:clickable="true"
         android:cursorVisible="false"
+        android:focusable="false"
+        android:hint="@string/meter_reading_date_pick"
+        android:importantForAutofill="no"
         android:inputType="none"
-        android:importantForAutofill="no"/>
-    <EditText
-        android:textColor="@color/text_primary"
-        android:id="@+id/readingValueInput"
-        android:background="@drawable/edittext_border"
         android:padding="@dimen/space_8"
+        android:textColor="@color/text_primary" />
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
         android:layout_marginTop="@dimen/space_12"
-        android:hint="@string/meter_reading_value"
-        android:inputType="numberDecimal"
-        android:importantForAutofill="no"/>
+        android:text="@string/meter_reading_value"
+        style="@style/Text.MyBudget.SectionLabel" />
     <EditText
-        android:textColor="@color/text_primary"
-        android:id="@+id/readingConsumptionInput"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:id="@+id/readingValueInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
-        android:hint="@string/meter_reading_consumption"
+        android:layout_marginTop="@dimen/space_4"
+        android:background="@drawable/edittext_border"
+        android:hint="@string/meter_reading_value"
+        android:importantForAutofill="no"
         android:inputType="numberDecimal"
-        android:importantForAutofill="no"/>
+        android:padding="@dimen/space_8"
+        android:textColor="@color/text_primary" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
+        android:layout_marginTop="@dimen/space_12"
+        android:text="@string/meter_reading_consumption"
+        style="@style/Text.MyBudget.SectionLabel" />
+    <EditText
+        android:id="@+id/readingConsumptionInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_4"
+        android:background="@drawable/edittext_border"
+        android:hint="@string/meter_reading_consumption"
+        android:importantForAutofill="no"
+        android:inputType="numberDecimal"
+        android:padding="@dimen/space_8"
+        android:textColor="@color/text_primary" />
 </LinearLayout>

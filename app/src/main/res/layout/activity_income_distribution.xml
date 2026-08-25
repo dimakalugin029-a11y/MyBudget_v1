@@ -26,13 +26,12 @@
             android:layout_marginBottom="@dimen/space_8"
             layout="@layout/include_dismissible_hint"/>
         <TextView
-            android:textSize="13sp"
             android:id="@+id/distributionModeHint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/income_distribution_choose_mode"
-            style="@style/Text.MyBudget.Subtitle"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <com.google.android.material.button.MaterialButton
             android:textSize="14sp"
             android:id="@+id/addCategoryButton"
@@ -88,16 +87,19 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_8"
             android:layout_marginBottom="@dimen/space_8"
-            app:cardBackgroundColor="@color/primary_green_light"
-            style="@style/Card.MyBudget.Surface">
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardElevation="0dp">
             <TextView
-                android:textSize="15sp"
-                android:gravity="center"
                 android:id="@+id/totalAmountText"
-                android:padding="@dimen/space_12"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/transaction_hero_card_bg_income"
+                android:gravity="center"
+                android:padding="@dimen/space_16"
                 android:text="@string/income_distribution_totals_default"
+                android:textColor="@color/main_hero_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
                 style="@style/Text.MyBudget.Section"/>
         </androidx.cardview.widget.CardView>
         <com.google.android.material.button.MaterialButton

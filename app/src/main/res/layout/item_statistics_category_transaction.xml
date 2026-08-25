@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
-    android:paddingTop="@dimen/space_8"
-    android:paddingBottom="@dimen/space_8"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="horizontal"
     android:paddingVertical="@dimen/space_8">
+    <View
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:background="@drawable/statistics_category_accent" />
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:paddingEnd="@dimen/space_8">
+        android:orientation="vertical"
+        android:paddingEnd="@dimen/space_8"
+        android:paddingStart="@dimen/space_10">
         <TextView
-            android:textSize="11sp"
-            android:textColor="@color/text_secondary"
             android:id="@+id/categoryTxDate"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            style="@style/Text.MyBudget.Subtitle" />
         <TextView
-            android:textSize="13sp"
-            android:textColor="@color/text_primary"
-            android:ellipsize="end"
             android:id="@+id/categoryTxDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_2"
-            android:maxLines="2"/>
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            style="@style/Text.MyBudget.Section" />
     </LinearLayout>
     <TextView
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:textColor="@color/expense_red"
-        android:layout_gravity="center_vertical"
         android:id="@+id/categoryTxAmount"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:textColor="@color/expense_red"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        style="@style/Text.MyBudget.Amount" />
 </LinearLayout>

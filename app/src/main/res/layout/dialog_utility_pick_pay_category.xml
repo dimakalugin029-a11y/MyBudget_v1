@@ -9,12 +9,11 @@
     android:layout_height="wrap_content"
     android:paddingHorizontal="@dimen/space_20">
     <TextView
-        android:textSize="14sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         android:text="@string/utility_pay_category_setting_hint"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/payCategorySpinner"
         android:layout_width="match_parent"

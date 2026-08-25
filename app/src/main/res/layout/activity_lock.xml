@@ -14,49 +14,53 @@
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardCornerRadius="@dimen/radius_16"
-        style="@style/Card.MyBudget.Surface">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp">
         <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/screen_hero_card_bg_blue"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:padding="@dimen/space_24"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:padding="@dimen/space_24">
             <TextView
-                android:textSize="40sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/lock_screen_emoji"/>
+                android:text="@string/lock_screen_emoji"
+                android:textSize="40sp" />
             <TextView
-                android:textSize="22sp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_8"
                 android:text="@string/lock_title"
-                style="@style/Text.MyBudget.Title"/>
+                android:textColor="@color/main_hero_text_primary"
+                android:textSize="22sp"
+                style="@style/Text.MyBudget.Title" />
             <TextView
-                android:textSize="14sp"
-                android:gravity="center"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:text="@string/lock_subtitle"
-                style="@style/Text.MyBudget.Subtitle"/>
-            <EditText
-                android:textSize="22sp"
-                android:textColor="@color/text_primary"
                 android:gravity="center"
+                android:text="@string/lock_subtitle"
+                android:textColor="@color/screen_hero_blue_text_secondary"
+                android:textSize="14sp"
+                style="@style/Text.MyBudget.Subtitle" />
+            <EditText
                 android:id="@+id/lockPinInput"
-                android:background="@drawable/edittext_border"
-                android:padding="@dimen/space_12"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_20"
-                android:minHeight="@dimen/touch_min_size"
+                android:background="@drawable/transaction_hero_amount_field"
+                android:gravity="center"
                 android:hint="@string/lock_pin_hint"
-                android:maxLength="6"
+                android:imeOptions="actionDone"
                 android:inputType="numberPassword"
-                android:imeOptions="actionDone"/>
+                android:maxLength="6"
+                android:minHeight="@dimen/touch_min_size"
+                android:padding="@dimen/space_12"
+                android:textColor="@color/main_hero_text_primary"
+                android:textColorHint="@color/transaction_hero_text_hint"
+                android:textSize="22sp" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/lockUnlockButton"
                 android:layout_width="match_parent"
@@ -64,9 +68,10 @@
                 android:layout_marginTop="@dimen/space_16"
                 android:minHeight="@dimen/touch_min_size"
                 android:text="@string/lock_unlock"
+                android:textColor="@color/main_hero_text_primary"
                 app:backgroundTint="@color/budget_blue"
                 app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button"/>
+                style="@style/Widget.MaterialComponents.Button" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/lockBiometricButton"
                 android:layout_width="match_parent"
@@ -74,8 +79,9 @@
                 android:layout_marginTop="@dimen/space_4"
                 android:minHeight="@dimen/touch_min_size"
                 android:text="@string/lock_use_biometric"
+                android:textColor="@color/main_hero_text_primary"
                 app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </LinearLayout>

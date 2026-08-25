@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/meter_field_verification"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <EditText
         android:textColor="@color/text_primary"
         android:id="@+id/verificationDateInput"

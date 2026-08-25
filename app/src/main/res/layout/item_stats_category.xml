@@ -1,41 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:background="?android:attr/selectableItemBackground"
-    android:paddingTop="@dimen/space_8"
-    android:paddingBottom="@dimen/space_8"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:gravity="center_vertical"
     android:minHeight="@dimen/touch_min_size"
+    android:orientation="horizontal"
     android:paddingVertical="@dimen/space_8">
     <View
         android:id="@+id/statsCategoryColor"
-        android:background="@color/budget_blue"
-        android:layout_width="8dp"
-        android:layout_height="8dp"
-        android:layout_marginEnd="@dimen/space_10"/>
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="@dimen/space_10"
+        android:background="@drawable/statistics_category_accent" />
     <TextView
-        android:textSize="14sp"
-        android:ellipsize="end"
         android:id="@+id/statsCategoryName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:maxLines="1"
         android:layout_weight="1"
-        style="@style/Text.MyBudget.Section"/>
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textSize="14sp"
+        style="@style/Text.MyBudget.Section" />
     <TextView
-        android:textSize="12sp"
         android:id="@+id/statsCategoryPercent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="@dimen/space_8"
-        style="@style/Text.MyBudget.Subtitle"/>
+        android:textSize="12sp"
+        style="@style/Text.MyBudget.Subtitle" />
     <TextView
-        android:textSize="14sp"
-        android:textColor="@color/expense_red"
         android:id="@+id/statsCategoryAmount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        style="@style/Text.MyBudget.Amount"/>
+        android:textColor="@color/expense_red"
+        android:textSize="14sp"
+        style="@style/Text.MyBudget.Amount" />
 </LinearLayout>

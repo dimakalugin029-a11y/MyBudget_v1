@@ -15,7 +15,12 @@
         android:layout_marginBottom="@dimen/space_12"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="14sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
+        android:text="@string/reminders_payment_calendar"
+        style="@style/Text.MyBudget.SectionLabel"/>
+    <TextView
         android:id="@+id/paymentCalendarHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

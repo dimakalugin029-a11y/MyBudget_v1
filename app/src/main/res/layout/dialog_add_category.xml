@@ -31,7 +31,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/budget_color_label"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <HorizontalScrollView
         android:scrollbars="none"
         android:layout_width="match_parent"

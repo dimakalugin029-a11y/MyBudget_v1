@@ -1,33 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingTop="@dimen/space_8"
-    android:paddingBottom="@dimen/space_8"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingVertical="@dimen/space_8">
-    <CheckBox
-        android:id="@+id/rolloverCheck"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    android:layout_marginBottom="@dimen/space_8"
+    style="@style/Card.MyBudget.Surface">
     <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:paddingStart="@dimen/space_8">
-        <TextView
-            android:textSize="14sp"
-            android:id="@+id/rolloverCategoryName"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/distribution_line_accent" />
+        <LinearLayout
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="@dimen/space_12"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Section"/>
-        <TextView
-            android:textSize="12sp"
-            android:id="@+id/rolloverBalance"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Subtitle"/>
+            android:layout_height="wrap_content">
+            <CheckBox
+                android:id="@+id/rolloverCheck"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:paddingStart="@dimen/space_4">
+                <TextView
+                    android:textSize="14sp"
+                    android:id="@+id/rolloverCategoryName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Text.MyBudget.Section"/>
+                <TextView
+                    android:textSize="12sp"
+                    android:id="@+id/rolloverBalance"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Text.MyBudget.Subtitle"/>
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</androidx.cardview.widget.CardView>

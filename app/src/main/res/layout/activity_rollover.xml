@@ -15,7 +15,6 @@
         android:layout_marginBottom="@dimen/space_12"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="14sp"
         android:id="@+id/rolloverHintText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -23,12 +22,11 @@
         android:text="@string/rollover_hint"
         style="@style/Text.MyBudget.Subtitle"/>
     <TextView
-        android:textSize="14sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/rollover_target_label"
-        style="@style/Text.MyBudget.Section"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/rolloverTargetSpinner"
         android:layout_width="match_parent"

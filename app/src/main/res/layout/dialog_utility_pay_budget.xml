@@ -1,79 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
     <LinearLayout
-        android:orientation="vertical"
-        android:padding="@dimen/space_20"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:textSize="18sp"
-            android:id="@+id/payTotalText"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/space_20">
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Title"/>
+            android:layout_marginBottom="@dimen/space_16"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardElevation="0dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/utilities_hero_card_bg"
+                android:orientation="vertical"
+                android:padding="@dimen/space_16">
+                <TextView
+                    android:id="@+id/payTotalText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/main_hero_text_primary"
+                    android:textSize="18sp"
+                    style="@style/Text.MyBudget.Title" />
+                <TextView
+                    android:id="@+id/paySplitPreview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:textColor="@color/utilities_hero_text_secondary"
+                    android:textSize="13sp"
+                    style="@style/Text.MyBudget.Subtitle" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
         <TextView
-            android:textSize="13sp"
-            android:id="@+id/paySplitPreview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <TextView
-            android:textSize="13sp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_16"
             android:text="@string/utility_pay_primary_category"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
             android:id="@+id/payPrimarySpinner"
-            android:padding="@dimen/space_4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_4"/>
+            android:layout_marginTop="@dimen/space_4"
+            android:padding="@dimen/space_4" />
         <TextView
-            android:textSize="12sp"
             android:id="@+id/payPrimaryBalance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_4"
-            style="@style/Text.MyBudget.Subtitle"/>
+            android:textSize="12sp"
+            style="@style/Text.MyBudget.Subtitle" />
         <LinearLayout
-            android:orientation="vertical"
             android:id="@+id/payShortfallPanel"
-            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_16">
+            android:layout_marginTop="@dimen/space_16"
+            android:orientation="vertical"
+            android:visibility="gone">
             <TextView
-                android:textSize="13sp"
-                android:textColor="@color/settings_orange"
                 android:id="@+id/payShortfallText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/Text.MyBudget.Section"/>
-            <TextView
+                android:textColor="@color/settings_orange"
                 android:textSize="13sp"
+                style="@style/Text.MyBudget.Section" />
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_12"
                 android:text="@string/utility_pay_extra_category"
-                style="@style/Text.MyBudget.Section"/>
+                style="@style/Text.MyBudget.SectionLabel" />
             <Spinner
                 android:id="@+id/payExtraSpinner"
-                android:padding="@dimen/space_4"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"/>
+                android:layout_marginTop="@dimen/space_4"
+                android:padding="@dimen/space_4" />
             <TextView
-                android:textSize="12sp"
                 android:id="@+id/payExtraBalance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:textSize="12sp"
+                style="@style/Text.MyBudget.Subtitle" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

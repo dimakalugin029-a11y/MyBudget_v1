@@ -17,13 +17,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
             <TextView
-                android:textSize="15sp"
                 android:id="@+id/utilitySetupTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/utility_setup_title"
                 android:layout_weight="1"
-                style="@style/Text.MyBudget.Section"/>
+                android:text="@string/utility_setup_title"
+                style="@style/Text.MyBudget.SectionLabel"/>
             <ImageButton
                 android:id="@+id/utilitySetupDismiss"
                 android:background="?attr/selectableItemBackgroundBorderless"

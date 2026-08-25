@@ -34,14 +34,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_16"
                 android:text="@string/budget_transfer_from"
-                style="@style/Text.MyBudget.Section"/>
+                style="@style/Text.MyBudget.SectionLabel"/>
             <TextView
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_8"
-                android:text="@string/budget_transfer_budget_label"/>
+                android:text="@string/budget_transfer_budget_label"
+                style="@style/Text.MyBudget.SectionLabel"/>
             <Spinner
                 android:id="@+id/fromBudgetSpinner"
                 android:padding="@dimen/space_4"
@@ -49,12 +48,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"/>
             <TextView
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_8"
-                android:text="@string/budget_transfer_subcategory_label"/>
+                android:text="@string/budget_transfer_subcategory_label"
+                style="@style/Text.MyBudget.SectionLabel"/>
             <Spinner
                 android:id="@+id/fromSubcategorySpinner"
                 android:padding="@dimen/space_4"
@@ -68,14 +66,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_16"
             android:text="@string/budget_transfer_to"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <TextView
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_8"
-            android:text="@string/budget_transfer_budget_label"/>
+            android:text="@string/budget_transfer_budget_label"
+            style="@style/Text.MyBudget.SectionLabel"/>
         <Spinner
             android:id="@+id/toBudgetSpinner"
             android:padding="@dimen/space_4"
@@ -83,12 +80,11 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_4"/>
         <TextView
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_8"
-            android:text="@string/budget_transfer_subcategory_label"/>
+            android:text="@string/budget_transfer_subcategory_label"
+            style="@style/Text.MyBudget.SectionLabel"/>
         <Spinner
             android:id="@+id/toSubcategorySpinner"
             android:padding="@dimen/space_4"
@@ -101,7 +97,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_16"
             android:text="@string/budget_transfer_amount_label"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <EditText
             android:textColor="@color/text_primary"
             android:id="@+id/transferBudgetAmountInput"

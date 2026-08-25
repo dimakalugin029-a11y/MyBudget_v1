@@ -12,7 +12,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/utility_line_qty_label"
-            style="@style/Text.MyBudget.Subtitle"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <EditText
             android:textColor="@color/text_primary"
             android:id="@+id/quantityInput"
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_12"
             android:text="@string/utility_line_tariff_label"
-            style="@style/Text.MyBudget.Subtitle"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <EditText
             android:textColor="@color/text_primary"
             android:id="@+id/tariffInput"
@@ -46,7 +46,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_12"
             android:text="@string/utility_line_total_label"
-            style="@style/Text.MyBudget.Subtitle"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <EditText
             android:textColor="@color/text_primary"
             android:id="@+id/amountInput"

@@ -14,6 +14,12 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         layout="@layout/include_screen_header"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        android:text="@string/reminders_recurring"
+        style="@style/Text.MyBudget.SectionLabel"/>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addRecurringButton"
         android:layout_width="match_parent"

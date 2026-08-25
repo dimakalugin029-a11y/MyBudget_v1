@@ -24,44 +24,42 @@
             layout="@layout/include_dismissible_hint"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/metersTotalsStrip"
-            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
-            style="@style/Card.MyBudget.Surface.Small">
+            android:visibility="gone"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardElevation="0dp">
             <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingLeft="@dimen/space_12"
-                android:paddingTop="@dimen/space_8"
-                android:paddingRight="@dimen/space_12"
-                android:paddingBottom="@dimen/space_8"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/utilities_hero_card_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingHorizontal="@dimen/space_12"
-                android:paddingVertical="@dimen/space_8">
+                android:paddingVertical="@dimen/space_10">
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/metersHvsTotal"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    style="@style/Text.MyBudget.Subtitle"/>
+                    android:textColor="@color/main_hero_text_primary"
+                    android:textSize="12sp"
+                    style="@style/Text.MyBudget.Subtitle" />
                 <View
-                    android:background="@color/text_secondary"
                     android:layout_width="1dp"
                     android:layout_height="match_parent"
-                    android:layout_marginLeft="@dimen/space_8"
-                    android:layout_marginRight="@dimen/space_8"
-                    android:alpha="0.25"
-                    android:layout_marginHorizontal="@dimen/space_8"/>
+                    android:layout_marginHorizontal="@dimen/space_8"
+                    android:alpha="0.35"
+                    android:background="@color/main_hero_text_primary" />
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/metersGvsTotal"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    style="@style/Text.MyBudget.Subtitle"/>
+                    android:textColor="@color/main_hero_text_primary"
+                    android:textSize="12sp"
+                    style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
         <FrameLayout

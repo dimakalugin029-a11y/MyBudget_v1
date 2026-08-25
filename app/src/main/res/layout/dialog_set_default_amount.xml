@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_16"
         android:text="@string/default_amount_category_label"
-        style="@style/Text.MyBudget.Section"/>
+    style="@style/Text.MyBudget.SectionLabel"/>
     <EditText
         android:textSize="16sp"
         android:textColor="@color/text_primary"

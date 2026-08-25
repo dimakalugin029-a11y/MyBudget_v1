@@ -3,38 +3,48 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/space_4"
-    style="@style/Card.MyBudget.Surface.Small">
+    style="@style/Card.MyBudget.Surface">
     <LinearLayout
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/income_distribution_accent" />
         <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
-            <TextView
-                android:id="@+id/categoryName"
-                android:layout_width="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="@dimen/space_12">
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                style="@style/Text.MyBudget.Section"/>
-            <TextView
-                android:textSize="13sp"
-                android:id="@+id/subBalanceText"
-                android:layout_width="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/categoryName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    style="@style/Text.MyBudget.Section" />
+                <TextView
+                    android:id="@+id/subBalanceText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:textSize="13sp"
+                    style="@style/Text.MyBudget.Subtitle" />
+            </LinearLayout>
+            <EditText
+                android:id="@+id/amountInput"
+                android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:background="@drawable/edittext_border"
+                android:hint="@string/budget_amount_hint"
+                android:inputType="numberDecimal"
+                android:padding="@dimen/space_8" />
         </LinearLayout>
-        <EditText
-            android:id="@+id/amountInput"
-            android:background="@drawable/edittext_border"
-            android:padding="@dimen/space_8"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:hint="@string/budget_amount_hint"
-            android:inputType="numberDecimal"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

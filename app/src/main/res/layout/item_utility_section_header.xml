@@ -4,27 +4,35 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/space_12"
     android:layout_marginBottom="@dimen/space_4"
-    app:cardBackgroundColor="@color/md_theme_surfaceVariant"
-    style="@style/Card.MyBudget.Surface.Small">
+    style="@style/Card.MyBudget.Surface">
     <LinearLayout
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:textSize="15sp"
-            android:id="@+id/sectionTitle"
-            android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/utility_month_accent" />
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            style="@style/Text.MyBudget.Section"/>
-        <TextView
-            android:textSize="15sp"
-            android:textColor="@color/utilities_cyan"
-            android:id="@+id/sectionTotal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Amount"/>
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="@dimen/space_12">
+            <TextView
+                android:id="@+id/sectionTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="15sp"
+                style="@style/Text.MyBudget.Section" />
+            <TextView
+                android:id="@+id/sectionTotal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/utilities_cyan"
+                android:textSize="15sp"
+                style="@style/Text.MyBudget.Amount" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

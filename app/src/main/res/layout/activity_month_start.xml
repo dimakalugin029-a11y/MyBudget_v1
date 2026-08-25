@@ -15,55 +15,60 @@
         android:layout_marginBottom="@dimen/space_12"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="13sp"
         android:id="@+id/monthStartStepLabel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginBottom="@dimen/space_12"
         android:layout_weight="1"
-        style="@style/Card.MyBudget.Surface">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp">
         <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/main_hero_card_bg"
             android:gravity="center_vertical"
             android:orientation="vertical"
-            android:padding="@dimen/space_24"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:padding="@dimen/space_24">
             <TextView
-                android:textSize="48sp"
-                android:layout_gravity="center_horizontal"
                 android:id="@+id/monthStartEmoji"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:textSize="48sp" />
             <TextView
-                android:textSize="20sp"
-                android:gravity="center"
                 android:id="@+id/monthStartTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_16"
-                style="@style/Text.MyBudget.Section"/>
-            <TextView
-                android:textSize="15sp"
                 android:gravity="center"
+                android:textColor="@color/main_hero_text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                style="@style/Text.MyBudget.Section" />
+            <TextView
                 android:id="@+id/monthStartBody"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_12"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:gravity="center"
+                android:textColor="@color/main_hero_text_secondary"
+                android:textSize="15sp"
+                style="@style/Text.MyBudget.Subtitle" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/monthStartActionButton"
-                android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_20"
                 android:minHeight="@dimen/touch_min_size"
+                android:textColor="@color/main_hero_text_primary"
+                android:visibility="gone"
                 app:cornerRadius="@dimen/radius_10"
-                app:strokeColor="@color/budget_blue"
+                app:strokeColor="@color/main_hero_text_primary"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>

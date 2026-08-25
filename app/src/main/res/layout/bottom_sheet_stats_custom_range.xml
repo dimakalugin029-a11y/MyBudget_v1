@@ -1,47 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
-    android:padding="@dimen/space_20"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="@dimen/space_16">
+    <include layout="@layout/include_bottom_sheet_handle" />
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_16"
+        android:layout_marginBottom="@dimen/space_16"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/statistics_hero_card_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stats_custom_range"
+                android:textColor="@color/main_hero_text_primary"
+                android:textSize="17sp"
+                style="@style/Text.MyBudget.Title" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        android:text="@string/stats_custom_range"
-        style="@style/Text.MyBudget.Section"/>
-    <TextView
-        android:textSize="13sp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
+        android:paddingHorizontal="@dimen/space_16"
         android:text="@string/stats_date_from"
-        style="@style/Text.MyBudget.Subtitle"/>
-    <Button
+        style="@style/Text.MyBudget.SectionLabel" />
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/customRangeStartButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
         android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
-        android:text="@string/stats_date_from"/>
+        android:text="@string/stats_date_from"
+        app:cornerRadius="@dimen/radius_10"
+        app:strokeColor="@color/budget_blue"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
     <TextView
-        android:textSize="13sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
+        android:paddingHorizontal="@dimen/space_16"
         android:text="@string/stats_date_to"
-        style="@style/Text.MyBudget.Subtitle"/>
-    <Button
+        style="@style/Text.MyBudget.SectionLabel" />
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/customRangeEndButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
         android:layout_marginBottom="@dimen/space_16"
+        android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
-        android:text="@string/stats_date_to"/>
-    <Button
+        android:text="@string/stats_date_to"
+        app:cornerRadius="@dimen/radius_10"
+        app:strokeColor="@color/budget_blue"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/customRangeApplyButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
-        android:text="@string/stats_apply_range"/>
+        android:text="@string/stats_apply_range"
+        app:backgroundTint="@color/statistics_deep_orange"
+        app:cornerRadius="@dimen/radius_10"
+        style="@style/Widget.MaterialComponents.Button" />
 </LinearLayout>

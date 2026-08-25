@@ -16,6 +16,9 @@
   <color name="md_theme_primary">#6750a4</color>
   <color name="md_theme_surface">#ffffff</color>
   <color name="md_theme_surfaceVariant">#e7e0ec</color>
+  <color name="obligations_hero_end">#3949ab</color>
+  <color name="obligations_hero_start">#7986cb</color>
+  <color name="obligations_hero_text_secondary">#c5cae9</color>
   <color name="obligations_indigo">#5c6bc0</color>
   <color name="primary_green">#2e7d32</color>
   <color name="primary_green_light">#e8f5e8</color>
@@ -25,11 +28,17 @@
   <color name="reminders_teal">#009688</color>
   <color name="settings_orange">#ff9800</color>
   <color name="statistics_deep_orange">#ff5722</color>
+  <color name="statistics_hero_end">#bf360c</color>
+  <color name="statistics_hero_start">#ff7043</color>
+  <color name="statistics_hero_text_secondary">#ffccbc</color>
   <color name="text_primary">#212121</color>
   <color name="text_secondary">#757575</color>
   <color name="transactions_purple">#9c27b0</color>
   <color name="utilities_cyan">#00acc1</color>
   <color name="utilities_cyan_light">#e0f7fa</color>
+  <color name="utilities_hero_end">#00838f</color>
+  <color name="utilities_hero_start">#26c6da</color>
+  <color name="utilities_hero_text_secondary">#b2ebf2</color>
   <color name="menu_row_icon_bg">#f3e8ff</color>
   <color name="main_hero_balance_negative">#ffab91</color>
   <color name="main_hero_balance_positive">#e8f5e9</color>

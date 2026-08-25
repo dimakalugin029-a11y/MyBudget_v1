@@ -11,12 +11,12 @@
         android:layout_height="wrap_content"
         style="@style/Text.MyBudget.Subtitle"/>
     <TextView
-        android:textSize="13sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/budget_delete_transfer_target_label"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/deleteSubcategoryTargetSpinner"
         android:layout_width="match_parent"

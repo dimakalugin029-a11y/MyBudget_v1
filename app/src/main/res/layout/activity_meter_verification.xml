@@ -15,12 +15,11 @@
         android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="13sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         android:text="@string/meter_verification_subtitle"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/verificationRecyclerView"
         android:layout_width="match_parent"

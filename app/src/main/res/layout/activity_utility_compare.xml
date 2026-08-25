@@ -18,44 +18,46 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
-        style="@style/Card.MyBudget.Surface">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp">
         <LinearLayout
-            android:orientation="vertical"
-            android:padding="@dimen/space_16"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@drawable/utilities_hero_card_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
             <LinearLayout
-                android:orientation="horizontal"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
                 <Spinner
                     android:id="@+id/compareMonthASpinner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1" />
                 <TextView
-                    android:textSize="18sp"
-                    android:layout_gravity="center"
-                    android:paddingLeft="@dimen/space_8"
-                    android:paddingRight="@dimen/space_8"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/utility_compare_arrow"
+                    android:layout_gravity="center"
                     android:paddingHorizontal="@dimen/space_8"
-                    style="@style/Text.MyBudget.Section"/>
+                    android:text="@string/utility_compare_arrow"
+                    android:textColor="@color/main_hero_text_primary"
+                    android:textSize="18sp"
+                    style="@style/Text.MyBudget.Section" />
                 <Spinner
                     android:id="@+id/compareMonthBSpinner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"/>
+                    android:layout_weight="1" />
             </LinearLayout>
             <TextView
-                android:textSize="14sp"
                 android:id="@+id/compareSummaryText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_12"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:textColor="@color/utilities_hero_text_secondary"
+                android:textSize="14sp"
+                style="@style/Text.MyBudget.Subtitle" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
     <androidx.recyclerview.widget.RecyclerView

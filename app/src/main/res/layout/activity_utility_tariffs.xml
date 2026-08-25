@@ -20,12 +20,11 @@
         android:layout_height="wrap_content"
         layout="@layout/include_dismissible_hint"/>
     <TextView
-        android:textSize="12sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         android:text="@string/utility_tariffs_hint"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/tariffsRecycler"
         android:layout_width="match_parent"

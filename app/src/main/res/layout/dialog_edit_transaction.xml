@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/transaction_edit_category"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/editCategorySpinner"
         android:padding="@dimen/space_4"
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/transaction_edit_amount"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <EditText
         android:textSize="16sp"
         android:textColor="@color/text_primary"
@@ -41,7 +41,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/transaction_edit_description"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <EditText
         android:textSize="16sp"
         android:textColor="@color/text_primary"
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/transaction_edit_participant"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/editParticipantSpinner"
         android:padding="@dimen/space_4"

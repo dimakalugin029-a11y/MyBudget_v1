@@ -15,42 +15,45 @@
         android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="13sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         android:text="@string/meter_batch_subtitle"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
-        style="@style/Card.MyBudget.Surface">
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardElevation="0dp">
         <LinearLayout
-            android:orientation="vertical"
-            android:padding="@dimen/space_16"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@drawable/utilities_hero_card_bg"
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
             <TextView
-                android:textSize="14sp"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/meter_reading_date_label"
-                style="@style/Text.MyBudget.Section"/>
+                android:textColor="@color/main_hero_text_primary"
+                android:textSize="14sp"
+                style="@style/Text.MyBudget.Section" />
             <EditText
-                android:textColor="@color/text_primary"
                 android:id="@+id/batchDateInput"
-                android:background="@android:color/transparent"
-                android:padding="@dimen/space_8"
-                android:focusable="false"
-                android:clickable="true"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:hint="@string/meter_reading_date_pick"
+                android:background="@drawable/transaction_hero_amount_field"
+                android:clickable="true"
                 android:cursorVisible="false"
+                android:focusable="false"
+                android:hint="@string/meter_reading_date_pick"
+                android:importantForAutofill="no"
                 android:inputType="none"
-                android:importantForAutofill="no"/>
+                android:padding="@dimen/space_8"
+                android:textColor="@color/main_hero_text_primary"
+                android:textColorHint="@color/transaction_hero_text_hint" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
     <androidx.recyclerview.widget.RecyclerView

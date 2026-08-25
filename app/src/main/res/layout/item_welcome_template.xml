@@ -6,31 +6,40 @@
     android:foreground="?attr/selectableItemBackground"
     style="@style/Card.MyBudget.Surface">
     <LinearLayout
-        android:orientation="vertical"
-        android:padding="@dimen/space_16"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <TextView
-            android:textSize="17sp"
-            android:textColor="@color/budget_blue"
-            android:id="@+id/templateTitle"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/welcome_template_accent" />
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Section"/>
-        <TextView
-            android:textSize="13sp"
-            android:id="@+id/templateDescription"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_6"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <TextView
-            android:textSize="12sp"
-            android:textColor="@color/utilities_cyan"
-            android:id="@+id/templateStats"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_6"
-            style="@style/Text.MyBudget.Subtitle"/>
+            android:orientation="vertical"
+            android:padding="@dimen/space_16">
+            <TextView
+                android:id="@+id/templateTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/budget_blue"
+                android:textSize="17sp"
+                style="@style/Text.MyBudget.Section" />
+            <TextView
+                android:id="@+id/templateDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:textSize="13sp"
+                style="@style/Text.MyBudget.Subtitle" />
+            <TextView
+                android:id="@+id/templateStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:textColor="@color/utilities_cyan"
+                android:textSize="12sp"
+                style="@style/Text.MyBudget.Subtitle" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -3,83 +3,99 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
     <LinearLayout
-        android:orientation="vertical"
-        android:padding="@dimen/space_8"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/space_16">
         <TextView
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_name_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_name_label"
+            style="@style/Text.MyBudget.SectionLabel" />
         <EditText
             android:id="@+id/obligationNameInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"
+            android:background="@drawable/edittext_border"
             android:hint="@string/obligations_name_hint"
-            android:inputType="textCapSentences"/>
+            android:inputType="textCapSentences"
+            android:padding="@dimen/space_8"
+            android:textColor="@color/text_primary" />
         <TextView
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_amount_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_amount_label"
+            style="@style/Text.MyBudget.SectionLabel" />
         <EditText
             android:id="@+id/obligationAmountInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"
+            android:background="@drawable/edittext_border"
             android:hint="0,00"
-            android:inputType="numberDecimal"/>
+            android:inputType="numberDecimal"
+            android:padding="@dimen/space_8"
+            android:textColor="@color/text_primary" />
         <TextView
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_period_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_period_label"
+            style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
             android:id="@+id/obligationPeriodSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"/>
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
         <TextView
-            android:textStyle="bold"
             android:id="@+id/obligationDueMonthLabel"
-            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_due_month_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_due_month_label"
+            android:visibility="gone"
+            style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
             android:id="@+id/obligationDueMonthSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
             android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"/>
+            android:padding="@dimen/space_4" />
         <TextView
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_category_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_category_label"
+            style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
             android:id="@+id/obligationCategorySpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"/>
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
         <TextView
-            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/obligations_paychecks_label"/>
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_paychecks_label"
+            style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
             android:id="@+id/obligationPaychecksSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"/>
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
         <TextView
-            android:textColor="@color/primary_green"
             android:id="@+id/obligationPreviewLine"
-            android:paddingTop="@dimen/space_4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Subtitle"/>
+            android:paddingTop="@dimen/space_4"
+            android:textColor="@color/primary_green"
+            style="@style/Text.MyBudget.Subtitle" />
     </LinearLayout>
 </ScrollView>

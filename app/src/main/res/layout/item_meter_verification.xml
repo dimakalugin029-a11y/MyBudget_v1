@@ -6,36 +6,45 @@
     android:foreground="?attr/selectableItemBackground"
     style="@style/Card.MyBudget.Surface">
     <LinearLayout
-        android:orientation="horizontal"
-        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/utility_month_accent" />
         <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
-            <TextView
-                android:textSize="15sp"
-                android:id="@+id/verificationMeterName"
-                android:layout_width="match_parent"
+            android:orientation="horizontal"
+            android:padding="@dimen/space_12">
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                style="@style/Text.MyBudget.Section"/>
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/verificationMeterName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="15sp"
+                    style="@style/Text.MyBudget.Section" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_2"
+                    android:text="@string/meter_verification_caption"
+                    android:textSize="12sp"
+                    style="@style/Text.MyBudget.Subtitle" />
+            </LinearLayout>
             <TextView
-                android:textSize="12sp"
-                android:layout_width="match_parent"
+                android:id="@+id/verificationDate"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:text="@string/meter_verification_caption"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:layout_gravity="center_vertical"
+                android:textColor="@color/utilities_cyan"
+                android:textSize="16sp"
+                style="@style/Text.MyBudget.Amount" />
         </LinearLayout>
-        <TextView
-            android:textSize="16sp"
-            android:textColor="@color/utilities_cyan"
-            android:layout_gravity="center_vertical"
-            android:id="@+id/verificationDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            style="@style/Text.MyBudget.Amount"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

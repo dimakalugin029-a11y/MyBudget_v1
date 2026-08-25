@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/budget_transfer_to_label"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <Spinner
         android:id="@+id/targetSpinner"
         android:padding="@dimen/space_4"
@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/budget_transfer_amount_label"
-        style="@style/Text.MyBudget.Section"/>
+style="@style/Text.MyBudget.SectionLabel"/>
     <EditText
         android:textColor="@color/text_primary"
         android:id="@+id/transferAmountInput"
