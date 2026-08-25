@@ -47,6 +47,12 @@
     <item name="android:textSize">12sp</item>
     <item name="android:textColor">@color/text_secondary</item>
   </style>
+  <style name="Text.MyBudget.SectionLabel" parent="@style/Text.MyBudget">
+    <item name="android:textSize">12sp</item>
+    <item name="android:textColor">@color/text_secondary</item>
+    <item name="android:textAllCaps">true</item>
+    <item name="android:letterSpacing">0.06</item>
+  </style>
   <style name="Text.MyBudget.Title" parent="@style/Text.MyBudget">
     <item name="android:textSize">18sp</item>
     <item name="android:textStyle">bold</item>

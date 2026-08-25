@@ -11,87 +11,100 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12">
+            android:layout_marginBottom="@dimen/space_12"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
             <TextView
-                android:textSize="22sp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/main_icon_budget"
+                android:textSize="24sp" />
+            <TextView
+                style="@style/Text.MyBudget.Title"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/main_app_title"
+                android:layout_marginStart="@dimen/space_8"
                 android:layout_weight="1"
-                style="@style/Text.MyBudget.Title"/>
+                android:text="@string/main_app_title"
+                android:textSize="22sp" />
             <ImageButton
                 android:id="@+id/mainSettingsButton"
-                android:background="?attr/selectableItemBackgroundBorderless"
                 android:layout_width="@dimen/touch_min_size"
                 android:layout_height="@dimen/touch_min_size"
-                android:src="@android:drawable/ic_menu_preferences"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/main_menu_settings"
-                app:tint="@color/text_secondary"/>
+                android:src="@drawable/ic_settings" />
         </LinearLayout>
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"
-            style="@style/Card.MyBudget.Surface">
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardElevation="0dp">
             <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:id="@+id/mainProfilePicker"
-                    android:background="@drawable/quick_filter_chip_bg"
-                    android:paddingLeft="@dimen/space_12"
-                    android:paddingTop="@dimen/space_6"
-                    android:paddingRight="@dimen/space_12"
-                    android:paddingBottom="@dimen/space_6"
-                    android:focusable="true"
-                    android:clickable="true"
+                android:layout_height="wrap_content"
+                android:background="@drawable/main_hero_card_bg"
+                android:orientation="vertical"
+                android:padding="@dimen/space_16">
+                <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:letterSpacing="0.06"
+                    android:text="@string/widget_balance_label"
+                    android:textAllCaps="true"
+                    android:textColor="@color/main_hero_text_secondary"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/mainActiveBalanceText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:text="@string/main_balance_placeholder"
+                    android:textColor="@color/main_hero_balance_positive"
+                    android:textSize="34sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/mainTotalAllText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:textColor="@color/main_hero_text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+                <LinearLayout
+                    android:id="@+id/mainProfilePicker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_12"
+                    android:background="@drawable/main_hero_profile_chip"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
                     android:paddingHorizontal="@dimen/space_12"
                     android:paddingVertical="@dimen/space_6">
                     <TextView
-                        android:textSize="14sp"
                         android:id="@+id/mainProfileNameText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/budget_profiles_default_name"
-                        style="@style/Text.MyBudget.Section"/>
+                        android:textColor="@color/main_hero_text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
                     <TextView
-                        android:textSize="12sp"
-                        android:textColor="@color/text_secondary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_4"
                         android:text="@string/ui_chevron_down"
-                        android:layout_marginStart="@dimen/space_4"/>
+                        android:textColor="@color/main_hero_text_secondary"
+                        android:textSize="12sp" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="32sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/primary_green"
-                    android:id="@+id/mainActiveBalanceText"
-                    android:background="?android:attr/selectableItemBackground"
-                    android:focusable="true"
-                    android:clickable="true"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:text="@string/main_balance_placeholder"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:id="@+id/mainTotalAllText"
-                    android:visibility="gone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    style="@style/Text.MyBudget.Subtitle"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
         <LinearLayout
@@ -106,12 +119,13 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/space_8"
                 android:text="@string/main_section_attention"
-                style="@style/Text.MyBudget.Section"/>
+                style="@style/Text.MyBudget.SectionLabel"/>
             <androidx.cardview.widget.CardView
                 android:id="@+id/mainAttentionCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                style="@style/Card.MyBudget.Surface">
+                style="@style/Card.MyBudget.Surface"
+            app:cardCornerRadius="@dimen/radius_16">
                 <LinearLayout
                     android:orientation="vertical"
                     android:layout_width="match_parent"
@@ -259,12 +273,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/main_section_analytics"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
+            style="@style/Card.MyBudget.Surface"
+            app:cardCornerRadius="@dimen/radius_16">
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
@@ -286,12 +301,13 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/main_section_planning"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
+            style="@style/Card.MyBudget.Surface"
+            app:cardCornerRadius="@dimen/radius_16">
             <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
@@ -327,11 +343,12 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/main_section_other"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Card.MyBudget.Surface">
+            style="@style/Card.MyBudget.Surface"
+            app:cardCornerRadius="@dimen/radius_16">
             <include
                 android:id="@+id/utilitiesButton"
                 layout="@layout/include_main_list_row"/>

@@ -27,6 +27,11 @@
   <color name="transactions_purple">#9c27b0</color>
   <color name="utilities_cyan">#00acc1</color>
   <color name="utilities_cyan_light">#e0f7fa</color>
+  <color name="menu_row_icon_bg">#f3e8ff</color>
+  <color name="main_hero_balance_negative">#ffab91</color>
+  <color name="main_hero_balance_positive">#e8f5e9</color>
+  <color name="main_hero_text_primary">#ffffff</color>
+  <color name="main_hero_text_secondary">#d1c4e9</color>
   <color name="white">#ffffffff</color>
   <color name="widget_balance_negative_dark">#ff8a80</color>
   <color name="widget_balance_negative_light">#d32f2f</color>

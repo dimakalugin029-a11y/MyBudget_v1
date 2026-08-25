@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,8 +86,16 @@ class MainActivity : AppCompatActivity() {
             val profile = profiles.firstOrNull { it.id == activeId }
             findViewById<TextView>(R.id.mainProfileNameText).text =
                 profile?.name ?: getString(R.string.budget_profiles_default_name)
-            findViewById<TextView>(R.id.mainActiveBalanceText).text =
-                MoneyFormat.formatRub(manager.getTotalBalance(activeId))
+            val balance = manager.getTotalBalance(activeId)
+            findViewById<TextView>(R.id.mainActiveBalanceText).apply {
+                text = MoneyFormat.formatRub(balance)
+                setTextColor(
+                    ContextCompat.getColor(
+                        this@MainActivity,
+                        if (balance >= 0.0) R.color.main_hero_balance_positive else R.color.main_hero_balance_negative,
+                    ),
+                )
+            }
             val totalAllView = findViewById<TextView>(R.id.mainTotalAllText)
             if (profiles.size > 1) {
                 val totalAll = manager.getTotalBalanceAll()

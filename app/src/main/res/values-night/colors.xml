@@ -17,4 +17,9 @@
   <color name="text_primary">#e0e0e0</color>
   <color name="text_secondary">#9e9e9e</color>
   <color name="utilities_cyan">#26c6da</color>
+  <color name="menu_row_icon_bg">#2d2640</color>
+  <color name="main_hero_balance_negative">#ffab91</color>
+  <color name="main_hero_balance_positive">#a5d6a7</color>
+  <color name="main_hero_text_primary">#ffffff</color>
+  <color name="main_hero_text_secondary">#b39ddb</color>
 </resources>

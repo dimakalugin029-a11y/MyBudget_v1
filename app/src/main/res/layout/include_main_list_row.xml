@@ -1,39 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
     android:id="@+id/mainListRowRoot"
-    android:background="?android:attr/selectableItemBackground"
-    android:paddingLeft="@dimen/space_16"
-    android:paddingTop="@dimen/space_10"
-    android:paddingRight="@dimen/space_16"
-    android:paddingBottom="@dimen/space_10"
-    android:focusable="true"
-    android:clickable="true"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
     android:minHeight="@dimen/touch_min_size"
+    android:orientation="horizontal"
     android:paddingHorizontal="@dimen/space_16"
-    android:paddingVertical="@dimen/space_10">
+    android:paddingVertical="@dimen/space_12">
+
     <TextView
-        android:textSize="20sp"
         android:id="@+id/rowIcon"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/menu_row_icon_bg"
+        android:gravity="center"
+        android:textSize="18sp" />
+
     <TextView
-        android:textSize="15sp"
-        android:ellipsize="end"
         android:id="@+id/rowTitle"
+        style="@style/Text.MyBudget.Section"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:maxLines="2"
-        android:layout_weight="1"
         android:layout_marginStart="@dimen/space_12"
-        style="@style/Text.MyBudget.Section"/>
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textSize="15sp" />
+
     <TextView
-        android:textSize="20sp"
-        android:textColor="@color/text_secondary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/ui_chevron"/>
+        android:text="@string/ui_chevron"
+        android:textColor="@color/text_secondary"
+        android:textSize="18sp" />
 </LinearLayout>
