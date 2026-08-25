@@ -80,7 +80,7 @@ class UtilityMetersActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_meters)
-        ScreenHeaderHelper.setup(this, getString(R.string.utility_meters_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.utility_meters_title), getString(R.string.main_icon_utilities))
         setupExcelMenu()
         findViewById<View>(R.id.metersExcelHint)?.let {
             ScreenHintHelper.bind(

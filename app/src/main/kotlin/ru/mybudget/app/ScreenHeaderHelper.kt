@@ -12,7 +12,14 @@ object ScreenHeaderHelper {
             activity.onBackPressedDispatcher.onBackPressed()
         }
         activity.findViewById<TextView>(R.id.screenHeaderTitle)?.text = title
-        activity.findViewById<TextView>(R.id.screenHeaderEmoji)?.visibility = View.GONE
+        activity.findViewById<TextView>(R.id.screenHeaderEmoji)?.apply {
+            if (emoji.isNullOrBlank()) {
+                visibility = View.GONE
+            } else {
+                text = emoji
+                visibility = View.VISIBLE
+            }
+        }
         hideToolbarActions(activity)
     }
 

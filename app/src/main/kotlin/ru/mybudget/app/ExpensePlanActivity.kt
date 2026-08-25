@@ -42,7 +42,7 @@ class ExpensePlanActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_expense_plan)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.expense_plan_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.expense_plan_title), getString(R.string.main_icon_expense_plan))
         selectedBudgetId = manager.getActiveBudgetId()
         val current = MonthlyPlanHelper.currentMonth()
         year = current.year

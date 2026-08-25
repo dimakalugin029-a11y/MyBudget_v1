@@ -37,7 +37,7 @@ class BudgetActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_budget)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.budget_screen_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.budget_screen_title), getString(R.string.main_icon_budget))
         findViewById<View>(R.id.budgetHint)?.let {
             ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.BUDGET, R.string.hint_budget, showHelpLink = false)
         }

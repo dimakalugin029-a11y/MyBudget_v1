@@ -42,7 +42,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_planned_obligations)
         manager = BudgetManager.getInstance(this)
         budgetId = manager.getActiveBudgetId()
-        ScreenHeaderHelper.setup(this, getString(R.string.obligations_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.obligations_title), getString(R.string.main_icon_obligations))
         MenuRowHelper.bind(
             findViewById(R.id.obligationsPaychecksButton),
             "💵",

@@ -96,7 +96,7 @@ class UtilitiesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utilities)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_utilities))
+        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_utilities), getString(R.string.main_icon_utilities))
         adapter = MonthAdapter(
             onOpen = { billId ->
                 startActivity(

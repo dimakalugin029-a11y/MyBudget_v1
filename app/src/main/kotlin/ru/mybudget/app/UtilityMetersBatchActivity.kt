@@ -33,7 +33,7 @@ class UtilityMetersBatchActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_meters_batch)
-        ScreenHeaderHelper.setup(this, getString(R.string.meter_batch_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.meter_batch_title), getString(R.string.utility_icon_batch))
         repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
         val dateInput = findViewById<EditText>(R.id.batchDateInput)
         val recycler = findViewById<RecyclerView>(R.id.batchMetersRecycler)

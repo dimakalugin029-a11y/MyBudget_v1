@@ -406,6 +406,7 @@
   <string name="main_icon_income">💵</string>
   <string name="main_icon_obligations">📆</string>
   <string name="main_icon_reminders">🔔</string>
+  <string name="main_icon_recurring">🔁</string>
   <string name="main_icon_settings">⚙️</string>
   <string name="main_icon_statistics">📈</string>
   <string name="main_icon_transactions">📋</string>
@@ -1054,6 +1055,7 @@
   <string name="welcome_template_custom_stats">Создадите всё сами</string>
   <string name="welcome_template_stats">%1$d статей, %2$d подстатей</string>
   <string name="welcome_title">Добро пожаловать в MyBudget</string>
+  <string name="widget_balance_label">Баланс</string>
   <string name="widget_description">Баланс и быстрые кнопки дохода и расхода</string>
   <string name="widget_name">MyBudget</string>
 </resources>

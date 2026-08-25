@@ -1,62 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:gravity="center_vertical"
-    android:orientation="vertical"
     android:id="@+id/widgetRoot"
-    android:background="@color/budget_blue"
-    android:padding="@dimen/space_12"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <TextView
-        android:textSize="13sp"
-        android:textColor="@color/white"
-        android:id="@+id/widgetBudgetName"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_bg"
+    android:orientation="vertical">
+
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/budget_profiles_default_name"
-        android:alpha="0.9"/>
-    <TextView
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="@color/white"
-        android:id="@+id/widgetBalance"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_4"
-        android:text="@string/budget_balance_zero"/>
+        android:layout_height="4dp"
+        android:background="@drawable/widget_accent_bar" />
+
     <LinearLayout
-        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8">
-        <TextView
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:gravity="center"
-            android:id="@+id/widgetIncomeButton"
-            android:background="@color/income_green"
-            android:paddingTop="@dimen/space_8"
-            android:paddingBottom="@dimen/space_8"
-            android:layout_width="0dp"
+        android:orientation="vertical"
+        android:padding="@dimen/space_14">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/shortcut_income"
-            android:layout_weight="1"
-            android:layout_marginEnd="@dimen/space_6"
-            android:paddingVertical="@dimen/space_8"/>
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@string/widget_name"
+                android:src="@mipmap/ic_launcher" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/space_8"
+                android:layout_weight="1"
+                android:text="@string/widget_name"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <TextView
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:textColor="@color/white"
-            android:gravity="center"
-            android:id="@+id/widgetExpenseButton"
-            android:background="@color/expense_red"
-            android:paddingTop="@dimen/space_8"
-            android:paddingBottom="@dimen/space_8"
-            android:layout_width="0dp"
+            android:id="@+id/widgetBudgetName"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/shortcut_expense"
-            android:layout_weight="1"
-            android:paddingVertical="@dimen/space_8"/>
+            android:layout_marginTop="@dimen/space_10"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/budget_profiles_default_name"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_4"
+            android:text="@string/widget_balance_label"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/widgetBalance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_2"
+            android:text="@string/budget_balance_zero"
+            android:textColor="@color/primary_green"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_12"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/widgetIncomeButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_6"
+                android:layout_weight="1"
+                android:background="@drawable/widget_btn_income"
+                android:gravity="center"
+                android:minHeight="@dimen/touch_min_size"
+                android:paddingHorizontal="@dimen/space_8"
+                android:paddingVertical="@dimen/space_8"
+                android:text="@string/shortcut_income"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widgetExpenseButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/widget_btn_expense"
+                android:gravity="center"
+                android:minHeight="@dimen/touch_min_size"
+                android:paddingHorizontal="@dimen/space_8"
+                android:paddingVertical="@dimen/space_8"
+                android:text="@string/shortcut_expense"
+                android:textColor="@color/white"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

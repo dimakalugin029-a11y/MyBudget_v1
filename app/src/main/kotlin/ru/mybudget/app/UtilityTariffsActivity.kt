@@ -24,7 +24,7 @@ class UtilityTariffsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_tariffs)
-        ScreenHeaderHelper.setup(this, getString(R.string.utility_tariffs_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.utility_tariffs_title), getString(R.string.utility_icon_tariffs))
         findViewById<View>(R.id.utilityTariffsHint)?.let {
             ScreenHintHelper.bind(
                 this,

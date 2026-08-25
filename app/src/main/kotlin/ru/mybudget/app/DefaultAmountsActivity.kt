@@ -25,7 +25,7 @@ class DefaultAmountsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_default_amounts)
-        ScreenHeaderHelper.setup(this, getString(R.string.default_amounts_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.default_amounts_title), getString(R.string.settings_default_amounts_emoji))
         manager = BudgetManager.getInstance(this)
         adapter = DefaultAmountsAdapter { category, amount -> saveDefaultAmount(category, amount) }
         findViewById<RecyclerView>(R.id.defaultAmountsRecycler).apply {

@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -58,13 +59,19 @@ class BudgetWidgetProvider : AppWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.widget_budget)
             views.setTextViewText(R.id.widgetBudgetName, name)
             views.setTextViewText(R.id.widgetBalance, MoneyFormat.formatRub(balance))
-            val openBudget = PendingIntent.getActivity(
+            val balanceColor = if (balance >= 0.0) {
+                R.color.primary_green
+            } else {
+                R.color.expense_red
+            }
+            views.setTextColor(R.id.widgetBalance, ContextCompat.getColor(context, balanceColor))
+            val openApp = PendingIntent.getActivity(
                 context,
                 0,
-                Intent(context, BudgetActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                 PENDING_FLAGS,
             )
-            views.setOnClickPendingIntent(R.id.widgetRoot, openBudget)
+            views.setOnClickPendingIntent(R.id.widgetRoot, openApp)
             views.setOnClickPendingIntent(
                 R.id.widgetIncomeButton,
                 activityPendingIntent(context, IncomeActivity::class.java, 1),

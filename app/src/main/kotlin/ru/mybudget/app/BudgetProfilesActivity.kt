@@ -28,7 +28,7 @@ class BudgetProfilesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_budget_profiles)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.budget_profiles_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.budget_profiles_title), getString(R.string.main_profiles_emoji))
         adapter = ProfilesAdapter()
         findViewById<RecyclerView>(R.id.budgetProfilesRecycler).apply {
             layoutManager = LinearLayoutManager(this@BudgetProfilesActivity)

@@ -39,7 +39,7 @@ class RecurringActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_recurring)
-        ScreenHeaderHelper.setup(this, getString(R.string.reminders_recurring), getString(R.string.ui_refresh))
+        ScreenHeaderHelper.setup(this, getString(R.string.reminders_recurring), getString(R.string.main_icon_recurring))
         repository = BudgetRepository(BudgetDatabase.getInstance(this).budgetDao())
         manager = BudgetManager.getInstance(this)
         recycler = findViewById(R.id.recurringRecycler)

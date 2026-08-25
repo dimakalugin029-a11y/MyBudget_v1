@@ -28,7 +28,7 @@ class UtilityTemplateActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_template)
-        ScreenHeaderHelper.setup(this, getString(R.string.utility_template_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.utility_template_title), getString(R.string.settings_template_emoji))
         findViewById<View>(R.id.utilityTemplateHint)?.let {
             ScreenHintHelper.bind(
                 this,

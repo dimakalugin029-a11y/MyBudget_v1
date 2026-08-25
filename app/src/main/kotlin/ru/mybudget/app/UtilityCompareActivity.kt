@@ -30,7 +30,7 @@ class UtilityCompareActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_compare)
-        ScreenHeaderHelper.setup(this, getString(R.string.utility_compare_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.utility_compare_title), getString(R.string.main_icon_utilities))
         repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
         adapter = CompareAdapter()
         findViewById<RecyclerView>(R.id.compareRecycler).apply {

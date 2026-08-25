@@ -38,7 +38,7 @@ class RemindersActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reminders)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.reminders_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.reminders_title), getString(R.string.main_icon_reminders))
         findViewById<View>(R.id.remindersHint)?.let {
             ScreenHintHelper.bind(
                 this,
@@ -51,7 +51,7 @@ class RemindersActivity : AppCompatActivity() {
         bindRow(R.id.paymentCalendarButton, R.string.main_icon_reminders, R.string.reminders_payment_calendar) {
             startActivity(Intent(this, PaymentCalendarActivity::class.java))
         }
-        bindRow(R.id.recurringButton, R.string.ui_refresh, R.string.reminders_recurring) {
+        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.reminders_recurring) {
             startActivity(Intent(this, RecurringActivity::class.java))
         }
         val confirmSwitch = findViewById<SwitchCompat>(R.id.recurringConfirmSwitch)

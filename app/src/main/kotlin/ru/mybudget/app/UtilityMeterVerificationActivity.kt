@@ -24,7 +24,7 @@ class UtilityMeterVerificationActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_meter_verification)
-        ScreenHeaderHelper.setup(this, getString(R.string.meter_verification_title))
+        ScreenHeaderHelper.setup(this, getString(R.string.meter_verification_title), getString(R.string.utility_icon_verification))
         repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
         adapter = VerificationAdapter { meter ->
             UtilityMeterDialogs.showEditVerificationDate(this, lifecycleScope, repository, meter) { loadList() }
