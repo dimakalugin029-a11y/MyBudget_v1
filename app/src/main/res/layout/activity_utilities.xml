@@ -22,15 +22,12 @@
             android:layout_height="wrap_content"
             layout="@layout/include_utility_setup_guide"/>
         <TextView
-            android:textSize="13sp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_4"
             android:text="@string/utilities_subtitle"
-            style="@style/Text.MyBudget.Subtitle"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <TextView
-            android:textSize="11sp"
-            android:textColor="@color/text_secondary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"

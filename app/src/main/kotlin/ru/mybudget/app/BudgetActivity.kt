@@ -102,6 +102,12 @@ class BudgetActivity : AppCompatActivity() {
             activeBudgetNameText.text = profiles.firstOrNull { it.id == activeId }?.name
                 ?: getString(R.string.budget_profiles_default_name)
             totalBalanceText.text = MoneyFormat.formatRub(total)
+            totalBalanceText.setTextColor(
+                ContextCompat.getColor(
+                    this@BudgetActivity,
+                    if (total >= 0.0) R.color.main_hero_balance_positive else R.color.main_hero_balance_negative,
+                ),
+            )
             val daily = BudgetPlanHelper.safeToSpendDaily(total)
             if (daily != null) {
                 safeToSpendText.visibility = View.VISIBLE

@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/settings_section_interface"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/themeCard"
             android:layout_width="match_parent"
@@ -69,7 +69,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/settings_section_security"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/appLockCard"
             android:layout_width="match_parent"
@@ -117,7 +117,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/settings_section_budget"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/defaultAmountsButton"
             android:focusable="true"
@@ -353,7 +353,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/settings_section_data"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/templatesBackupCard"
             android:layout_width="match_parent"
@@ -482,7 +482,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/settings_section_about"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <androidx.cardview.widget.CardView
             android:id="@+id/helpButton"
             android:focusable="true"

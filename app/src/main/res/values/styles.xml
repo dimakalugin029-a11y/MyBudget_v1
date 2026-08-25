@@ -15,7 +15,7 @@
   </style>
   <style name="Card.MyBudget.Surface" parent="">
     <item name="cardBackgroundColor">@color/card_background_white</item>
-    <item name="cardCornerRadius">@dimen/radius_12</item>
+    <item name="cardCornerRadius">@dimen/radius_16</item>
     <item name="cardElevation">@dimen/card_elevation_low</item>
   </style>
   <style name="Card.MyBudget.Surface.Small" parent="@style/Card.MyBudget.Surface">
