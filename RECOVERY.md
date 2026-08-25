@@ -53,6 +53,8 @@
 - [x] Hilt не использовался в APK — не восстанавливаем
 - [x] README, unit-тесты (MoneyFormat, PinHasher, UtilityExcelParser), CI (GitHub Actions)
 
+Подробная сверка с APK: [`docs/ORIGINAL_PARITY.md`](docs/ORIGINAL_PARITY.md).
+
 ## Ограничения
 
 - Kotlin-исходники **не восстанавливаются байт-в-байт** — JADX даёт Java без `@Entity`/`@Query`. Пишем Kotlin по декомпиляции.

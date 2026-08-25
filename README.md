@@ -30,6 +30,7 @@ gradlew.bat testDebugUnitTest
 | `app/src/main/kotlin/ru/mybudget/app/backup/` | JSON-бэкап, автоэкспорт |
 | `app/src/main/kotlin/ru/mybudget/app/security/` | PIN, шифрование бэкапа |
 | `RECOVERY.md` | План восстановления и статус этапов |
+| `docs/ORIGINAL_PARITY.md` | Сверка компонентов с оригинальным APK |
 
 ## Восстановление данных
 
