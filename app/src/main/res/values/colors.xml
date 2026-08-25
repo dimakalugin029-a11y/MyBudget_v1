@@ -28,4 +28,18 @@
   <color name="utilities_cyan">#00acc1</color>
   <color name="utilities_cyan_light">#e0f7fa</color>
   <color name="white">#ffffffff</color>
+  <color name="widget_balance_negative_dark">#ff8a80</color>
+  <color name="widget_balance_negative_light">#d32f2f</color>
+  <color name="widget_balance_positive_dark">#a5d6a7</color>
+  <color name="widget_balance_positive_light">#2e7d32</color>
+  <color name="widget_expense_text_dark">#ffcdd2</color>
+  <color name="widget_expense_text_light">#c62828</color>
+  <color name="widget_income_text_dark">#c8e6c9</color>
+  <color name="widget_income_text_light">#1b5e20</color>
+  <color name="widget_text_muted_dark">#80ffffff</color>
+  <color name="widget_text_muted_light">#806750a4</color>
+  <color name="widget_text_primary_dark">#ffffff</color>
+  <color name="widget_text_primary_light">#1d1b20</color>
+  <color name="widget_text_secondary_dark">#b3ffffff</color>
+  <color name="widget_text_secondary_light">#5c5470</color>
 </resources>

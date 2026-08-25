@@ -36,6 +36,7 @@ tools/jadx.zip
 
 # Personal user data — never push
 MyBudget_backup_*.json
+app/src/androidTest/assets/*.json
 MyBudget_*.xlsx
 *.jks
 keystore.properties

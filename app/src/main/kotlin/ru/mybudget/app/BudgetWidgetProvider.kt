@@ -6,8 +6,6 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.widget.RemoteViews
-import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -36,7 +34,7 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         const val ACTION_REFRESH = "ru.mybudget.app.action.WIDGET_REFRESH"
         const val ACTION_WIDGET_REFRESH = ACTION_REFRESH
 
-        private const val PENDING_FLAGS =
+        internal const val WIDGET_PENDING_FLAGS =
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
         fun updateAll(context: Context) {
@@ -49,43 +47,8 @@ class BudgetWidgetProvider : AppWidgetProvider() {
         }
 
         private suspend fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
-            val budgetManager = BudgetManager.getInstance(context)
-            budgetManager.getCategoriesAsync()
-            val activeId = budgetManager.getActiveBudgetId()
-            val profiles = budgetManager.getBudgetProfilesAsync()
-            val name = profiles.firstOrNull { it.id == activeId }?.name
-                ?: context.getString(R.string.budget_profiles_default_name)
-            val balance = budgetManager.getTotalBalance(activeId)
-            val views = RemoteViews(context.packageName, R.layout.widget_budget)
-            views.setTextViewText(R.id.widgetBudgetName, name)
-            views.setTextViewText(R.id.widgetBalance, MoneyFormat.formatRub(balance))
-            val balanceColor = if (balance >= 0.0) {
-                R.color.primary_green
-            } else {
-                R.color.expense_red
-            }
-            views.setTextColor(R.id.widgetBalance, ContextCompat.getColor(context, balanceColor))
-            val openApp = PendingIntent.getActivity(
-                context,
-                0,
-                Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                PENDING_FLAGS,
-            )
-            views.setOnClickPendingIntent(R.id.widgetRoot, openApp)
-            views.setOnClickPendingIntent(
-                R.id.widgetIncomeButton,
-                activityPendingIntent(context, IncomeActivity::class.java, 1),
-            )
-            views.setOnClickPendingIntent(
-                R.id.widgetExpenseButton,
-                activityPendingIntent(context, ExpenseActivity::class.java, 2),
-            )
+            val views = BudgetWidgetViews.buildRemoteViews(context, BudgetWidgetViews.loadContent(context))
             manager.updateAppWidget(widgetId, views)
-        }
-
-        private fun activityPendingIntent(context: Context, cls: Class<*>, requestCode: Int): PendingIntent {
-            val intent = Intent(context, cls).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            return PendingIntent.getActivity(context, requestCode, intent, PENDING_FLAGS)
         }
     }
 }
