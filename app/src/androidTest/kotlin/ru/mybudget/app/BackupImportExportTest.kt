@@ -51,6 +51,20 @@ class BackupImportExportTest {
     }
 
     @Test
+    fun importFromJson_rejectsXlsxAndTinyFiles() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val backupManager = BackupManager(context)
+
+        val xlsx = backupManager.importFromJson("PK\u0003\u0004not-a-real-xlsx")
+        assertTrue(!xlsx.success)
+        assertTrue(xlsx.message.orEmpty().contains("Excel"))
+
+        val tiny = backupManager.importFromJson("{\"version\":8}")
+        assertTrue(!tiny.success)
+        assertTrue(tiny.message.orEmpty().contains("маленьк"))
+    }
+
+    @Test
     fun encryptedExportImport_roundTrip_restoresData() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val budgetManager = BudgetManager.getInstance(context)

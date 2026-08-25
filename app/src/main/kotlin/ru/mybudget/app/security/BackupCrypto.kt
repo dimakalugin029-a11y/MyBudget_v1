@@ -35,8 +35,17 @@ object BackupCrypto {
             val wrapper = gson.fromJson(trimmed, EncryptedBackupWrapper::class.java)
             wrapper?.encrypted == true && wrapper.payload.isNotBlank()
         } catch (_: JsonSyntaxException) {
-            false
+            looksLikeEncryptedBackup(trimmed)
         }
+    }
+
+    /** Heuristic when wrapper JSON is truncated but still clearly an encrypted export. */
+    fun looksLikeEncryptedBackup(content: String): Boolean {
+        val trimmed = content.trim().removePrefix("\uFEFF")
+        if (!trimmed.startsWith("{")) return false
+        return trimmed.contains("\"encrypted\"") &&
+            trimmed.contains("\"payload\"") &&
+            Regex(""""encrypted"\s*:\s*true""").containsMatchIn(trimmed)
     }
 
     @OptIn(ExperimentalEncodingApi::class)

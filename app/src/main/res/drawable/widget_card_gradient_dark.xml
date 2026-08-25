@@ -22,4 +22,18 @@
             <corners android:radius="@dimen/radius_16" />
         </shape>
     </item>
+    <item
+        android:gravity="top"
+        android:height="4dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="0"
+                android:endColor="#1976d2"
+                android:startColor="#2196f3"
+                android:type="linear" />
+            <corners
+                android:topLeftRadius="@dimen/radius_16"
+                android:topRightRadius="@dimen/radius_16" />
+        </shape>
+    </item>
 </layer-list>

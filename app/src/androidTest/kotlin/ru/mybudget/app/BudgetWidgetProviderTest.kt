@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import android.widget.FrameLayout
+import android.widget.RemoteViews
 import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -60,6 +61,13 @@ class BudgetWidgetProviderTest {
         val after = BudgetWidgetViews.loadContent(context).balanceText
         assertNotEquals("Balance should change after income", before, after)
         assertEquals(MoneyFormat.formatRub(manager.getTotalBalance()), after)
+    }
+
+    @Test
+    fun widgetRemoteViews_inflatesWithApply() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val parent = FrameLayout(context)
+        RemoteViews(context.packageName, R.layout.widget_budget).apply(context, parent)
     }
 
     @Test

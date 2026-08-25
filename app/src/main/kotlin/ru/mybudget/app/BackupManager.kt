@@ -70,6 +70,7 @@ class BackupManager(context: Context) {
                     message = appContext.getString(R.string.backup_import_empty_file),
                 )
             }
+            validateBackupContent(cleanJson)?.let { return@withContext it }
             val plainJson = when {
                 BackupCrypto.isEncryptedJson(cleanJson) -> {
                     val pwd = password?.takeIf { it.isNotBlank() }
@@ -143,9 +144,14 @@ class BackupManager(context: Context) {
                 backupVersion = data.version,
             )
         } catch (e: JsonSyntaxException) {
+            val message = if (looksTruncated(cleanJson)) {
+                appContext.getString(R.string.backup_import_truncated)
+            } else {
+                appContext.getString(R.string.backup_import_invalid_json, e.message ?: "")
+            }
             BackupImportResult(
                 success = false,
-                message = appContext.getString(R.string.backup_import_invalid_json, e.message ?: ""),
+                message = message,
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -394,6 +400,33 @@ class BackupManager(context: Context) {
         utilityTemplateLines = utilityTemplateLines.orEmpty(),
         utilityTariffs = utilityTariffs.orEmpty(),
     )
+
+    private fun validateBackupContent(content: String): BackupImportResult? {
+        if (content.startsWith("PK\u0003\u0004") || content.startsWith("PK")) {
+            return BackupImportResult(
+                success = false,
+                message = appContext.getString(R.string.backup_import_wrong_format_xlsx),
+            )
+        }
+        if (content.length < 50) {
+            return BackupImportResult(
+                success = false,
+                message = appContext.getString(R.string.backup_import_file_too_small),
+            )
+        }
+        if (!content.startsWith("{")) {
+            return BackupImportResult(
+                success = false,
+                message = appContext.getString(R.string.backup_import_not_json),
+            )
+        }
+        return null
+    }
+
+    private fun looksTruncated(content: String): Boolean {
+        val trimmed = content.trimEnd()
+        return content.length < 500 || !trimmed.endsWith("}")
+    }
 
     companion object {
         private const val DEFAULT_METER_NAME = "Счётчик"

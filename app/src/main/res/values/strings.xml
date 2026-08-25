@@ -40,7 +40,11 @@
   <string name="backup_import_cannot_read_file">Не удалось прочитать файл</string>
   <string name="backup_import_empty_file">Файл пустой</string>
   <string name="backup_import_failed">Ошибка импорта: %1$s</string>
+  <string name="backup_import_file_too_small">Файл слишком маленький — похоже, копия повреждена или не докачалась. Нужен полный MyBudget_backup_*.json (обычно сотни КБ).</string>
   <string name="backup_import_invalid_json">Неверный формат JSON: %1$s</string>
+  <string name="backup_import_not_json">Это не резервная копия JSON. Выберите файл MyBudget_backup_*.json из «Экспорт».</string>
+  <string name="backup_import_truncated">Файл обрезан или повреждён. Скопируйте бэкап заново или выберите другую копию (например, более новую дату).</string>
+  <string name="backup_import_wrong_format_xlsx">Это файл Excel (.xlsx), а не резервная копия. Для импорта данных нужен MyBudget_backup_*.json.</string>
   <string name="backup_import_no_categories">В файле нет статей бюджета — возможно, это не резервная копия MyBudget</string>
   <string name="backup_import_password_required">Файл защищён паролем — введите пароль</string>
   <string name="backup_import_success_version">Данные восстановлены (бэкап v%1$d)</string>
