@@ -74,15 +74,21 @@
             android:contentDescription="@string/transactions_search_clear"
             app:tint="@color/text_secondary"/>
     </LinearLayout>
-    <TextView
-        android:textSize="13sp"
-        android:gravity="center"
-        android:id="@+id/summaryText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/transactions_summary_default"
-        style="@style/Text.MyBudget.Subtitle"/>
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_8"
+            style="@style/Card.MyBudget.Surface">
+            <TextView
+                android:textSize="13sp"
+                android:gravity="center"
+                android:id="@+id/summaryText"
+                android:padding="@dimen/space_12"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/transactions_summary_default"
+                style="@style/Text.MyBudget.Subtitle"/>
+        </androidx.cardview.widget.CardView>
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/typeTabLayout"
         android:layout_width="match_parent"

@@ -8,9 +8,18 @@
     <LinearLayout
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="@dimen/space_16"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+        <View
+            android:layout_width="4dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/budget_profile_accent" />
+        <LinearLayout
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="@dimen/space_16"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="0dp"
@@ -48,5 +57,6 @@
             android:src="@android:drawable/ic_menu_more"
             android:contentDescription="@string/budget_profiles_actions"
             app:tint="@color/text_secondary"/>
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

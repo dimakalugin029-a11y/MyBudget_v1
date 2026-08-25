@@ -25,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/main_section_actions"
-        style="@style/Text.MyBudget.Section"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -87,7 +87,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/reminders_active_section"
-        style="@style/Text.MyBudget.Section"/>
+        style="@style/Text.MyBudget.SectionLabel"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/remindersRecyclerView"
         android:paddingBottom="@dimen/space_8"

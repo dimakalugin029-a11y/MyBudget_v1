@@ -10,24 +10,22 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <TextView
-            android:textSize="14sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_8"
             android:text="@string/transaction_budget_label"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.SectionLabel"/>
         <LinearLayout
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:id="@+id/transactionBudgetPicker"
-            android:background="?android:attr/selectableItemBackground"
-            android:paddingTop="@dimen/space_8"
-            android:paddingBottom="@dimen/space_8"
+            android:background="@drawable/quick_filter_chip_bg"
+            android:paddingHorizontal="@dimen/space_12"
+            android:paddingVertical="@dimen/space_8"
             android:focusable="true"
             android:clickable="true"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingVertical="@dimen/space_8">
+            android:layout_height="wrap_content">
             <TextView
                 android:textSize="16sp"
                 android:id="@+id/transactionBudgetNameText"
@@ -35,7 +33,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/budget_profiles_default_name"
                 android:layout_weight="1"
-                style="@style/Text.MyBudget.Title"/>
+                style="@style/Text.MyBudget.Section"/>
             <TextView
                 android:textSize="16sp"
                 android:textColor="@color/text_secondary"

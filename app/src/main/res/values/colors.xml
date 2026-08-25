@@ -19,6 +19,9 @@
   <color name="obligations_indigo">#5c6bc0</color>
   <color name="primary_green">#2e7d32</color>
   <color name="primary_green_light">#e8f5e8</color>
+  <color name="screen_hero_blue_end">#1565c0</color>
+  <color name="screen_hero_blue_start">#42a5f5</color>
+  <color name="screen_hero_blue_text_secondary">#bbdefb</color>
   <color name="reminders_teal">#009688</color>
   <color name="settings_orange">#ff9800</color>
   <color name="statistics_deep_orange">#ff5722</color>
@@ -32,6 +35,14 @@
   <color name="main_hero_balance_positive">#e8f5e9</color>
   <color name="main_hero_text_primary">#ffffff</color>
   <color name="main_hero_text_secondary">#d1c4e9</color>
+  <color name="transaction_hero_expense_end">#b71c1c</color>
+  <color name="transaction_hero_expense_start">#e53935</color>
+  <color name="transaction_hero_income_end">#1b5e20</color>
+  <color name="transaction_hero_income_start">#43a047</color>
+  <color name="transaction_hero_text_hint">#b3ffffff</color>
+  <color name="transaction_hero_text_primary">#ffffff</color>
+  <color name="transaction_hero_text_secondary">#c8e6c9</color>
+  <color name="transaction_hero_expense_text_secondary">#ffcdd2</color>
   <color name="white">#ffffffff</color>
   <color name="widget_balance_negative_dark">#ff8a80</color>
   <color name="widget_balance_negative_light">#d32f2f</color>

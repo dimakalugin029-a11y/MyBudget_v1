@@ -15,7 +15,12 @@
         android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
     <TextView
-        android:textSize="13sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_4"
+        android:text="@string/budget_profiles_manage"
+        style="@style/Text.MyBudget.SectionLabel"/>
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"

@@ -33,36 +33,84 @@
             android:paddingBottom="@dimen/space_16"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-            <include layout="@layout/include_transaction_budget_picker"/>
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/space_12"
-                style="@style/Card.MyBudget.Surface">
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="0dp">
                 <LinearLayout
-                    android:orientation="vertical"
-                    android:padding="@dimen/space_16"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/transaction_hero_card_bg_expense"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
                     <TextView
-                        android:textSize="14sp"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="@dimen/space_8"
+                        android:letterSpacing="0.06"
+                        android:text="@string/transaction_budget_label"
+                        android:textAllCaps="true"
+                        android:textColor="@color/transaction_hero_expense_text_secondary"
+                        android:textSize="11sp" />
+                    <LinearLayout
+                        android:id="@+id/transactionBudgetPicker"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_6"
+                        android:background="@drawable/main_hero_profile_chip"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="@dimen/space_12"
+                        android:paddingVertical="@dimen/space_6">
+                        <TextView
+                            android:id="@+id/transactionBudgetNameText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/budget_profiles_default_name"
+                            android:textColor="@color/transaction_hero_text_primary"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/space_4"
+                            android:text="@string/ui_chevron_down"
+                            android:textColor="@color/transaction_hero_expense_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_16"
+                        android:letterSpacing="0.06"
                         android:text="@string/expense_amount_label"
-                        style="@style/Text.MyBudget.Section"/>
+                        android:textAllCaps="true"
+                        android:textColor="@color/transaction_hero_expense_text_secondary"
+                        android:textSize="11sp" />
                     <EditText
-                        android:textSize="18sp"
-                        android:textColor="@color/text_primary"
                         android:id="@+id/expenseAmount"
-                        android:background="@drawable/edittext_border"
-                        android:padding="@dimen/space_8"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_8"
+                        android:background="@drawable/transaction_hero_amount_field"
                         android:hint="@string/expense_amount_hint"
-                        android:inputType="numberDecimal"/>
+                        android:inputType="numberDecimal"
+                        android:padding="@dimen/space_12"
+                        android:textColor="@color/transaction_hero_text_primary"
+                        android:textColorHint="@color/transaction_hero_text_hint"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_8"
+                android:text="@string/expense_category_label"
+                style="@style/Text.MyBudget.SectionLabel" />
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -73,13 +121,6 @@
                     android:padding="@dimen/space_16"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-                    <TextView
-                        android:textSize="14sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="@dimen/space_8"
-                        android:text="@string/expense_category_label"
-                        style="@style/Text.MyBudget.Section"/>
                     <Spinner
                         android:id="@+id/expenseCategory"
                         android:padding="@dimen/space_8"
@@ -95,6 +136,12 @@
                         style="@style/Text.MyBudget.Subtitle"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_8"
+                android:text="@string/expense_description_label"
+                style="@style/Text.MyBudget.SectionLabel"/>
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -105,13 +152,6 @@
                     android:padding="@dimen/space_16"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-                    <TextView
-                        android:textSize="14sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="@dimen/space_8"
-                        android:text="@string/expense_description_label"
-                        style="@style/Text.MyBudget.Section"/>
                     <EditText
                         android:textSize="16sp"
                         android:textColor="@color/text_primary"
