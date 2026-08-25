@@ -25,7 +25,7 @@
 
 ### Этап 1 — Каркас ✅
 - [x] Декомпиляция APK
-- [x] Новый Gradle-проект (AGP 8.10, Kotlin 2.2, minSdk 24, targetSdk 34)
+- [x] Новый Gradle-проект (AGP 9.3, Kotlin 2.2, Gradle 9.5, minSdk 24, targetSdk 34)
 - [x] Перенос app-ресурсов (`res/`) и `AndroidManifest.xml` (без библиотечных R)
 - [x] Первая сборка `assembleDebug`
 
@@ -50,8 +50,8 @@
 - [x] Статистика: периоды, KPI, график баланса/потока, pie по статьям
 
 ### Этап 4 — Полировка
-- [ ] Hilt не использовался в APK — не восстанавливаем
-- [ ] Тесты, CI, README
+- [x] Hilt не использовался в APK — не восстанавливаем
+- [x] README, unit-тесты (MoneyFormat, PinHasher, UtilityExcelParser), CI (GitHub Actions)
 
 ## Ограничения
 
