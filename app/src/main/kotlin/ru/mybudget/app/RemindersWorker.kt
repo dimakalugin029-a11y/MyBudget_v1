@@ -36,6 +36,7 @@ class RemindersWorker(
             }
             processRecurringTransactions(dao, repository, today)
             processMeterVerifications()
+            MeterReadingReminderHelper.processReminder(applicationContext)
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()

@@ -248,6 +248,59 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
         <androidx.cardview.widget.CardView
+            android:id="@+id/meterReadingReminderCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_16"
+            style="@style/Card.MyBudget.Surface">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_16">
+                <TextView
+                    style="@style/Text.MyBudget.Section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/meter_reading_reminder_title" />
+                <TextView
+                    style="@style/Text.MyBudget.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:layout_marginBottom="@dimen/space_12"
+                    android:text="@string/meter_reading_reminder_hint"
+                    android:textSize="13sp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        style="@style/Text.MyBudget.Section"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/meter_reading_reminder_switch" />
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/meterReadingReminderSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+                <TextView
+                    style="@style/Text.MyBudget.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_12"
+                    android:layout_marginBottom="@dimen/space_4"
+                    android:text="@string/meter_reading_reminder_day_label" />
+                <Spinner
+                    android:id="@+id/meterReadingReminderDaySpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
             android:id="@+id/participantsCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

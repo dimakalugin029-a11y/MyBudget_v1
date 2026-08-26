@@ -516,6 +516,13 @@
   <string name="meter_verification_notify_channel">Поверка счётчиков</string>
   <string name="meter_verification_notify_message">%1$s — поверка %2$s</string>
   <string name="meter_verification_notify_title">Скоро поверка счётчика</string>
+  <string name="meter_reading_reminder_channel">Показания счётчиков</string>
+  <string name="meter_reading_reminder_day_label">Напоминать с числа месяца</string>
+  <string name="meter_reading_reminder_day_option">%1$d-е число</string>
+  <string name="meter_reading_reminder_hint">Push-напоминание снять показания, если в текущем месяце они ещё не внесены. Работает при наличии счётчиков в разделе ЖКХ.</string>
+  <string name="meter_reading_reminder_message">Пора передать показания счётчиков за текущий месяц. Нажмите, чтобы ввести пакетом.</string>
+  <string name="meter_reading_reminder_switch">Напоминание о показаниях</string>
+  <string name="meter_reading_reminder_title">Показания счётчиков</string>
   <string name="meter_verification_overdue">Поверка просрочена (%1$s)</string>
   <string name="meter_verification_saved">Дата поверки сохранена</string>
   <string name="meter_verification_subtitle">Нажмите на счётчик, чтобы изменить дату поверки (например, после плановых работ)</string>

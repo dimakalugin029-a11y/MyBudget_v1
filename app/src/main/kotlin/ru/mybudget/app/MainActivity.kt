@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         maybeShowUpgradeMigrationHint()
         maybeShowMonthStartWizard()
         runAutoBackupIfNeeded()
+        maybeProcessMeterReadingReminder()
         onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
@@ -272,6 +273,12 @@ class MainActivity : AppCompatActivity() {
                     Toast.LENGTH_LONG,
                 ).show()
             }
+        }
+    }
+
+    private fun maybeProcessMeterReadingReminder() {
+        lifecycleScope.launch {
+            MeterReadingReminderHelper.processReminder(this@MainActivity)
         }
     }
 }

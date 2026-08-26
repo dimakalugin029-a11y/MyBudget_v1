@@ -33,6 +33,7 @@ import ru.mybudget.app.setup.AppLockPreferences
 import ru.mybudget.app.setup.AutoBackupPreferences
 import ru.mybudget.app.setup.BudgetTemplateId
 import ru.mybudget.app.setup.BudgetTemplates
+import ru.mybudget.app.setup.MeterReadingReminderPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -122,6 +123,7 @@ class SettingsActivity : AppCompatActivity() {
         setupAppLockSettings()
         setupBackupButtons()
         setupAutoBackup()
+        setupMeterReadingReminder()
         setupParticipants()
 
         findViewById<View>(R.id.defaultAmountsButton).setOnClickListener {
@@ -303,6 +305,32 @@ class SettingsActivity : AppCompatActivity() {
             autoBackupFolderLauncher.launch(AutoBackupPreferences.folderUri(this))
         }
         refreshAutoBackupFolderLabel()
+    }
+
+    private fun setupMeterReadingReminder() {
+        val enableSwitch = findViewById<SwitchCompat>(R.id.meterReadingReminderSwitch)
+        val daySpinner = findViewById<Spinner>(R.id.meterReadingReminderDaySpinner)
+        val dayLabels = MeterReadingReminderPreferences.DAY_OPTIONS.map { day ->
+            getString(R.string.meter_reading_reminder_day_option, day)
+        }
+        daySpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, dayLabels)
+        daySpinner.setSelection(MeterReadingReminderPreferences.dayIndex(this), false)
+        daySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val day = MeterReadingReminderPreferences.DAY_OPTIONS.getOrElse(position) {
+                    MeterReadingReminderPreferences.DEFAULT_DAY
+                }
+                if (day == MeterReadingReminderPreferences.reminderDay(this@SettingsActivity)) return
+                MeterReadingReminderPreferences.setReminderDay(this@SettingsActivity, day)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
+        enableSwitch.setOnCheckedChangeListener(null)
+        enableSwitch.isChecked = MeterReadingReminderPreferences.isEnabled(this)
+        enableSwitch.setOnCheckedChangeListener { _, checked ->
+            MeterReadingReminderPreferences.setEnabled(this, checked)
+        }
     }
 
     private val encryptListener = CompoundButton.OnCheckedChangeListener { button, checked ->
