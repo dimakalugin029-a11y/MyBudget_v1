@@ -81,11 +81,13 @@ class StatisticsActivity : AppCompatActivity() {
         ScreenHeaderHelper.bindAction(this, android.R.drawable.ic_menu_more, R.string.stats_more_menu) {
             PopupMenu(this, findViewById(R.id.screenHeaderAction)).apply {
                 menu.add(0, 1, 0, getString(R.string.plan_fact_open))
-                menu.add(0, 2, 1, getString(R.string.stats_export_csv))
-                menu.add(0, 3, 2, getString(R.string.stats_export_pdf))
+                menu.add(0, 4, 1, getString(R.string.participants_report_title))
+                menu.add(0, 2, 2, getString(R.string.stats_export_csv))
+                menu.add(0, 3, 3, getString(R.string.stats_export_pdf))
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         1 -> startActivity(Intent(this@StatisticsActivity, PlanFactActivity::class.java))
+                        4 -> startActivity(Intent(this@StatisticsActivity, ParticipantsReportActivity::class.java))
                         2 -> launchCsvExport()
                         3 -> launchPdfExport()
                     }

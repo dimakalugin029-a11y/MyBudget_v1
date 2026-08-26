@@ -85,6 +85,7 @@
             android:exported="false"
             android:launchMode="singleTop"
             android:theme="@style/Theme.MyBudget" />
+        <activity android:name=".ParticipantsReportActivity" android:exported="false" />
         <activity android:name=".PlanFactActivity" android:exported="false" />
         <activity android:name=".MonthStartActivity" android:exported="false" />
         <activity android:name=".RolloverActivity" android:exported="false" />

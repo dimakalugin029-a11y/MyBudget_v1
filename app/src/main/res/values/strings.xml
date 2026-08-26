@@ -743,6 +743,11 @@
   <string name="settings_participants_hint">Имена через запятую или с новой строки — для меток в истории операций</string>
   <string name="settings_participants_saved">Участники сохранены</string>
   <string name="settings_participants_title">Участники семьи</string>
+  <string name="settings_participants_report_btn">Отчёт по расходам</string>
+  <string name="participants_report_empty">За выбранный период нет расходов с метками участников</string>
+  <string name="participants_report_title">Расходы по участникам</string>
+  <string name="participants_report_total_label">Всего расходов</string>
+  <string name="participants_report_unlabeled">Без метки</string>
   <string name="settings_pick_template_btn">Выбрать шаблон</string>
   <string name="settings_rollover">Перенос остатков месяца</string>
   <string name="settings_section_about">О приложении</string>

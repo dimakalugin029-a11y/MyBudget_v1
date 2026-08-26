@@ -18,4 +18,10 @@
     <item quantity="many">Коммуналка: %d месяцев не оплачены из бюджета</item>
     <item quantity="other">Коммуналка: %d месяцев не оплачены из бюджета</item>
   </plurals>
+  <plurals name="participants_report_operations">
+    <item quantity="one">%d операция</item>
+    <item quantity="few">%d операции</item>
+    <item quantity="many">%d операций</item>
+    <item quantity="other">%d операций</item>
+  </plurals>
 </resources>

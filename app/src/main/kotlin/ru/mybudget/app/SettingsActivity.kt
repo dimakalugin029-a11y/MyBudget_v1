@@ -163,6 +163,9 @@ class SettingsActivity : AppCompatActivity() {
             input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
             Toast.makeText(this, R.string.settings_participants_saved, Toast.LENGTH_SHORT).show()
         }
+        findViewById<Button>(R.id.participantsReportButton).setOnClickListener {
+            startActivity(Intent(this, ParticipantsReportActivity::class.java))
+        }
     }
 
     private fun setupThemeSelector() {

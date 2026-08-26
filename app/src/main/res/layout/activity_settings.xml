@@ -352,6 +352,15 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_8"
                     android:text="@string/save"/>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/participantsReportButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/settings_participants_report_btn"
+                    app:cornerRadius="@dimen/radius_10" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
         <androidx.cardview.widget.CardView
