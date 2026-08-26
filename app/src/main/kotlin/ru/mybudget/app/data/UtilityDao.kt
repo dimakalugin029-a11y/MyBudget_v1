@@ -59,6 +59,9 @@ interface UtilityDao {
     @Query("SELECT * FROM utility_bills WHERE id = :id")
     suspend fun getBillById(id: Int): UtilityBillEntity?
 
+    @Query("SELECT COUNT(*) FROM utility_bill_photos WHERE billId = :billId")
+    suspend fun getPhotoCountForBill(billId: Int): Int
+
     @Query("SELECT * FROM utility_bill_photos WHERE billId = :billId ORDER BY sortOrder, createdAt")
     suspend fun getPhotosForBill(billId: Int): List<UtilityBillPhotoEntity>
 
