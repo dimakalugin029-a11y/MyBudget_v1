@@ -20,6 +20,6 @@
         <intent
             android:targetPackage="ru.mybudget.app"
             android:action="android.intent.action.VIEW"
-            android:targetClass="ru.mybudget.app.ExpenseActivity"/>
+            android:targetClass="ru.mybudget.app.QuickExpenseActivity"/>
     </shortcut>
 </shortcuts>

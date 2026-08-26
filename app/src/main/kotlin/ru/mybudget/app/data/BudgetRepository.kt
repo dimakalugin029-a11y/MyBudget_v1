@@ -300,5 +300,12 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun getAuditActionById(id: Long): AuditActionEntity? = budgetDao.getAuditActionById(id)
 
+    suspend fun getRecentExpenseCategoryIds(limit: Int = 5): List<Int> {
+        return budgetDao.getRecentExpenseTransactions(limit * 4)
+            .map { it.categoryId }
+            .distinct()
+            .take(limit)
+    }
+
     suspend fun restoreCategory(categoryId: Int) = budgetDao.restoreCategory(categoryId)
 }

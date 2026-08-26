@@ -69,6 +69,8 @@ class AllActivitiesSmokeTest {
 
     @Test fun expenseActivity() = smokeLaunch(ExpenseActivity::class.java)
 
+    @Test fun quickExpenseActivity() = smokeLaunch(QuickExpenseActivity::class.java)
+
     @Test fun expenseDistributionActivity() = smokeLaunch(ExpenseDistributionActivity::class.java) {
         it.putExtra(ExpenseDistributionActivity.EXTRA_TOTAL_EXPENSE, 500.0)
         it.putExtra(BudgetIntentExtras.BUDGET_ID, 1)

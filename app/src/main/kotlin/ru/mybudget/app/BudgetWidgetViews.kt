@@ -53,7 +53,7 @@ internal object BudgetWidgetViews {
         )
         views.setOnClickPendingIntent(
             R.id.widgetExpenseButton,
-            activityPendingIntent(context, ExpenseActivity::class.java, 2),
+            activityPendingIntent(context, QuickExpenseActivity::class.java, 2),
         )
         return views
     }

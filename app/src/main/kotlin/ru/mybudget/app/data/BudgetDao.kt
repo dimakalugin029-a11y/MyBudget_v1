@@ -143,6 +143,9 @@ abstract class BudgetDao {
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     abstract fun getAllTransactions(): Flow<List<TransactionEntity>>
 
+    @Query("SELECT * FROM transactions WHERE type = 'expense' ORDER BY date DESC LIMIT :limit")
+    abstract suspend fun getRecentExpenseTransactions(limit: Int): List<TransactionEntity>
+
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY date DESC")
     abstract fun getTransactionsByCategory(categoryId: Int): Flow<List<TransactionEntity>>
 

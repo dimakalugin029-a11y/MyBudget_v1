@@ -56,6 +56,10 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".RemainderDistributionActivity" android:exported="false" />
+        <activity
+            android:name=".QuickExpenseActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ExpenseActivity" android:exported="false" />
         <activity
             android:name=".ExpenseDistributionActivity"

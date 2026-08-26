@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import ru.mybudget.app.setup.QuickExpensePreferences
 
 class ExpenseActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
@@ -123,6 +124,12 @@ class ExpenseActivity : AppCompatActivity() {
         }
         lifecycleScope.launch {
             manager.recordTransaction(option.category.id, amount, "expense", description)
+            QuickExpensePreferences.saveLastExpense(
+                this@ExpenseActivity,
+                option.category.id,
+                amount,
+                description,
+            )
             val updated = manager.getCategoryById(option.category.id)
             val parentName = manager.getCategories().firstOrNull { it.id == option.category.parentId }?.name
                 ?: option.category.name
