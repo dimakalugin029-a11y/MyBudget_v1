@@ -16,6 +16,13 @@ class MeterReadingReminderLogicTest {
     }
 
     @Test
+    fun isOnOrAfterReminderDay_clampsDay31InShortMonths() {
+        val feb2026 = LocalDate.of(2026, 2, 27)
+        assertFalse(MeterReadingReminderLogic.isOnOrAfterReminderDay(feb2026, 31))
+        assertTrue(MeterReadingReminderLogic.isOnOrAfterReminderDay(feb2026.plusDays(1), 31))
+    }
+
+    @Test
     fun metersMissingCurrentMonthReadings_trueWhenAnyMeterHasNoReading() {
         val today = LocalDate.of(2026, 8, 26)
         val meters = listOf(

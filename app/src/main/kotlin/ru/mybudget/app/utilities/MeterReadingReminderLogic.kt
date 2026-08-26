@@ -10,7 +10,9 @@ object MeterReadingReminderLogic {
     }
 
     fun isOnOrAfterReminderDay(today: LocalDate, reminderDay: Int): Boolean {
-        return today.dayOfMonth >= reminderDay.coerceIn(1, 28)
+        val day = reminderDay.coerceIn(1, 31)
+        val effectiveDay = minOf(day, today.lengthOfMonth())
+        return today.dayOfMonth >= effectiveDay
     }
 
     fun metersMissingCurrentMonthReadings(

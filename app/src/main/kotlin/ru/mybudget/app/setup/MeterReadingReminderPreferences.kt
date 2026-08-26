@@ -8,8 +8,8 @@ object MeterReadingReminderPreferences {
     private const val KEY_DAY = "day_of_month"
     private const val KEY_LAST_NOTIFIED = "last_notified_month"
 
-    const val DEFAULT_DAY = 25
-    val DAY_OPTIONS: List<Int> = (20..28).toList()
+    const val DEFAULT_DAY = 15
+    val DAY_OPTIONS: List<Int> = (1..31).toList()
 
     fun isEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_ENABLED, false)
