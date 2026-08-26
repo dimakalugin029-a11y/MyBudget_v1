@@ -52,6 +52,8 @@ class MainActivity : AppCompatActivity() {
         bindRow(R.id.expensePlanButton, R.string.main_icon_expense_plan, R.string.main_menu_expense_plan, ExpensePlanActivity::class.java)
         bindRow(R.id.goalsButton, R.string.main_icon_goals, R.string.main_menu_goals, GoalsActivity::class.java)
         bindRow(R.id.remindersButton, R.string.main_icon_reminders, R.string.main_menu_reminders, RemindersActivity::class.java)
+        bindRow(R.id.paymentCalendarButton, R.string.main_icon_payment_calendar, R.string.main_menu_payment_calendar, PaymentCalendarActivity::class.java)
+        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
         bindRow(R.id.obligationsButton, R.string.main_icon_obligations, R.string.main_menu_obligations, PlannedObligationsActivity::class.java)
         bindRow(R.id.utilitiesButton, R.string.main_icon_utilities, R.string.main_menu_utilities, UtilitiesActivity::class.java)
         ReminderScheduler.ensureScheduled(this)

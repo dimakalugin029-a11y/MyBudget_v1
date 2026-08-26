@@ -409,6 +409,7 @@
   <string name="main_icon_goals">🎯</string>
   <string name="main_icon_income">💵</string>
   <string name="main_icon_obligations">📆</string>
+  <string name="main_icon_payment_calendar">📅</string>
   <string name="main_icon_reminders">🔔</string>
   <string name="main_icon_recurring">🔁</string>
   <string name="main_icon_settings">⚙️</string>
@@ -421,6 +422,8 @@
   <string name="main_menu_goals">Цели</string>
   <string name="main_menu_income">Доходы</string>
   <string name="main_menu_obligations">Обязательные платежи</string>
+  <string name="main_menu_payment_calendar">Календарь платежей</string>
+  <string name="main_menu_recurring">Повторяющиеся</string>
   <string name="main_menu_reminders">Напоминания</string>
   <string name="main_menu_settings">Настройки</string>
   <string name="main_menu_statistics">Статистика</string>
