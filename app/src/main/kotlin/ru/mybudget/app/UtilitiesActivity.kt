@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.backup.AutoBackupWorker
 import ru.mybudget.app.setup.UtilitySetupPreferences
 import ru.mybudget.app.utilities.EnrichedUtilityBillSummary
 import ru.mybudget.app.utilities.MeterExcelFormat
@@ -32,6 +33,7 @@ import ru.mybudget.app.utilities.UtilityExcelParser
 import ru.mybudget.app.utilities.UtilityForecastHelper
 import ru.mybudget.app.utilities.UtilityLegacyPaymentHelper
 import ru.mybudget.app.utilities.UtilityMonthChecklistHelper
+import ru.mybudget.app.utilities.UtilityPhotoPreferences
 import ru.mybudget.app.utilities.UtilitySetupGuideHelper
 import ru.mybudget.app.utilities.UtilitySetupState
 import ru.mybudget.app.utilities.UtilityUserTemplate
@@ -87,6 +89,24 @@ class UtilitiesActivity : AppCompatActivity() {
                 .setNegativeButton(android.R.string.cancel) { _, _ -> pendingImportUri = null }
                 .show()
         }
+    }
+
+    private val photoFolderLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        val persisted = runCatching {
+            contentResolver.takePersistableUriPermission(uri, flags)
+        }.isSuccess || runCatching {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        }.isSuccess
+        if (!persisted) {
+            Toast.makeText(this, R.string.auto_backup_folder_unavailable, Toast.LENGTH_LONG).show()
+            return@registerForActivityResult
+        }
+        UtilityPhotoPreferences.setFolderUri(this, uri)
+        refreshPhotoFolderRow()
     }
     private val monthNames = arrayOf(
         "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -149,6 +169,7 @@ class UtilitiesActivity : AppCompatActivity() {
             "✓",
             getString(R.string.utility_mark_legacy_paid_button),
         ) { confirmMarkPastAsLegacyPaid() }
+        refreshPhotoFolderRow()
         findViewById<View>(R.id.addUtilityMonthButton).setOnClickListener { showAddMonthDialog() }
         CollapsibleBottomSheetHelper.attach(
             findViewById(R.id.utilitiesActionsSheet),
@@ -166,6 +187,7 @@ class UtilitiesActivity : AppCompatActivity() {
         super.onResume()
         loadMonths()
         refreshPayCategoryRow()
+        refreshPhotoFolderRow()
         refreshSetupGuide()
     }
 
@@ -268,6 +290,7 @@ class UtilitiesActivity : AppCompatActivity() {
             val date = LocalDate.ofEpochDay(epoch)
             date.year to date.monthValue
         }.toSet()
+        val photoCounts = dao.getPhotoCountsByBill().associate { it.billId to it.count }
         return bills.map { bill ->
             val grand = totals[bill.id] ?: 0.0
             val previous = UtilityAnomalyHelper.previousPeriod(bill.year, bill.month)
@@ -277,6 +300,7 @@ class UtilitiesActivity : AppCompatActivity() {
                     bill,
                     grand,
                     (bill.year to bill.month) in meterMonths,
+                    photoCounts[bill.id] ?: 0,
                 ),
                 anomalyPercent = UtilityAnomalyHelper.percentChange(grand, totalsByPeriod[previous]),
                 forecastPercent = UtilityForecastHelper.percentVsRecentAverage(
@@ -285,6 +309,24 @@ class UtilitiesActivity : AppCompatActivity() {
                 ),
             )
         }
+    }
+
+    private fun refreshPhotoFolderRow() {
+        val uri = UtilityPhotoPreferences.folderUri(this)
+        val subtitle = if (uri == null) {
+            getString(R.string.utility_photo_folder_not_selected)
+        } else {
+            getString(
+                R.string.utility_photo_folder_selected,
+                AutoBackupWorker.folderDisplayName(this, uri),
+            )
+        }
+        val title = "${getString(R.string.utility_photo_folder_setting)}\n$subtitle"
+        MenuRowHelper.bind(
+            findViewById(R.id.utilityPhotoFolderButton),
+            "📁",
+            title,
+        ) { photoFolderLauncher.launch(uri) }
     }
 
     private fun refreshPayCategoryRow() {

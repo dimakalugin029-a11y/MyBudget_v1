@@ -34,6 +34,7 @@ import ru.mybudget.app.setup.AutoBackupPreferences
 import ru.mybudget.app.setup.BudgetTemplateId
 import ru.mybudget.app.setup.BudgetTemplates
 import ru.mybudget.app.setup.MeterReadingReminderPreferences
+import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -123,6 +124,7 @@ class SettingsActivity : AppCompatActivity() {
         setupAppLockSettings()
         setupBackupButtons()
         setupAutoBackup()
+        setupOverspendNotifications()
         setupMeterReadingReminder()
         setupParticipants()
 
@@ -308,6 +310,22 @@ class SettingsActivity : AppCompatActivity() {
             autoBackupFolderLauncher.launch(AutoBackupPreferences.folderUri(this))
         }
         refreshAutoBackupFolderLabel()
+    }
+
+    private fun setupOverspendNotifications() {
+        val overspendSwitch = findViewById<SwitchCompat>(R.id.overspendNotifySwitch)
+        val thresholdInput = findViewById<EditText>(R.id.overspendThresholdInput)
+        overspendSwitch.isChecked = OverspendPreferences.isEnabled(this)
+        thresholdInput.setText(OverspendPreferences.getThresholdPercent(this).toString())
+        overspendSwitch.setOnCheckedChangeListener { _, checked ->
+            OverspendPreferences.setEnabled(this, checked)
+        }
+        thresholdInput.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) return@setOnFocusChangeListener
+            val value = thresholdInput.text.toString().toIntOrNull() ?: 100
+            OverspendPreferences.setThresholdPercent(this, value)
+            thresholdInput.setText(OverspendPreferences.getThresholdPercent(this).toString())
+        }
     }
 
     private fun setupMeterReadingReminder() {

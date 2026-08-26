@@ -20,6 +20,32 @@ data class UtilityBillEntity(
 )
 
 @Entity(
+    tableName = "utility_bill_photos",
+    foreignKeys = [
+        ForeignKey(
+            entity = UtilityBillEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["billId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index("billId")],
+)
+data class UtilityBillPhotoEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val billId: Int,
+    val photoType: String,
+    val storedUri: String,
+    val sortOrder: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+) {
+    companion object {
+        const val TYPE_RECEIPT = "receipt"
+        const val TYPE_METER = "meter"
+    }
+}
+
+@Entity(
     tableName = "utility_sections",
     foreignKeys = [
         ForeignKey(
@@ -151,4 +177,9 @@ data class UtilityTariffRow(
 data class BillGrandTotal(
     val billId: Int,
     val total: Double,
+)
+
+data class BillPhotoCount(
+    val billId: Int,
+    val count: Int,
 )

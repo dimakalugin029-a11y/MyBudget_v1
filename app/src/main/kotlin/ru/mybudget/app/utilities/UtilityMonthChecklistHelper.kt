@@ -17,12 +17,17 @@ object UtilityMonthChecklistHelper {
         fun totalSteps(): Int = 4
     }
 
-    fun fromBill(bill: UtilityBillEntity, grandTotal: Double, metersRecorded: Boolean): Checklist {
+    fun fromBill(
+        bill: UtilityBillEntity,
+        grandTotal: Double,
+        metersRecorded: Boolean,
+        photoCount: Int = 0,
+    ): Checklist {
         return Checklist(
             receiptFilled = grandTotal > 0.0,
             metersRecorded = metersRecorded,
             paidFromBudget = bill.budgetPaidAt != null,
-            hasPhoto = !bill.receiptPhotoUri.isNullOrBlank(),
+            hasPhoto = photoCount > 0 || !bill.receiptPhotoUri.isNullOrBlank(),
         )
     }
 

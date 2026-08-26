@@ -20,6 +20,7 @@ import ru.mybudget.app.data.RecurringTransactionEntity
 import ru.mybudget.app.data.SavingsGoalEntity
 import ru.mybudget.app.data.TransactionEntity
 import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.data.UtilityBillPhotoEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.data.UtilityMeterInfoEntity
 import ru.mybudget.app.data.UtilityMeterReadingEntity
@@ -113,6 +114,7 @@ class BackupManager(context: Context) {
             recurringTransactions = dao.getAllRecurringForExport(),
             plannedObligations = dao.getAllPlannedObligationsForExport(),
             utilityBills = utilityDao.getAllBillsForExport(),
+            utilityBillPhotos = utilityDao.getAllBillPhotosForExport(),
             utilitySections = utilityDao.getAllSectionsForExport(),
             utilityLineItems = utilityDao.getAllLineItemsForExport(),
             utilityMeterReadings = utilityDao.getAllMeterReadingsForExport(),
@@ -180,6 +182,7 @@ class BackupManager(context: Context) {
         dao.deleteAllMonthlyPlans()
         dao.deleteAllAuditActions()
 
+        utilityDao.deleteAllBillPhotos()
         utilityDao.deleteAllMeterInfo()
         utilityDao.deleteAllMeterReadings()
         utilityDao.deleteAllTariffs()
@@ -281,8 +284,29 @@ class BackupManager(context: Context) {
             val newId = utilityDao.insertBill(bill.copy(id = 0)).toInt()
             insertedBillIds.add(newId)
             if (bill.id > 0) billIdMap[bill.id] = newId
+            if (!bill.receiptPhotoUri.isNullOrBlank() &&
+                data.utilityBillPhotos.none { it.billId == bill.id }
+            ) {
+                utilityDao.insertBillPhoto(
+                    UtilityBillPhotoEntity(
+                        billId = newId,
+                        photoType = UtilityBillPhotoEntity.TYPE_RECEIPT,
+                        storedUri = bill.receiptPhotoUri,
+                        sortOrder = 0,
+                    ),
+                )
+            }
         }
         val singleBillId = insertedBillIds.singleOrNull()
+
+        for (photo in data.utilityBillPhotos) {
+            val billId = billIdMap[photo.billId]
+                ?: singleBillId
+                ?: photo.billId.takeIf { insertedBillIds.contains(it) }
+            if (billId != null && billId > 0) {
+                utilityDao.insertBillPhoto(photo.copy(id = 0, billId = billId))
+            }
+        }
 
         val sectionIdMap = mutableMapOf<Int, Int>()
         for (section in data.utilitySections) {
@@ -427,6 +451,7 @@ class BackupManager(context: Context) {
         recurringTransactions = recurringTransactions.orEmpty(),
         plannedObligations = plannedObligations.orEmpty(),
         utilityBills = utilityBills.orEmpty(),
+        utilityBillPhotos = utilityBillPhotos.orEmpty(),
         utilitySections = utilitySections.orEmpty(),
         utilityLineItems = utilityLineItems.orEmpty(),
         utilityMeterReadings = utilityMeterReadings.orEmpty(),

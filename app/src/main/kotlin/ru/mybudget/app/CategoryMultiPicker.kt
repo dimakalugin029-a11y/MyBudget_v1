@@ -18,6 +18,8 @@ object CategoryMultiPicker {
         leaves: List<BudgetCategory>,
         parents: Map<Int, String>,
         alreadySelected: Set<Int>,
+        titleRes: Int = R.string.distribution_add_categories,
+        defaultForSelectAll: (BudgetCategory) -> Boolean = { it.defaultIncomeAmount > 0.0 },
         onPicked: (List<Int>) -> Unit,
     ) {
         val available = leaves.filter { it.id !in alreadySelected }
@@ -38,11 +40,11 @@ object CategoryMultiPicker {
         }
         view.findViewById<MaterialButton>(R.id.selectDefaultsCategoriesButton).setOnClickListener {
             available.forEachIndexed { index, category ->
-                list.setItemChecked(index, category.defaultIncomeAmount > 0.0)
+                list.setItemChecked(index, defaultForSelectAll(category))
             }
         }
         AlertDialog.Builder(activity)
-            .setTitle(R.string.distribution_add_categories)
+            .setTitle(titleRes)
             .setView(view)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val picked = available.mapIndexedNotNull { index, category ->

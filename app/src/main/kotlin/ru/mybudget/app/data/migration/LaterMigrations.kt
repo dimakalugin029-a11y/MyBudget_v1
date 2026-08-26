@@ -80,6 +80,37 @@ object Migration23To24 {
     }
 }
 
+object Migration24To25 {
+    val MIGRATION: Migration = object : Migration(24, 25) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS utility_bill_photos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    billId INTEGER NOT NULL,
+                    photoType TEXT NOT NULL,
+                    storedUri TEXT NOT NULL,
+                    sortOrder INTEGER NOT NULL DEFAULT 0,
+                    createdAt INTEGER NOT NULL,
+                    FOREIGN KEY(billId) REFERENCES utility_bills(id) ON DELETE CASCADE
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_utility_bill_photos_billId ON utility_bill_photos(billId)",
+            )
+            database.execSQL(
+                """
+                INSERT INTO utility_bill_photos (billId, photoType, storedUri, sortOrder, createdAt)
+                SELECT id, 'receipt', receiptPhotoUri, 0, ${System.currentTimeMillis()}
+                FROM utility_bills
+                WHERE receiptPhotoUri IS NOT NULL AND TRIM(receiptPhotoUri) != ''
+                """.trimIndent(),
+            )
+        }
+    }
+}
+
 private const val CREATE_AUDIT_ACTIONS = """
 CREATE TABLE IF NOT EXISTS audit_actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

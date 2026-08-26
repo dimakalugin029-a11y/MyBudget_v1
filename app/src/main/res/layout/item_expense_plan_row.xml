@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_8"
+    android:layout_marginBottom="@dimen/space_6"
     style="@style/Card.MyBudget.Surface">
     <LinearLayout
         android:orientation="horizontal"
@@ -14,79 +15,89 @@
             android:background="@drawable/expense_plan_row_accent" />
         <LinearLayout
             android:orientation="vertical"
-            android:padding="@dimen/space_12"
+            android:padding="@dimen/space_10"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
-        <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <CheckBox
-                android:id="@+id/expensePlanIncludeCheck"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
             <LinearLayout
-                android:orientation="vertical"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1">
-                <TextView
-                    android:textSize="15sp"
-                    android:id="@+id/expensePlanCategoryName"
-                    android:layout_width="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
+                    android:layout_weight="1">
+                    <TextView
+                        android:textSize="15sp"
+                        android:id="@+id/expensePlanCategoryName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Text.MyBudget.Section"/>
+                    <TextView
+                        android:textSize="11sp"
+                        android:id="@+id/expensePlanParentName"
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Text.MyBudget.Subtitle"/>
+                </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/expensePlanRemoveButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="@dimen/space_8"
+                    android:paddingVertical="@dimen/space_4"
+                    android:text="@string/expense_plan_remove"
                     android:textSize="11sp"
-                    android:id="@+id/expensePlanParentName"
-                    android:visibility="gone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    style="@style/Text.MyBudget.Subtitle"/>
+                    app:cornerRadius="@dimen/radius_10"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
             </LinearLayout>
-        </LinearLayout>
-        <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8">
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/expense_plan_amount_label"
-                style="@style/Text.MyBudget.SectionLabel"/>
-            <EditText
-                android:textSize="14sp"
-                android:id="@+id/expensePlanAmountInput"
-                android:background="@drawable/edittext_border"
-                android:padding="@dimen/space_8"
-                android:layout_width="0dp"
+                android:layout_marginTop="@dimen/space_6">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/expense_plan_amount_label"
+                    style="@style/Text.MyBudget.SectionLabel"/>
+                <EditText
+                    android:textSize="14sp"
+                    android:id="@+id/expensePlanAmountInput"
+                    android:background="@drawable/edittext_border"
+                    android:padding="@dimen/space_8"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:focusableInTouchMode="true"
+                    android:imeOptions="actionDone"
+                    android:inputType="numberDecimal"
+                    android:layout_marginStart="@dimen/space_8"/>
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:inputType="numberDecimal"
-                android:layout_marginStart="@dimen/space_8"/>
-        </LinearLayout>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8">
-            <TextView
-                android:textSize="12sp"
-                android:id="@+id/expensePlanSpentText"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                style="@style/Text.MyBudget.Subtitle"/>
-            <TextView
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:id="@+id/expensePlanDiffText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
-        </LinearLayout>
+                android:layout_marginTop="@dimen/space_6">
+                <TextView
+                    android:textSize="12sp"
+                    android:id="@+id/expensePlanSpentText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    style="@style/Text.MyBudget.Subtitle"/>
+                <TextView
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:id="@+id/expensePlanDiffText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

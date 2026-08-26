@@ -32,6 +32,9 @@ interface UtilityDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertTariff(tariff: UtilityTariffEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertBillPhoto(photo: UtilityBillPhotoEntity): Long
+
     @Update
     suspend fun updateBill(bill: UtilityBillEntity)
 
@@ -55,6 +58,33 @@ interface UtilityDao {
 
     @Query("SELECT * FROM utility_bills WHERE id = :id")
     suspend fun getBillById(id: Int): UtilityBillEntity?
+
+    @Query("SELECT * FROM utility_bill_photos WHERE billId = :billId ORDER BY sortOrder, createdAt")
+    suspend fun getPhotosForBill(billId: Int): List<UtilityBillPhotoEntity>
+
+    @Query("SELECT * FROM utility_bill_photos WHERE id = :id")
+    suspend fun getPhotoById(id: Int): UtilityBillPhotoEntity?
+
+    @Query(
+        """
+        SELECT billId AS billId, COUNT(*) AS count
+        FROM utility_bill_photos
+        GROUP BY billId
+        """,
+    )
+    suspend fun getPhotoCountsByBill(): List<BillPhotoCount>
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM utility_bill_photos WHERE billId = :billId")
+    suspend fun getMaxPhotoSortOrder(billId: Int): Int
+
+    @Query("SELECT * FROM utility_bill_photos")
+    suspend fun getAllBillPhotosForExport(): List<UtilityBillPhotoEntity>
+
+    @Query("DELETE FROM utility_bill_photos WHERE id = :id")
+    suspend fun deleteBillPhotoById(id: Int)
+
+    @Query("DELETE FROM utility_bill_photos")
+    suspend fun deleteAllBillPhotos()
 
     @Query("SELECT * FROM utility_bills WHERE year = :year AND month = :month LIMIT 1")
     suspend fun getBillByPeriod(year: Int, month: Int): UtilityBillEntity?

@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
@@ -27,11 +28,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.data.UtilityBillPhotoEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.utilities.UtilityBillDetail
 import ru.mybudget.app.utilities.UtilityLegacyPaymentHelper
 import ru.mybudget.app.utilities.UtilityMeterBillLinker
 import ru.mybudget.app.utilities.UtilityPayCategoryHelper
+import ru.mybudget.app.utilities.UtilityPhotoPreferences
+import ru.mybudget.app.utilities.UtilityPhotoStorage
 import ru.mybudget.app.utilities.UtilityUserTemplate
 import java.util.UUID
 
@@ -42,16 +46,19 @@ class UtilityBillActivity : AppCompatActivity() {
 
     private lateinit var manager: BudgetManager
     private lateinit var adapter: BillDetailAdapter
+    private lateinit var photosAdapter: BillPhotosAdapter
     private var billId: Int = 0
     private var lastDetail: UtilityBillDetail? = null
+    private var billPhotos: List<UtilityBillPhotoEntity> = emptyList()
     private var currentGrandTotal: Double = 0.0
     private var hideZeroLines: Boolean = false
     private var pendingOpenPay: Boolean = false
+    private var pendingPhotoType: String = UtilityBillPhotoEntity.TYPE_RECEIPT
 
-    private val pickPhotoLauncher = registerForActivityResult(
-        ActivityResultContracts.PickVisualMedia(),
-    ) { uri ->
-        if (uri != null) persistPhotoUri(uri)
+    private val pickPhotosLauncher = registerForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(20),
+    ) { uris ->
+        if (uris.isNotEmpty()) persistPhotos(uris, pendingPhotoType)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,9 +80,17 @@ class UtilityBillActivity : AppCompatActivity() {
             onLineClick = { showEditLineDialog(it) },
             onLineLongClick = { confirmDeleteLine(it) },
         )
+        photosAdapter = BillPhotosAdapter(
+            onOpen = { openPhoto(it) },
+            onLongClick = { confirmDeletePhoto(it) },
+        )
         findViewById<RecyclerView>(R.id.billDetailsRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@UtilityBillActivity)
             this.adapter = this@UtilityBillActivity.adapter
+        }
+        findViewById<RecyclerView>(R.id.billPhotosRecyclerView).apply {
+            layoutManager = LinearLayoutManager(this@UtilityBillActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = photosAdapter
         }
         findViewById<View>(R.id.applyMetersButton).setOnClickListener { applyMetersToBill() }
         findViewById<View>(R.id.hideZeroLinesButton).setOnClickListener {
@@ -83,7 +98,14 @@ class UtilityBillActivity : AppCompatActivity() {
             lastDetail?.let { bindDetail(it) }
         }
         findViewById<View>(R.id.payFromBudgetButton).setOnClickListener { onPayFromBudgetClicked() }
-        findViewById<View>(R.id.receiptPhotoButton).setOnClickListener { onReceiptPhotoClicked() }
+        findViewById<View>(R.id.addReceiptPhotoButton).setOnClickListener {
+            pendingPhotoType = UtilityBillPhotoEntity.TYPE_RECEIPT
+            launchPhotoPicker()
+        }
+        findViewById<View>(R.id.addMeterPhotoButton).setOnClickListener {
+            pendingPhotoType = UtilityBillPhotoEntity.TYPE_METER
+            launchPhotoPicker()
+        }
         findViewById<View>(R.id.billAreaText).setOnClickListener { showEditAreaDialog() }
         loadBill()
     }
@@ -97,16 +119,22 @@ class UtilityBillActivity : AppCompatActivity() {
 
     private fun loadBill(after: ((UtilityBillDetail) -> Unit)? = null) {
         lifecycleScope.launch {
-            val detail = withContext(Dispatchers.IO) { UtilityUserTemplate.loadBillDetail(dao(), billId) }
+            val detail = withContext(Dispatchers.IO) {
+                val loaded = UtilityUserTemplate.loadBillDetail(dao(), billId) ?: return@withContext null
+                val photos = dao().getPhotosForBill(billId)
+                loaded to photos
+            }
             if (detail == null) {
                 finish()
                 return@launch
             }
-            bindDetail(detail)
-            after?.invoke(detail)
-            if (pendingOpenPay && detail.bill.budgetPaidAt == null && detail.grandTotal > 0.0) {
+            val (billDetail, photos) = detail
+            billPhotos = photos
+            bindDetail(billDetail)
+            after?.invoke(billDetail)
+            if (pendingOpenPay && billDetail.bill.budgetPaidAt == null && billDetail.grandTotal > 0.0) {
                 pendingOpenPay = false
-                showPayFromBudgetDialog(detail)
+                showPayFromBudgetDialog(billDetail)
             }
         }
     }
@@ -124,18 +152,96 @@ class UtilityBillActivity : AppCompatActivity() {
             if (hideZeroLines) R.string.utility_bill_show_zeros else R.string.utility_bill_hide_zeros,
         )
         updatePayButtonState(detail.bill)
-        updatePhotoButton(detail.bill)
+        bindPhotos(detail.bill)
         adapter.submit(buildRows(detail, hideZeroLines))
     }
 
-    private fun updatePhotoButton(bill: UtilityBillEntity) {
-        findViewById<MaterialButton>(R.id.receiptPhotoButton).setText(
-            if (bill.receiptPhotoUri.isNullOrBlank()) {
-                R.string.utility_receipt_photo_add
-            } else {
-                R.string.utility_receipt_photo_view
-            },
+    private fun bindPhotos(bill: UtilityBillEntity) {
+        findViewById<TextView>(R.id.billPhotosTitle).text =
+            getString(R.string.utility_photos_title, billPhotos.size)
+        photosAdapter.submit(billPhotos)
+        val folderHint = findViewById<TextView>(R.id.billPhotosFolderHint)
+        if (UtilityPhotoPreferences.hasFolder(this)) {
+            folderHint.visibility = View.VISIBLE
+            folderHint.text = getString(
+                R.string.utility_photo_folder_bill_hint,
+                UtilityPhotoStorage.monthFolderLabel(bill.year, bill.month),
+            )
+        } else {
+            folderHint.visibility = View.GONE
+        }
+    }
+
+    private fun launchPhotoPicker() {
+        pickPhotosLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
         )
+    }
+
+    private fun openPhoto(photo: UtilityBillPhotoEntity) {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(Uri.parse(photo.storedUri), "image/*")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(this, R.string.utility_receipt_photo_view, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun confirmDeletePhoto(photo: UtilityBillPhotoEntity) {
+        AlertDialog.Builder(this)
+            .setMessage(R.string.utility_photo_delete_confirm)
+            .setPositiveButton(R.string.delete) { _, _ -> deletePhoto(photo) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun deletePhoto(photo: UtilityBillPhotoEntity) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            UtilityPhotoStorage.deleteStoredPhoto(this@UtilityBillActivity, photo.storedUri)
+            dao().deleteBillPhotoById(photo.id)
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@UtilityBillActivity, R.string.utility_photo_removed, Toast.LENGTH_SHORT).show()
+                loadBill()
+            }
+        }
+    }
+
+    private fun persistPhotos(uris: List<Uri>, photoType: String) {
+        val detail = lastDetail ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            var sortOrder = dao().getMaxPhotoSortOrder(detail.bill.id)
+            var saved = 0
+            for (uri in uris) {
+                sortOrder += 1
+                val storedUri = UtilityPhotoStorage.persistPhoto(
+                    this@UtilityBillActivity,
+                    uri,
+                    detail.bill,
+                    photoType,
+                    sortOrder,
+                ) ?: continue
+                dao().insertBillPhoto(
+                    UtilityBillPhotoEntity(
+                        billId = detail.bill.id,
+                        photoType = photoType,
+                        storedUri = storedUri,
+                        sortOrder = sortOrder,
+                    ),
+                )
+                saved += 1
+            }
+            withContext(Dispatchers.Main) {
+                if (saved > 0) {
+                    Toast.makeText(
+                        this@UtilityBillActivity,
+                        getString(R.string.utility_photo_saved_count, saved),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+                loadBill()
+            }
+        }
     }
 
     private fun updatePayButtonState(bill: UtilityBillEntity) {
@@ -155,64 +261,6 @@ class UtilityBillActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.billAreaText).text = lines.joinToString("\n")
         } else {
             btn.setText(R.string.utility_pay_from_budget)
-        }
-    }
-
-    private fun onReceiptPhotoClicked() {
-        val bill = lastDetail?.bill ?: return
-        val uri = bill.receiptPhotoUri
-        if (uri.isNullOrBlank()) {
-            pickPhotoLauncher.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-            )
-            return
-        }
-        AlertDialog.Builder(this)
-            .setItems(
-                arrayOf(
-                    getString(R.string.utility_receipt_photo_view),
-                    getString(R.string.utility_receipt_photo_add),
-                    getString(R.string.utility_receipt_photo_remove),
-                ),
-            ) { _, which ->
-                when (which) {
-                    0 -> openReceiptPhoto(uri)
-                    1 -> pickPhotoLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                    )
-                    2 -> savePhotoUri(null)
-                }
-            }
-            .show()
-    }
-
-    private fun openReceiptPhoto(uriString: String) {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(Uri.parse(uriString), "image/*")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        runCatching { startActivity(intent) }.onFailure {
-            Toast.makeText(this, R.string.utility_receipt_photo_view, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun persistPhotoUri(uri: Uri) {
-        runCatching {
-            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        savePhotoUri(uri.toString())
-    }
-
-    private fun savePhotoUri(uri: String?) {
-        val detail = lastDetail ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            dao().updateBill(detail.bill.copy(receiptPhotoUri = uri))
-            withContext(Dispatchers.Main) {
-                if (uri != null) {
-                    Toast.makeText(this@UtilityBillActivity, R.string.utility_receipt_photo_saved, Toast.LENGTH_SHORT).show()
-                }
-                loadBill()
-            }
         }
     }
 
@@ -721,6 +769,47 @@ class UtilityBillActivity : AppCompatActivity() {
             val name: TextView = v.findViewById(R.id.lineName)
             val qtyTariff: TextView = v.findViewById(R.id.lineQtyTariff)
             val amount: TextView = v.findViewById(R.id.lineAmount)
+        }
+    }
+
+    private class BillPhotosAdapter(
+        private val onOpen: (UtilityBillPhotoEntity) -> Unit,
+        private val onLongClick: (UtilityBillPhotoEntity) -> Unit,
+    ) : RecyclerView.Adapter<BillPhotosAdapter.PhotoHolder>() {
+        private var photos: List<UtilityBillPhotoEntity> = emptyList()
+
+        fun submit(list: List<UtilityBillPhotoEntity>) {
+            photos = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_utility_bill_photo, parent, false)
+            return PhotoHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: PhotoHolder, position: Int) {
+            val photo = photos[position]
+            holder.thumb.setImageURI(Uri.parse(photo.storedUri))
+            val badgeRes = if (photo.photoType == UtilityBillPhotoEntity.TYPE_METER) {
+                R.string.utility_photo_type_meter
+            } else {
+                R.string.utility_photo_type_receipt
+            }
+            holder.badge.setText(badgeRes)
+            holder.itemView.setOnClickListener { onOpen(photo) }
+            holder.itemView.setOnLongClickListener {
+                onLongClick(photo)
+                true
+            }
+        }
+
+        override fun getItemCount(): Int = photos.size
+
+        class PhotoHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val thumb: ImageView = v.findViewById(R.id.photoThumb)
+            val badge: TextView = v.findViewById(R.id.photoTypeBadge)
         }
     }
 }
