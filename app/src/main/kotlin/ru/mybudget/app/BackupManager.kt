@@ -9,7 +9,9 @@ import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.BudgetCategoryEntity
+import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.data.BudgetProfileEntity
 import ru.mybudget.app.data.PaymentReminderEntity
@@ -118,6 +120,8 @@ class BackupManager(context: Context) {
             utilityTemplateSections = utilityDao.getAllTemplateSectionsForExport(),
             utilityTemplateLines = utilityDao.getAllTemplateLinesForExport(),
             utilityTariffs = utilityDao.getAllTariffsForExport(),
+            monthlyCategoryPlans = dao.getAllMonthlyPlansForExport(),
+            auditActions = dao.getAllAuditActionsForExport(),
         )
         return gson.toJson(data)
     }
@@ -173,6 +177,8 @@ class BackupManager(context: Context) {
         dao.deleteAllPlannedObligations()
         dao.deleteAllCategories()
         dao.deleteAllBudgetProfiles()
+        dao.deleteAllMonthlyPlans()
+        dao.deleteAllAuditActions()
 
         utilityDao.deleteAllMeterInfo()
         utilityDao.deleteAllMeterReadings()
@@ -238,6 +244,35 @@ class BackupManager(context: Context) {
         for (obligation in data.plannedObligations) {
             val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
             dao.insertPlannedObligation(obligation.copy(id = 0, budgetId = budgetId))
+        }
+        for (plan in data.monthlyCategoryPlans) {
+            if (plan.categoryId in insertedCategoryIds) {
+                val budgetId = remapId(plan.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
+                dao.upsertMonthlyPlan(
+                    MonthlyCategoryPlanEntity(
+                        year = plan.year,
+                        month = plan.month,
+                        categoryId = plan.categoryId,
+                        budgetId = budgetId,
+                        plannedAmount = plan.plannedAmount,
+                        isEnabled = plan.isEnabled,
+                    ),
+                )
+            }
+        }
+        for (action in data.auditActions) {
+            dao.insertAuditAction(
+                AuditActionEntity(
+                    id = 0,
+                    actionType = action.actionType,
+                    title = action.title,
+                    description = action.description,
+                    payload = action.payload,
+                    createdAt = action.createdAt,
+                    isReverted = action.isReverted,
+                    revertedAt = action.revertedAt,
+                ),
+            )
         }
 
         val billIdMap = mutableMapOf<Int, Int>()
@@ -399,6 +434,8 @@ class BackupManager(context: Context) {
         utilityTemplateSections = utilityTemplateSections.orEmpty(),
         utilityTemplateLines = utilityTemplateLines.orEmpty(),
         utilityTariffs = utilityTariffs.orEmpty(),
+        monthlyCategoryPlans = monthlyCategoryPlans.orEmpty(),
+        auditActions = auditActions.orEmpty(),
     )
 
     private fun validateBackupContent(content: String): BackupImportResult? {

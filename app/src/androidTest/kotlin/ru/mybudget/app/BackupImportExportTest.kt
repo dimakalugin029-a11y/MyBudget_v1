@@ -10,6 +10,12 @@ import org.junit.Assert.assertTrue
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
+import ru.mybudget.app.data.AuditActionEntity
+import ru.mybudget.app.data.AuditActionType
+import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.data.MonthlyCategoryPlanEntity
+import ru.mybudget.app.setup.ActiveBudgetPreferences
+import java.time.LocalDate
 
 @RunWith(AndroidJUnit4::class)
 class BackupImportExportTest {
@@ -48,6 +54,62 @@ class BackupImportExportTest {
         budgetManager.reloadCategoriesFromDatabase()
         assertEquals(categoryCountBefore, budgetManager.getCategoriesAsync(forceReload = true).size)
         assertEquals(balanceBefore, budgetManager.getTotalBalance(), 0.01)
+    }
+
+    @Test
+    fun plainJsonExportImport_preservesMonthlyPlansAndAudit() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val backupManager = BackupManager(context)
+        val manager = BudgetManager.getInstance(context)
+        val dao = BudgetDatabase.getInstance(context).budgetDao()
+        val budgetId = ActiveBudgetPreferences.getActiveBudgetId(context)
+        val today = LocalDate.now()
+
+        dao.upsertMonthlyPlan(
+            MonthlyCategoryPlanEntity(
+                year = today.year,
+                month = today.monthValue,
+                categoryId = seed.categoryId,
+                budgetId = budgetId,
+                plannedAmount = 15_000.0,
+                isEnabled = true,
+            ),
+        )
+        manager.repository.insertAuditAction(
+            AuditActionEntity(
+                actionType = AuditActionType.TRANSACTION_CANCELLED,
+                title = "backup-plan-test",
+                description = "audit row",
+                payload = "{}",
+            ),
+        )
+
+        val json = backupManager.exportToJson()
+        assertTrue(json.contains("\"monthlyCategoryPlans\""))
+        assertTrue(json.contains("\"auditActions\""))
+
+        dao.upsertMonthlyPlan(
+            MonthlyCategoryPlanEntity(
+                year = today.year,
+                month = today.monthValue,
+                categoryId = seed.categoryId,
+                budgetId = budgetId,
+                plannedAmount = 1.0,
+                isEnabled = false,
+            ),
+        )
+
+        val result = backupManager.importFromJson(json)
+        assertTrue(result.message, result.success)
+        assertEquals(BackupData.CURRENT_VERSION, result.backupVersion)
+
+        val plans = dao.getMonthlyPlansForBudgetMonth(budgetId, today.year, today.monthValue)
+        val plan = plans.first { it.categoryId == seed.categoryId }
+        assertEquals(15_000.0, plan.plannedAmount, 0.01)
+        assertTrue(plan.isEnabled)
+
+        val audits = manager.repository.getActiveAuditActions(limit = 20)
+        assertTrue(audits.any { it.title == "backup-plan-test" })
     }
 
     @Test

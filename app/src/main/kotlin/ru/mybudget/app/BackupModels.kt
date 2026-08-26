@@ -1,8 +1,10 @@
 package ru.mybudget.app
 
 import com.google.gson.annotations.SerializedName
+import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.BudgetCategoryEntity
 import ru.mybudget.app.data.BudgetProfileEntity
+import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.PaymentReminderEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.RecurringTransactionEntity
@@ -35,6 +37,8 @@ internal data class BackupDataDto(
     @SerializedName("utilityTemplateSections") val utilityTemplateSections: List<UtilityTemplateSectionEntity>? = null,
     @SerializedName("utilityTemplateLines") val utilityTemplateLines: List<UtilityTemplateLineEntity>? = null,
     @SerializedName("utilityTariffs") val utilityTariffs: List<UtilityTariffEntity>? = null,
+    @SerializedName("monthlyCategoryPlans") val monthlyCategoryPlans: List<MonthlyCategoryPlanEntity>? = null,
+    @SerializedName("auditActions") val auditActions: List<AuditActionEntity>? = null,
 )
 
 data class BackupData(
@@ -55,9 +59,11 @@ data class BackupData(
     @SerializedName("utilityTemplateSections") val utilityTemplateSections: List<UtilityTemplateSectionEntity> = emptyList(),
     @SerializedName("utilityTemplateLines") val utilityTemplateLines: List<UtilityTemplateLineEntity> = emptyList(),
     @SerializedName("utilityTariffs") val utilityTariffs: List<UtilityTariffEntity> = emptyList(),
+    @SerializedName("monthlyCategoryPlans") val monthlyCategoryPlans: List<MonthlyCategoryPlanEntity> = emptyList(),
+    @SerializedName("auditActions") val auditActions: List<AuditActionEntity> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 8
+        const val CURRENT_VERSION = 9
     }
 }
 

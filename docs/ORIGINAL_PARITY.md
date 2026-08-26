@@ -24,7 +24,7 @@
 
 | Параметр | Значение |
 |----------|----------|
-| `BackupData.CURRENT_VERSION` | **8** ✅ |
+| `BackupData.CURRENT_VERSION` | **9** (v8 без планов месяца и audit — импортируется) ✅ |
 
 ## Activity (экраны)
 

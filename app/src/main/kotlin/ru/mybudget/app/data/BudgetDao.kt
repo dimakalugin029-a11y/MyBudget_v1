@@ -109,6 +109,12 @@ abstract class BudgetDao {
     @Query("SELECT * FROM audit_actions WHERE id = :id")
     abstract suspend fun getAuditActionById(id: Long): AuditActionEntity?
 
+    @Query("SELECT * FROM audit_actions ORDER BY createdAt ASC")
+    abstract suspend fun getAllAuditActionsForExport(): List<AuditActionEntity>
+
+    @Query("SELECT * FROM monthly_category_plans")
+    abstract suspend fun getAllMonthlyPlansForExport(): List<MonthlyCategoryPlanEntity>
+
     @Query(
         """
         SELECT * FROM monthly_category_plans
