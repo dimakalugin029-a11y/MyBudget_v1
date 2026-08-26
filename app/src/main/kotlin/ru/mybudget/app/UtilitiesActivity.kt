@@ -30,6 +30,7 @@ import ru.mybudget.app.utilities.UtilityExcelExporter
 import ru.mybudget.app.utilities.UtilityExcelIo
 import ru.mybudget.app.utilities.UtilityExcelParser
 import ru.mybudget.app.utilities.UtilityForecastHelper
+import ru.mybudget.app.utilities.UtilityLegacyPaymentHelper
 import ru.mybudget.app.utilities.UtilityMonthChecklistHelper
 import ru.mybudget.app.utilities.UtilitySetupGuideHelper
 import ru.mybudget.app.utilities.UtilitySetupState
@@ -143,6 +144,11 @@ class UtilitiesActivity : AppCompatActivity() {
             "📥",
             getString(R.string.utility_import_excel),
         ) { importXlsxLauncher.launch(MeterExcelFormat.XLSX_OPEN_MIME_TYPES) }
+        MenuRowHelper.bind(
+            findViewById(R.id.markLegacyPaidButton),
+            "✓",
+            getString(R.string.utility_mark_legacy_paid_button),
+        ) { confirmMarkPastAsLegacyPaid() }
         findViewById<View>(R.id.addUtilityMonthButton).setOnClickListener { showAddMonthDialog() }
         CollapsibleBottomSheetHelper.attach(
             findViewById(R.id.utilitiesActionsSheet),
@@ -485,6 +491,40 @@ class UtilitiesActivity : AppCompatActivity() {
         )
     }
 
+    private fun confirmMarkPastAsLegacyPaid() {
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) {
+                UtilityLegacyPaymentHelper.countPastUnpaidWithAmount(manager.utilityDao)
+            }
+            if (count == 0) {
+                Toast.makeText(this@UtilitiesActivity, R.string.utility_mark_legacy_paid_none, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            AlertDialog.Builder(this@UtilitiesActivity)
+                .setTitle(R.string.utility_mark_legacy_paid_title)
+                .setMessage(resources.getQuantityString(R.plurals.utility_mark_legacy_paid_message, count, count))
+                .setPositiveButton(R.string.utility_mark_legacy_paid_confirm) { _, _ ->
+                    markPastAsLegacyPaid()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun markPastAsLegacyPaid() {
+        lifecycleScope.launch {
+            val count = withContext(Dispatchers.IO) {
+                UtilityLegacyPaymentHelper.markPastAsLegacyPaid(this@UtilitiesActivity, manager.utilityDao)
+            }
+            Toast.makeText(
+                this@UtilitiesActivity,
+                resources.getQuantityString(R.plurals.utility_mark_legacy_paid_success, count, count),
+                Toast.LENGTH_LONG,
+            ).show()
+            loadMonths()
+        }
+    }
+
     private fun confirmDelete(summary: UtilityBillSummary) {
         val bill = summary.bill
         val period = UtilityUserTemplate.formatPeriod(bill.year, bill.month)
@@ -515,11 +555,11 @@ class UtilitiesActivity : AppCompatActivity() {
 
     private fun deleteMonth(bill: UtilityBillEntity, reversePayment: Boolean) {
         lifecycleScope.launch(Dispatchers.IO) {
-            if (reversePayment) {
+            if (reversePayment && bill.budgetPaidAt != null && !UtilityLegacyPaymentHelper.isLegacyPaid(bill)) {
                 val groupId = bill.budgetPaymentGroupId
                 if (!groupId.isNullOrBlank()) {
                     manager.repository.cancelTransactionGroup(groupId)
-                } else if (bill.budgetPaidAt != null) {
+                } else {
                     val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
                     manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
                         manager.repository.cancelTransaction(tx)

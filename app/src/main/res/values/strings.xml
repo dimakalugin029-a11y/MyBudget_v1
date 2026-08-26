@@ -438,6 +438,7 @@
   <string name="main_quick_actions">Быстрые действия</string>
   <string name="main_section_actions">Действия</string>
   <string name="main_section_analytics">Аналитика</string>
+  <string name="main_utilities_due_soon">ЖКХ: до %1$d-го — показания и оплата из бюджета</string>
   <string name="main_section_attention">Требует внимания</string>
   <string name="main_section_other">Прочее</string>
   <string name="main_section_planning">Планирование</string>
@@ -1020,6 +1021,15 @@
   <string name="utility_pay_extra_category">Доп. подстатья (нехватка)</string>
   <string name="utility_pay_from_budget">Списать с бюджета</string>
   <string name="utility_pay_from_budget_done">Списано с бюджета</string>
+  <string name="utility_pay_legacy">Оплачено ранее (вне бюджета)</string>
+  <string name="utility_pay_legacy_success">Месяц отмечен как оплаченный ранее</string>
+  <string name="utility_paid_legacy_summary">Оплачено ранее (вне бюджета)</string>
+  <string name="utility_mark_legacy_paid_button">Отметить прошлое как оплаченное</string>
+  <string name="utility_mark_legacy_paid_title">История оплачена вне бюджета?</string>
+  <string name="utility_mark_legacy_paid_confirm">Отметить</string>
+  <string name="utility_mark_legacy_paid_none">Нет неоплаченных прошлых месяцев</string>
+  <string name="utility_clear_legacy_payment">Снять отметку</string>
+  <string name="utility_clear_legacy_payment_message">Месяц отмечен как оплаченный ранее, без списания из бюджета. Можно снять отметку или списать с бюджета сейчас.</string>
   <string name="utility_pay_no_categories">Нет подстатей для списания</string>
   <string name="utility_pay_primary_category">Основная подстатья</string>
   <string name="utility_pay_repeat">Повторить</string>

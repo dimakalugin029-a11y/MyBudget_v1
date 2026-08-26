@@ -18,6 +18,18 @@
     <item quantity="many">Коммуналка: %d месяцев не оплачены из бюджета</item>
     <item quantity="other">Коммуналка: %d месяцев не оплачены из бюджета</item>
   </plurals>
+  <plurals name="utility_mark_legacy_paid_message">
+    <item quantity="one">Будет отмечен %d прошлый месяц с суммой как оплаченный ранее — без списания из бюджета. Учёт из бюджета начнётся с текущего месяца.</item>
+    <item quantity="few">Будут отмечены %d прошлых месяца с суммой как оплаченные ранее — без списания из бюджета. Учёт из бюджета начнётся с текущего месяца.</item>
+    <item quantity="many">Будут отмечены %d прошлых месяцев с суммой как оплаченные ранее — без списания из бюджета. Учёт из бюджета начнётся с текущего месяца.</item>
+    <item quantity="other">Будут отмечены %d прошлых месяцев с суммой как оплаченные ранее — без списания из бюджета. Учёт из бюджета начнётся с текущего месяца.</item>
+  </plurals>
+  <plurals name="utility_mark_legacy_paid_success">
+    <item quantity="one">Отмечен %d месяц</item>
+    <item quantity="few">Отмечено %d месяца</item>
+    <item quantity="many">Отмечено %d месяцев</item>
+    <item quantity="other">Отмечено %d месяцев</item>
+  </plurals>
   <plurals name="participants_report_operations">
     <item quantity="one">%d операция</item>
     <item quantity="few">%d операции</item>

@@ -6,6 +6,7 @@ import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
+import ru.mybudget.app.utilities.UtilityAttentionHelper
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Calendar
@@ -46,13 +47,7 @@ object MainDashboardHelper {
             null
         }
 
-        val cal = Calendar.getInstance()
-        val unpaid = utilityDao.countUnpaidBillsForMonth(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-        val utilitiesLine = if (unpaid > 0) {
-            context.resources.getQuantityString(R.plurals.main_utilities_unpaid_summary, unpaid, unpaid)
-        } else {
-            null
-        }
+        val utilitiesLine = UtilityAttentionHelper.buildAttentionLine(context, utilityDao)
 
         val activeId = budgetManager.getActiveBudgetId()
         val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)

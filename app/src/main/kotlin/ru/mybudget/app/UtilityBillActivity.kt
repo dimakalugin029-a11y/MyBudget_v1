@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.utilities.UtilityBillDetail
+import ru.mybudget.app.utilities.UtilityLegacyPaymentHelper
 import ru.mybudget.app.utilities.UtilityMeterBillLinker
 import ru.mybudget.app.utilities.UtilityPayCategoryHelper
 import ru.mybudget.app.utilities.UtilityUserTemplate
@@ -316,6 +317,20 @@ class UtilityBillActivity : AppCompatActivity() {
             Toast.makeText(this, R.string.utility_pay_zero_total, Toast.LENGTH_SHORT).show()
             return
         }
+        if (UtilityLegacyPaymentHelper.isLegacyPaid(detail.bill)) {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.utility_edit_payment)
+                .setMessage(R.string.utility_clear_legacy_payment_message)
+                .setPositiveButton(R.string.utility_pay_from_budget) { _, _ ->
+                    clearLegacyAndPayFromBudget(detail)
+                }
+                .setNeutralButton(R.string.utility_clear_legacy_payment) { _, _ ->
+                    clearLegacyPayment(detail.bill)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
         if (detail.bill.budgetPaidAt != null) {
             AlertDialog.Builder(this)
                 .setTitle(R.string.utility_edit_payment)
@@ -332,17 +347,21 @@ class UtilityBillActivity : AppCompatActivity() {
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 val bill = detail.bill
-                val groupId = bill.budgetPaymentGroupId
-                if (!groupId.isNullOrBlank()) {
-                    manager.repository.cancelTransactionGroup(groupId)
-                } else if (bill.budgetPaidAt != null) {
-                    val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
-                    manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
-                        manager.repository.cancelTransaction(tx)
+                if (UtilityLegacyPaymentHelper.isLegacyPaid(bill)) {
+                    dao().clearBudgetPayment(bill.id)
+                } else {
+                    val groupId = bill.budgetPaymentGroupId
+                    if (!groupId.isNullOrBlank()) {
+                        manager.repository.cancelTransactionGroup(groupId)
+                    } else if (bill.budgetPaidAt != null) {
+                        val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
+                        manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
+                            manager.repository.cancelTransaction(tx)
+                        }
                     }
+                    dao().clearBudgetPayment(bill.id)
+                    manager.reloadCategoriesFromDatabase()
                 }
-                dao().clearBudgetPayment(bill.id)
-                manager.reloadCategoriesFromDatabase()
             }
             loadBill { refreshed ->
                 showPayFromBudgetDialog(
@@ -356,6 +375,36 @@ class UtilityBillActivity : AppCompatActivity() {
                     ),
                 )
             }
+        }
+    }
+
+    private fun clearLegacyAndPayFromBudget(detail: UtilityBillDetail) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                UtilityLegacyPaymentHelper.clearLegacyPaid(dao(), detail.bill)
+            }
+            loadBill { refreshed ->
+                showPayFromBudgetDialog(refreshed)
+            }
+        }
+    }
+
+    private fun clearLegacyPayment(bill: UtilityBillEntity) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                UtilityLegacyPaymentHelper.clearLegacyPaid(dao(), bill)
+            }
+            loadBill()
+        }
+    }
+
+    private fun markLegacyPayment(bill: UtilityBillEntity) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                UtilityLegacyPaymentHelper.markBillAsLegacyPaid(this@UtilityBillActivity, dao(), bill)
+            }
+            Toast.makeText(this@UtilityBillActivity, R.string.utility_pay_legacy_success, Toast.LENGTH_LONG).show()
+            loadBill()
         }
     }
 
@@ -429,9 +478,14 @@ class UtilityBillActivity : AppCompatActivity() {
             .setTitle(R.string.utility_pay_title)
             .setView(view)
             .setPositiveButton(R.string.utility_pay_from_budget, null)
+            .setNeutralButton(R.string.utility_pay_legacy, null)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
         dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                dialog.dismiss()
+                markLegacyPayment(detail.bill)
+            }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val primary = options[primarySpinner.selectedItemPosition]
                 val part1 = if (primary.category.currentBalance <= 0.0) {
