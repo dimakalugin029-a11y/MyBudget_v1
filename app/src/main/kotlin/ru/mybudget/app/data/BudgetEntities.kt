@@ -169,6 +169,7 @@ data class PlannedObligationEntity(
     val categoryId: Int,
     val paychecksPerMonth: Int,
     val dueMonth: Int,
+    val dueDay: Int = 0,
     val note: String = "",
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),

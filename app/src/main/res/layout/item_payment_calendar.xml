@@ -9,6 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <View
+            android:id="@+id/paymentCalendarAccent"
             android:layout_width="4dp"
             android:layout_height="match_parent"
             android:background="@drawable/payment_calendar_accent" />

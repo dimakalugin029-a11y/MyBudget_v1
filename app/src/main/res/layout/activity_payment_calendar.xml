@@ -46,6 +46,31 @@
             android:text="@string/payment_calendar_view_month"
             style="@style/Chip.MyBudget.Filter"/>
     </LinearLayout>
+    <HorizontalScrollView
+        android:scrollbars="none"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8">
+        <LinearLayout
+            android:orientation="horizontal"
+            android:id="@+id/paymentHorizonFilters"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/paymentHorizonWeek"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/upcoming_payments_horizon_week"
+                android:layout_marginEnd="@dimen/space_6"
+                style="@style/Chip.MyBudget.Filter"/>
+            <TextView
+                android:id="@+id/paymentHorizonAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/upcoming_payments_horizon_all"
+                style="@style/Chip.MyBudget.Filter"/>
+        </LinearLayout>
+    </HorizontalScrollView>
     <LinearLayout
         android:gravity="center_vertical"
         android:orientation="horizontal"

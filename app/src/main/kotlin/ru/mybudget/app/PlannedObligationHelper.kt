@@ -1,10 +1,48 @@
 package ru.mybudget.app
 
+import android.content.Context
 import ru.mybudget.app.data.PlannedObligationEntity
+import java.time.LocalDate
+import java.time.YearMonth
 
 object PlannedObligationHelper {
     const val PERIOD_MONTHLY = "monthly"
     const val PERIOD_YEARLY = "yearly"
+
+    fun dueLocalDate(yearMonth: YearMonth, dueDay: Int): LocalDate {
+        if (dueDay <= 0) return yearMonth.atEndOfMonth()
+        return yearMonth.atDay(dueDay.coerceIn(1, yearMonth.lengthOfMonth()))
+    }
+
+    fun nextDueDate(obligation: PlannedObligationEntity, today: LocalDate = LocalDate.now()): LocalDate {
+        if (obligation.periodType == PERIOD_YEARLY) {
+            val month = obligation.dueMonth.coerceIn(1, 12)
+            var candidate = dueLocalDate(YearMonth.of(today.year, month), obligation.dueDay)
+            if (candidate.isBefore(today)) {
+                candidate = dueLocalDate(YearMonth.of(today.year + 1, month), obligation.dueDay)
+            }
+            return candidate
+        }
+        var ym = YearMonth.from(today)
+        var candidate = dueLocalDate(ym, obligation.dueDay)
+        if (candidate.isBefore(today)) {
+            ym = ym.plusMonths(1)
+            candidate = dueLocalDate(ym, obligation.dueDay)
+        }
+        return candidate
+    }
+
+    fun dueDayLabel(context: Context, dueDay: Int): String {
+        return if (dueDay <= 0) {
+            context.getString(R.string.obligations_due_day_last)
+        } else {
+            context.getString(R.string.obligations_due_day_number, dueDay)
+        }
+    }
+
+    fun dueDaySpinnerPosition(dueDay: Int): Int = if (dueDay <= 0) 31 else (dueDay - 1).coerceIn(0, 30)
+
+    fun dueDayFromSpinnerPosition(position: Int): Int = if (position >= 31) 0 else position + 1
 
     fun perPaycheck(obligation: PlannedObligationEntity): Double {
         val paychecks = obligation.paychecksPerMonth.coerceAtLeast(1)

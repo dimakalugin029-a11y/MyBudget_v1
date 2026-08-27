@@ -118,18 +118,20 @@ object PaymentCalendarHelper {
             if (ob.periodType == PlannedObligationHelper.PERIOD_YEARLY) {
                 for (year in today.year..horizonEnd.year) {
                     val ym = YearMonth.of(year, ob.dueMonth.coerceIn(1, 12))
-                    val epoch = ym.atEndOfMonth().toEpochDay()
+                    val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
+                    val epoch = dueDate.toEpochDay()
                     if (epoch in todayEpochDay..maxDay) {
-                        addObligationEntry(result, ob, epoch, ym, categoryNames)
+                        addObligationEntry(result, ob, dueDate, categoryNames)
                     }
                 }
             } else {
                 var ym = YearMonth.from(today)
                 val endYm = YearMonth.from(horizonEnd)
                 while (!ym.isAfter(endYm)) {
-                    val epoch = ym.atEndOfMonth().toEpochDay()
+                    val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
+                    val epoch = dueDate.toEpochDay()
                     if (epoch in todayEpochDay..maxDay) {
-                        addObligationEntry(result, ob, epoch, ym, categoryNames)
+                        addObligationEntry(result, ob, dueDate, categoryNames)
                     }
                     ym = ym.plusMonths(1)
                 }
@@ -142,18 +144,10 @@ object PaymentCalendarHelper {
     private fun addObligationEntry(
         result: MutableList<Entry>,
         ob: PlannedObligationEntity,
-        epoch: Long,
-        ym: YearMonth,
+        dueDate: LocalDate,
         categoryNames: Map<Int, String>,
     ) {
-        val endDate = ym.atEndOfMonth()
-        val dateLabel = String.format(
-            Locale.getDefault(),
-            "%02d.%02d.%d",
-            endDate.dayOfMonth,
-            ym.monthValue,
-            ym.year,
-        )
+        val dateLabel = dueDate.format(displayFmt)
         val isYearly = ob.periodType == PlannedObligationHelper.PERIOD_YEARLY
         val periodHint = if (isYearly) " / год" else " / месяц"
         val sb = StringBuilder()
@@ -167,7 +161,7 @@ object PaymentCalendarHelper {
             sb.append("Ежемесячный платёж")
         }
         result += Entry(
-            epochDay = epoch,
+            epochDay = dueDate.toEpochDay(),
             dateLabel = dateLabel,
             title = ob.name + periodHint,
             subtitle = sb.toString(),

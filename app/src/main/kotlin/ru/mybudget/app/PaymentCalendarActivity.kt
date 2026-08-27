@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.utilities.PaymentCalendarHelper
+import ru.mybudget.app.utilities.PaymentCalendarUrgencyHelper
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -27,6 +28,7 @@ import java.util.Locale
 
 class PaymentCalendarActivity : AppCompatActivity() {
     private enum class CalendarFilter { ALL, REMINDER, RECURRING, UTILITY, OBLIGATION }
+    private enum class TimeHorizon { WEEK, ALL }
     private enum class ViewMode { LIST, MONTH }
     private data class DayCell(val day: Int?, val epochDay: Long?, val entryCount: Int)
 
@@ -38,6 +40,9 @@ class PaymentCalendarActivity : AppCompatActivity() {
     private lateinit var filterRecurring: TextView
     private lateinit var filterObligations: TextView
     private lateinit var filterUtilities: TextView
+    private lateinit var horizonWeek: TextView
+    private lateinit var horizonAll: TextView
+    private lateinit var calendarHint: TextView
     private lateinit var viewListChip: TextView
     private lateinit var viewMonthChip: TextView
     private lateinit var monthNav: View
@@ -48,7 +53,9 @@ class PaymentCalendarActivity : AppCompatActivity() {
 
     private var allEntries: List<PaymentCalendarHelper.Entry> = emptyList()
     private var currentFilter = CalendarFilter.ALL
+    private var currentHorizon = TimeHorizon.WEEK
     private var viewMode = ViewMode.LIST
+    private var todayEpochDay: Long = LocalDate.now().toEpochDay()
     private var visibleMonth: YearMonth = YearMonth.now()
     private var selectedDayEpoch: Long? = null
 
@@ -66,6 +73,9 @@ class PaymentCalendarActivity : AppCompatActivity() {
         filterRecurring = findViewById(R.id.paymentFilterRecurring)
         filterObligations = findViewById(R.id.paymentFilterObligations)
         filterUtilities = findViewById(R.id.paymentFilterUtilities)
+        horizonWeek = findViewById(R.id.paymentHorizonWeek)
+        horizonAll = findViewById(R.id.paymentHorizonAll)
+        calendarHint = findViewById(R.id.paymentCalendarHint)
         viewListChip = findViewById(R.id.paymentViewList)
         viewMonthChip = findViewById(R.id.paymentViewMonth)
         monthNav = findViewById(R.id.paymentMonthNav)
@@ -80,6 +90,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
         monthGrid.layoutManager = GridLayoutManager(this, 7)
         monthGrid.adapter = monthAdapter
         setupFilters()
+        setupHorizonFilters()
         setupViewMode()
         findViewById<TextView>(R.id.paymentMonthPrev).setOnClickListener {
             visibleMonth = visibleMonth.minusMonths(1)
@@ -112,6 +123,29 @@ class PaymentCalendarActivity : AppCompatActivity() {
         publishFiltered()
     }
 
+    private fun setupHorizonFilters() {
+        horizonWeek.setOnClickListener { applyHorizon(TimeHorizon.WEEK) }
+        horizonAll.setOnClickListener { applyHorizon(TimeHorizon.ALL) }
+        updateHorizonSelection()
+    }
+
+    private fun applyHorizon(horizon: TimeHorizon) {
+        currentHorizon = horizon
+        selectedDayEpoch = null
+        updateHorizonSelection()
+        publishFiltered()
+    }
+
+    private fun updateHorizonSelection() {
+        horizonWeek.isSelected = currentHorizon == TimeHorizon.WEEK
+        horizonAll.isSelected = currentHorizon == TimeHorizon.ALL
+        calendarHint.text = if (currentHorizon == TimeHorizon.WEEK) {
+            getString(R.string.upcoming_payments_horizon_week_hint)
+        } else {
+            getString(R.string.payment_calendar_tap_hint)
+        }
+    }
+
     private fun setupFilters() {
         filterAll.setOnClickListener { applyFilter(CalendarFilter.ALL) }
         filterReminders.setOnClickListener { applyFilter(CalendarFilter.REMINDER) }
@@ -141,12 +175,17 @@ class PaymentCalendarActivity : AppCompatActivity() {
     }
 
     private fun filteredEntries(): List<PaymentCalendarHelper.Entry> {
+        val horizonEnd = when (currentHorizon) {
+            TimeHorizon.WEEK -> todayEpochDay + 7
+            TimeHorizon.ALL -> todayEpochDay + 60
+        }
+        val byHorizon = allEntries.filter { it.epochDay in todayEpochDay..horizonEnd }
         val byType = when (currentFilter) {
-            CalendarFilter.ALL -> allEntries
-            CalendarFilter.REMINDER -> allEntries.filter { it.kind == PaymentCalendarHelper.EntryKind.REMINDER }
-            CalendarFilter.RECURRING -> allEntries.filter { it.kind == PaymentCalendarHelper.EntryKind.RECURRING }
-            CalendarFilter.UTILITY -> allEntries.filter { it.kind == PaymentCalendarHelper.EntryKind.UTILITY }
-            CalendarFilter.OBLIGATION -> allEntries.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
+            CalendarFilter.ALL -> byHorizon
+            CalendarFilter.REMINDER -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.REMINDER }
+            CalendarFilter.RECURRING -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.RECURRING }
+            CalendarFilter.UTILITY -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.UTILITY }
+            CalendarFilter.OBLIGATION -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
         }
         val day = selectedDayEpoch ?: return byType
         return byType.filter { it.epochDay == day }
@@ -154,7 +193,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
 
     private fun publishFiltered() {
         val filtered = filteredEntries()
-        adapter.submit(filtered)
+        adapter.submit(filtered, todayEpochDay)
         refreshMonthGrid()
         val showList = viewMode == ViewMode.LIST
         emptyView.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
@@ -305,6 +344,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             val categoryNames = categories.associate { it.id to it.name }
             val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val today = LocalDate.now()
+            todayEpochDay = today.toEpochDay()
             val todayStr = fmt.format(Calendar.getInstance().time)
             val endCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 60) }
             val endStr = fmt.format(endCal.time)
@@ -335,16 +375,19 @@ class PaymentCalendarActivity : AppCompatActivity() {
         private val onClick: (PaymentCalendarHelper.Entry) -> Unit,
     ) : RecyclerView.Adapter<CalendarAdapter.Holder>() {
         private var items: List<PaymentCalendarHelper.Entry> = emptyList()
+        private var todayEpochDay: Long = LocalDate.now().toEpochDay()
 
         class Holder(v: View) : RecyclerView.ViewHolder(v) {
+            val accent: View = v.findViewById(R.id.paymentCalendarAccent)
             val date: TextView = v.findViewById(R.id.paymentCalendarDate)
             val title: TextView = v.findViewById(R.id.paymentCalendarTitle)
             val subtitle: TextView = v.findViewById(R.id.paymentCalendarSubtitle)
             val amount: TextView = v.findViewById(R.id.paymentCalendarAmount)
         }
 
-        fun submit(list: List<PaymentCalendarHelper.Entry>) {
+        fun submit(list: List<PaymentCalendarHelper.Entry>, today: Long) {
             items = list
+            todayEpochDay = today
             notifyDataSetChanged()
         }
 
@@ -355,7 +398,11 @@ class PaymentCalendarActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val item = items[position]
+            val ctx = holder.itemView.context
+            val daysUntil = (item.epochDay - todayEpochDay).toInt()
+            val urgencyColor = PaymentCalendarUrgencyHelper.accentColor(daysUntil)
             holder.date.text = item.dateLabel
+            holder.date.setTextColor(urgencyColor)
             holder.title.text = item.title
             holder.subtitle.text = item.subtitle
             val amount = item.amount
@@ -365,13 +412,11 @@ class PaymentCalendarActivity : AppCompatActivity() {
             } else {
                 holder.amount.visibility = View.GONE
             }
-            val color = when (item.kind) {
-                PaymentCalendarHelper.EntryKind.REMINDER -> R.color.reminders_teal
-                PaymentCalendarHelper.EntryKind.RECURRING -> R.color.transactions_purple
-                PaymentCalendarHelper.EntryKind.UTILITY -> R.color.utilities_cyan
-                PaymentCalendarHelper.EntryKind.OBLIGATION -> R.color.obligations_indigo
+            val accentDrawable = ContextCompat.getDrawable(ctx, R.drawable.payment_calendar_accent)?.mutate()
+            if (accentDrawable is android.graphics.drawable.GradientDrawable) {
+                accentDrawable.setColor(urgencyColor)
             }
-            holder.date.setTextColor(ContextCompat.getColor(holder.itemView.context, color))
+            holder.accent.background = accentDrawable
             holder.itemView.setOnClickListener { onClick(item) }
         }
 

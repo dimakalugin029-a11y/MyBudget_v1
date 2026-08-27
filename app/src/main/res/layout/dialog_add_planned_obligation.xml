@@ -52,6 +52,19 @@
             android:layout_marginBottom="@dimen/space_12"
             android:padding="@dimen/space_4" />
         <TextView
+            android:id="@+id/obligationDueDayLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_due_day_label"
+            style="@style/Text.MyBudget.SectionLabel" />
+        <Spinner
+            android:id="@+id/obligationDueDaySpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
+        <TextView
             android:id="@+id/obligationDueMonthLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

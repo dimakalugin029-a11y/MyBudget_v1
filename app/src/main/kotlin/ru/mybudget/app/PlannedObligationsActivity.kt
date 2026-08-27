@@ -198,6 +198,8 @@ class PlannedObligationsActivity : AppCompatActivity() {
         val nameInput = inflate.findViewById<EditText>(R.id.obligationNameInput)
         val amountInput = inflate.findViewById<EditText>(R.id.obligationAmountInput)
         val periodSpinner = inflate.findViewById<Spinner>(R.id.obligationPeriodSpinner)
+        val dueDayLabel = inflate.findViewById<TextView>(R.id.obligationDueDayLabel)
+        val dueDaySpinner = inflate.findViewById<Spinner>(R.id.obligationDueDaySpinner)
         val dueMonthLabel = inflate.findViewById<TextView>(R.id.obligationDueMonthLabel)
         val dueMonthSpinner = inflate.findViewById<Spinner>(R.id.obligationDueMonthSpinner)
         val categorySpinner = inflate.findViewById<Spinner>(R.id.obligationCategorySpinner)
@@ -208,6 +210,11 @@ class PlannedObligationsActivity : AppCompatActivity() {
             this,
             android.R.layout.simple_spinner_dropdown_item,
             listOf(getString(R.string.obligations_period_monthly), getString(R.string.obligations_period_yearly)),
+        )
+        dueDaySpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            dueDaySpinnerLabels(),
         )
         dueMonthSpinner.adapter = ArrayAdapter(
             this,
@@ -231,16 +238,18 @@ class PlannedObligationsActivity : AppCompatActivity() {
             nameInput.setText(existing.name)
             amountInput.setText(MoneyFormat.format(existing.amount))
             periodSpinner.setSelection(if (existing.periodType == PlannedObligationHelper.PERIOD_YEARLY) 1 else 0)
+            dueDaySpinner.setSelection(PlannedObligationHelper.dueDaySpinnerPosition(existing.dueDay))
             dueMonthSpinner.setSelection((existing.dueMonth - 1).coerceIn(0, 11))
             val catIndex = leafCategories.indexOfFirst { it.id == existing.categoryId }
             categorySpinner.setSelection(if (catIndex >= 0) catIndex + 1 else 0)
             paychecksSpinner.setSelection((existing.paychecksPerMonth - 1).coerceIn(0, 3))
         } else {
             paychecksSpinner.setSelection((ObligationPreferences.getPaychecksPerMonth(this) - 1).coerceIn(0, 3))
+            dueDaySpinner.setSelection(PlannedObligationHelper.dueDaySpinnerPosition(1))
         }
 
         val updatePreview = {
-            updateDueMonthVisibility(periodSpinner, dueMonthLabel, dueMonthSpinner)
+            updateDueDateVisibility(periodSpinner, dueDayLabel, dueDaySpinner, dueMonthLabel, dueMonthSpinner)
             val amount = MoneyFormat.parse(amountInput.text) ?: 0.0
             if (amount <= 0.0) {
                 previewLine.text = ""
@@ -259,6 +268,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     categoryId = 0,
                     paychecksPerMonth = paychecks,
                     dueMonth = 1,
+                    dueDay = 1,
                 )
                 val per = PlannedObligationHelper.perPaycheck(draft)
                 previewLine.text = getString(R.string.obligations_preview, MoneyFormat.formatRub(per), paychecks)
@@ -290,6 +300,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 }
                 val catPos = categorySpinner.selectedItemPosition
                 val categoryId = if (catPos <= 0) 0 else leafCategories[catPos - 1].id
+                val isYearly = periodSpinner.selectedItemPosition == 1
                 val entity = PlannedObligationEntity(
                     id = existing?.id ?: 0,
                     budgetId = budgetId,
@@ -298,7 +309,8 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     periodType = period,
                     categoryId = categoryId,
                     paychecksPerMonth = paychecksSpinner.selectedItemPosition + 1,
-                    dueMonth = dueMonthSpinner.selectedItemPosition + 1,
+                    dueMonth = if (isYearly) dueMonthSpinner.selectedItemPosition + 1 else 1,
+                    dueDay = PlannedObligationHelper.dueDayFromSpinnerPosition(dueDaySpinner.selectedItemPosition),
                     createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                 )
                 lifecycleScope.launch(Dispatchers.IO) {
@@ -314,11 +326,23 @@ class PlannedObligationsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun updateDueMonthVisibility(periodSpinner: Spinner, label: TextView, spinner: Spinner) {
+    private fun dueDaySpinnerLabels(): List<String> =
+        (1..31).map { getString(R.string.obligations_due_day_number, it) } +
+            getString(R.string.obligations_due_day_last)
+
+    private fun updateDueDateVisibility(
+        periodSpinner: Spinner,
+        dueDayLabel: TextView,
+        dueDaySpinner: Spinner,
+        dueMonthLabel: TextView,
+        dueMonthSpinner: Spinner,
+    ) {
         val yearly = periodSpinner.selectedItemPosition == 1
-        val vis = if (yearly) View.VISIBLE else View.GONE
-        label.visibility = vis
-        spinner.visibility = vis
+        dueDayLabel.visibility = View.VISIBLE
+        dueDaySpinner.visibility = View.VISIBLE
+        val monthVis = if (yearly) View.VISIBLE else View.GONE
+        dueMonthLabel.visibility = monthVis
+        dueMonthSpinner.visibility = monthVis
     }
 
     private fun simpleItemSelected(onChange: () -> Unit) = object : AdapterView.OnItemSelectedListener {
@@ -375,14 +399,18 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 item.paychecksPerMonth,
             )
             holder.categoryLine.text = ctx.getString(R.string.obligations_item_category, categoryName(item.categoryId))
-            if (isYearly) {
-                holder.dueLine.visibility = View.VISIBLE
-                holder.dueLine.text = ctx.getString(
-                    R.string.obligations_item_due_month,
+            holder.dueLine.visibility = View.VISIBLE
+            holder.dueLine.text = if (isYearly) {
+                ctx.getString(
+                    R.string.obligations_item_due_yearly,
                     monthNames[(item.dueMonth - 1).coerceIn(0, 11)],
+                    PlannedObligationHelper.dueDayLabel(ctx, item.dueDay),
                 )
             } else {
-                holder.dueLine.visibility = View.GONE
+                ctx.getString(
+                    R.string.obligations_item_due_day,
+                    PlannedObligationHelper.dueDayLabel(ctx, item.dueDay),
+                )
             }
             holder.itemView.setOnClickListener { onEdit(item) }
             holder.itemView.setOnLongClickListener {

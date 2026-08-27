@@ -572,6 +572,11 @@
   <string name="obligations_delete_msg">«%1$s» будет удалён из списка.</string>
   <string name="obligations_delete_title">Удалить платёж?</string>
   <string name="obligations_due_month_label">Месяц оплаты</string>
+  <string name="obligations_due_day_label">День платежа</string>
+  <string name="obligations_due_day_last">Последний день месяца</string>
+  <string name="obligations_due_day_number">%1$d-е число</string>
+  <string name="obligations_item_due_day">Оплата: %1$s</string>
+  <string name="obligations_item_due_yearly">Оплата: %1$s, %2$s</string>
   <string name="obligations_edit">Редактировать платёж</string>
   <string name="obligations_empty">Добавьте ежемесячные и годовые обязательства: связь, кредиты, подписки, налоги…</string>
   <string name="obligations_item_category">Статья: %1$s</string>
@@ -933,6 +938,9 @@
   <string name="upcoming_payments_filter_recurring">Повторы</string>
   <string name="upcoming_payments_filter_reminders">Напоминания</string>
   <string name="upcoming_payments_filter_utilities">Коммуналка</string>
+  <string name="upcoming_payments_horizon_week">На неделе</string>
+  <string name="upcoming_payments_horizon_all">Все (60 дн.)</string>
+  <string name="upcoming_payments_horizon_week_hint">На неделе: чем ближе дата, тем насыщеннее красная полоска. Дальше 7 дней — зелёный.</string>
   <string name="upcoming_payments_hint">60 дней: напоминания, повторы, обязательства и коммуналка. Фильтры — по типу.</string>
   <string name="upcoming_payments_title">Ближайшие платежи</string>
   <string name="upgrade_hint_dismiss">Понятно</string>
