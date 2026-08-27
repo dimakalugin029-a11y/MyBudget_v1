@@ -15,12 +15,19 @@ object MeterReadingReminderHelper {
         if (MeterReadingReminderPreferences.getLastNotifiedMonth(context) == monthKey) return false
 
         val utilityDao = BudgetDatabase.getInstance(context).utilityDao()
-        val meters = utilityDao.getAllMeterInfo()
-        if (meters.isEmpty()) return false
+        val properties = utilityDao.getAllProperties()
+        if (properties.isEmpty()) return false
 
-        val readingsByMeter = utilityDao.getAllMeterReadings()
-            .groupBy { it.groupName to it.meterName }
-        return MeterReadingReminderLogic.metersMissingCurrentMonthReadings(meters, readingsByMeter, today)
+        for (property in properties) {
+            val meters = utilityDao.getAllMeterInfo(property.id)
+            if (meters.isEmpty()) continue
+            val readingsByMeter = utilityDao.getAllMeterReadings(property.id)
+                .groupBy { it.groupName to it.meterName }
+            if (MeterReadingReminderLogic.metersMissingCurrentMonthReadings(meters, readingsByMeter, today)) {
+                return true
+            }
+        }
+        return false
     }
 
     suspend fun processReminder(context: Context, today: LocalDate = LocalDate.now()) {

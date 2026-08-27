@@ -337,7 +337,8 @@ class UtilityBillActivity : AppCompatActivity() {
                     if (!groupId.isNullOrBlank()) {
                         manager.repository.cancelTransactionGroup(groupId)
                     } else if (bill.budgetPaidAt != null) {
-                        val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
+                        val propertyName = dao().getPropertyById(bill.propertyId)?.name.orEmpty()
+                        val desc = UtilityUserTemplate.paymentDescription(propertyName, bill.year, bill.month)
                         manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
                             manager.repository.cancelTransaction(tx)
                         }
@@ -401,14 +402,14 @@ class UtilityBillActivity : AppCompatActivity() {
                 Toast.makeText(this@UtilityBillActivity, R.string.utility_pay_no_categories, Toast.LENGTH_LONG).show()
                 return@launch
             }
-            openPayDialog(detail, options, budgetId)
+            openPayDialog(detail, options, detail.bill.propertyId)
         }
     }
 
     private fun openPayDialog(
         detail: UtilityBillDetail,
         options: List<UtilityPayCategoryHelper.CategoryOption>,
-        budgetId: Int,
+        propertyId: Int,
     ) {
         val total = currentGrandTotal
         val period = UtilityUserTemplate.formatPeriod(detail.bill.year, detail.bill.month)
@@ -453,9 +454,9 @@ class UtilityBillActivity : AppCompatActivity() {
         }
         primarySpinner.onItemSelectedListener = listener
         extraSpinner.onItemSelectedListener = listener
-        val primaryIndex = UtilityPayCategoryHelper.primarySpinnerIndex(options, this, budgetId)
+        val primaryIndex = UtilityPayCategoryHelper.primarySpinnerIndex(options, this, propertyId)
         primarySpinner.setSelection(primaryIndex)
-        extraSpinner.setSelection(UtilityPayCategoryHelper.extraSpinnerIndex(options, this, budgetId, primaryIndex))
+        extraSpinner.setSelection(UtilityPayCategoryHelper.extraSpinnerIndex(options, this, propertyId, primaryIndex))
         refreshSplitUi()
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.utility_pay_title)
@@ -488,7 +489,7 @@ class UtilityBillActivity : AppCompatActivity() {
                     extraCategory = extra.category
                     parts += extra.category to shortfall
                 }
-                UtilityPayCategoryHelper.rememberSelection(this, budgetId, primary.category, extraCategory)
+                UtilityPayCategoryHelper.rememberSelection(this, propertyId, primary.category, extraCategory)
                 dialog.dismiss()
                 executeBudgetPayment(detail.bill, period, parts)
             }
@@ -503,7 +504,8 @@ class UtilityBillActivity : AppCompatActivity() {
     ) {
         lifecycleScope.launch {
             val summary = withContext(Dispatchers.IO) {
-                val description = UtilityUserTemplate.PAYMENT_DESCRIPTION_PREFIX + periodLabel
+                val propertyName = dao().getPropertyById(bill.propertyId)?.name.orEmpty()
+                val description = UtilityUserTemplate.paymentDescription(propertyName, bill.year, bill.month)
                 val summaryParts = mutableListOf<String>()
                 val items = mutableListOf<Pair<Int, Double>>()
                 for ((cat, amount) in parts) {

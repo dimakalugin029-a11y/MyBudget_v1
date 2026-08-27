@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityTariffRow
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.UtilityUserTemplate
 
 class UtilityTariffsActivity : AppCompatActivity() {
@@ -49,9 +50,11 @@ class UtilityTariffsActivity : AppCompatActivity() {
 
     private fun dao() = BudgetManager.getInstance(this).utilityDao
 
+    private fun propertyId() = ActivePropertyPreferences.getActivePropertyId(this)
+
     private fun loadTariffs() {
         lifecycleScope.launch {
-            val rows = withContext(Dispatchers.IO) { UtilityUserTemplate.getTariffRows(dao()) }
+            val rows = withContext(Dispatchers.IO) { UtilityUserTemplate.getTariffRows(dao(), propertyId()) }
             adapter.submit(rows)
             val empty = rows.isEmpty()
             findViewById<View>(R.id.tariffsEmpty).visibility = if (empty) View.VISIBLE else View.GONE

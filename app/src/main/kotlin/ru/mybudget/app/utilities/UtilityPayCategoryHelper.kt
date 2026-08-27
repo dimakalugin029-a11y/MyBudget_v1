@@ -20,8 +20,8 @@ object UtilityPayCategoryHelper {
             .map { CategoryOption(it, CategoryMultiPicker.leafLabel(it, parents)) }
     }
 
-    fun primarySpinnerIndex(options: List<CategoryOption>, context: Context, budgetId: Int): Int {
-        val saved = UtilitySetupPreferences.getPayPrimaryCategoryId(context, budgetId)
+    fun primarySpinnerIndex(options: List<CategoryOption>, context: Context, propertyId: Int): Int {
+        val saved = UtilitySetupPreferences.getPayPrimaryCategoryId(context, propertyId)
         val index = options.indexOfFirst { it.category.id == saved }
         return if (index >= 0) index else 0
     }
@@ -29,10 +29,10 @@ object UtilityPayCategoryHelper {
     fun extraSpinnerIndex(
         options: List<CategoryOption>,
         context: Context,
-        budgetId: Int,
+        propertyId: Int,
         primaryIndex: Int,
     ): Int {
-        val saved = UtilitySetupPreferences.getPayExtraCategoryId(context, budgetId)
+        val saved = UtilitySetupPreferences.getPayExtraCategoryId(context, propertyId)
         val index = options.indexOfFirst { it.category.id == saved }
         if (index >= 0 && index != primaryIndex) return index
         return options.indices.firstOrNull { it != primaryIndex } ?: primaryIndex
@@ -40,13 +40,13 @@ object UtilityPayCategoryHelper {
 
     fun rememberSelection(
         context: Context,
-        budgetId: Int,
+        propertyId: Int,
         primary: BudgetCategory,
         extra: BudgetCategory?,
     ) {
-        UtilitySetupPreferences.setPayPrimaryCategoryId(context, primary.id, budgetId)
+        UtilitySetupPreferences.setPayPrimaryCategoryId(context, primary.id, propertyId)
         if (extra != null) {
-            UtilitySetupPreferences.setPayExtraCategoryId(context, extra.id, budgetId)
+            UtilitySetupPreferences.setPayExtraCategoryId(context, extra.id, propertyId)
         }
     }
 }

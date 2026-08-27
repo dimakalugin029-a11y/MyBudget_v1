@@ -8,7 +8,10 @@ import ru.mybudget.app.data.UtilityMeterReadingEntity
 import ru.mybudget.app.data.UtilitySectionEntity
 import java.io.InputStream
 
-class UtilityExcelImporter(private val utilityDao: UtilityDao) {
+class UtilityExcelImporter(
+    private val utilityDao: UtilityDao,
+    private val propertyId: Int,
+) {
 
     data class ImportResult(
         val monthsImported: Int,
@@ -30,13 +33,15 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
     suspend fun importFromStream(input: InputStream, replaceExisting: Boolean): ImportResult {
         val parsed = UtilityExcelParser.parse(input)
         if (replaceExisting && parsed.bills.isNotEmpty()) {
-            utilityDao.deleteAllLineItems()
-            utilityDao.deleteAllSections()
-            utilityDao.deleteAllBills()
+            for (bill in utilityDao.getAllBills(propertyId)) {
+                utilityDao.deleteLineItemsForBill(bill.id)
+                utilityDao.deleteSectionsForBill(bill.id)
+                utilityDao.deleteBill(bill.id)
+            }
         }
         var months = 0
         parsed.bills.forEach { bill ->
-            val existing = utilityDao.getBillByPeriod(bill.year, bill.month)
+            val existing = utilityDao.getBillByPeriod(propertyId, bill.year, bill.month)
             if (existing != null && !replaceExisting) return@forEach
             if (existing != null) {
                 utilityDao.deleteLineItemsForBill(existing.id)
@@ -45,6 +50,7 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
             }
             val billId = utilityDao.insertBill(
                 UtilityBillEntity(
+                    propertyId = propertyId,
                     year = bill.year,
                     month = bill.month,
                     apartmentArea = bill.apartmentArea,
@@ -102,12 +108,12 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
             catalogCount++
         }
         if (replaceReadings && readings.isNotEmpty()) {
-            utilityDao.deleteAllMeterReadings()
+            utilityDao.deleteMeterReadingsForProperty(propertyId)
         }
         val existingKeys = if (replaceReadings) {
             mutableSetOf<String>()
         } else {
-            utilityDao.getAllMeterReadings().map { readingKey(it) }.toHashSet()
+            utilityDao.getAllMeterReadings(propertyId).map { readingKey(it) }.toHashSet()
         }
         var imported = 0
         var skipped = 0
@@ -121,10 +127,11 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
                 return@forEach
             }
             val pair = reading.groupName to reading.meterName
-            val order = (sortBase[pair] ?: utilityDao.getMaxReadingSortOrder(reading.groupName, reading.meterName)) + 1
+            val order = (sortBase[pair] ?: utilityDao.getMaxReadingSortOrder(propertyId, reading.groupName, reading.meterName)) + 1
             sortBase[pair] = order
             utilityDao.insertMeterReading(
                 UtilityMeterReadingEntity(
+                    propertyId = propertyId,
                     groupName = reading.groupName,
                     meterName = reading.meterName,
                     periodLabel = reading.periodLabel,
@@ -139,7 +146,7 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
         var verificationsUpdated = 0
         verifications.forEach { ver ->
             val name = UtilityExcelParser.normalizeMeterName(ver.meterName)
-            val infos = utilityDao.getAllMeterInfo().filter {
+            val infos = utilityDao.getAllMeterInfo(propertyId).filter {
                 UtilityExcelParser.normalizeMeterName(it.meterName).equals(name, ignoreCase = true)
             }
             infos.forEach { info ->
@@ -164,11 +171,12 @@ class UtilityExcelImporter(private val utilityDao: UtilityDao) {
         verificationEpochDay: Long?,
     ) {
         val name = UtilityExcelParser.normalizeMeterName(meterName)
-        val existing = utilityDao.getMeterInfoByKey(groupName, name)
+        val existing = utilityDao.getMeterInfoByKey(propertyId, groupName, name)
         if (existing == null) {
-            val order = (utilityDao.getAllMeterInfo().maxOfOrNull { it.sortOrder } ?: -1) + 1
+            val order = (utilityDao.getAllMeterInfo(propertyId).maxOfOrNull { it.sortOrder } ?: -1) + 1
             utilityDao.insertMeterInfo(
                 UtilityMeterInfoEntity(
+                    propertyId = propertyId,
                     groupName = groupName,
                     meterName = name,
                     verificationDateLabel = verificationLabel,

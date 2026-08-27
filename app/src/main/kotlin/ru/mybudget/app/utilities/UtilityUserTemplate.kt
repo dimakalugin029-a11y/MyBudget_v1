@@ -32,6 +32,15 @@ object UtilityUserTemplate {
         return SimpleDateFormat("LLLL yyyy", RU).format(cal.time)
     }
 
+    fun paymentDescription(propertyName: String, year: Int, month: Int): String {
+        val period = formatPeriod(year, month)
+        return if (propertyName.isBlank()) {
+            PAYMENT_DESCRIPTION_PREFIX + period
+        } else {
+            "$PAYMENT_DESCRIPTION_PREFIX$propertyName · $period"
+        }
+    }
+
     fun computedAmount(quantity: Double?, tariff: Double?): Double? {
         if (quantity == null || tariff == null) return null
         return MoneyFormat.roundMoney(quantity * tariff)
@@ -47,10 +56,6 @@ object UtilityUserTemplate {
 
     fun formatBillHeaderSubtitle(context: Context, area: Double): String {
         return formatAreaLine(context, area) + "\n" + context.getString(R.string.utility_bill_lines_hint)
-    }
-
-    fun paymentDescription(year: Int, month: Int): String {
-        return PAYMENT_DESCRIPTION_PREFIX + formatPeriod(year, month)
     }
 
     fun titlePeriod(year: Int, month: Int): String {
@@ -77,18 +82,20 @@ object UtilityUserTemplate {
         dao.deleteAllTemplateSections()
         dao.deleteAllLineItems()
         dao.deleteAllSections()
+        dao.deleteAllBillPhotos()
         dao.deleteAllBills()
+        dao.deleteAllProperties()
     }
 
-    suspend fun getTemplateWithLines(dao: UtilityDao): List<UtilityTemplateSectionWithLines> {
-        return dao.getAllTemplateSections().map { section ->
+    suspend fun getTemplateWithLines(dao: UtilityDao, propertyId: Int): List<UtilityTemplateSectionWithLines> {
+        return dao.getAllTemplateSections(propertyId).map { section ->
             UtilityTemplateSectionWithLines(section, dao.getTemplateLinesForSection(section.id))
         }
     }
 
-    suspend fun getTariffRows(dao: UtilityDao): List<UtilityTariffRow> {
+    suspend fun getTariffRows(dao: UtilityDao, propertyId: Int): List<UtilityTariffRow> {
         val rows = mutableListOf<UtilityTariffRow>()
-        for (section in dao.getAllTemplateSections()) {
+        for (section in dao.getAllTemplateSections(propertyId)) {
             for (line in dao.getTemplateLinesForSection(section.id)) {
                 if (line.lineMode != LINE_QTY_TARIFF) continue
                 rows += UtilityTariffRow(
@@ -101,9 +108,11 @@ object UtilityUserTemplate {
         return rows
     }
 
-    suspend fun addSection(dao: UtilityDao, name: String): Long {
-        val sort = dao.getMaxTemplateSectionSortOrder() + 1
-        return dao.insertTemplateSection(UtilityTemplateSectionEntity(name = name, sortOrder = sort))
+    suspend fun addSection(dao: UtilityDao, propertyId: Int, name: String): Long {
+        val sort = dao.getMaxTemplateSectionSortOrder(propertyId) + 1
+        return dao.insertTemplateSection(
+            UtilityTemplateSectionEntity(propertyId = propertyId, name = name, sortOrder = sort),
+        )
     }
 
     suspend fun addLine(
@@ -140,21 +149,22 @@ object UtilityUserTemplate {
 
     suspend fun createBillFromUserTemplate(
         dao: UtilityDao,
+        propertyId: Int,
         year: Int,
         month: Int,
         apartmentArea: Double = 0.0,
         applyTariffs: Boolean = true,
     ): Int {
-        dao.getBillByPeriod(year, month)?.let { return it.id }
+        dao.getBillByPeriod(propertyId, year, month)?.let { return it.id }
         val billId = dao.insertBill(
-            UtilityBillEntity(year = year, month = month, apartmentArea = apartmentArea),
+            UtilityBillEntity(propertyId = propertyId, year = year, month = month, apartmentArea = apartmentArea),
         ).toInt()
         val tariffs = if (applyTariffs) {
-            dao.getAllTariffs().associate { it.templateLineId to it.tariff }
+            buildTariffMap(dao, propertyId)
         } else {
             emptyMap()
         }
-        for (section in dao.getAllTemplateSections()) {
+        for (section in dao.getAllTemplateSections(propertyId)) {
             val sectionId = dao.insertSection(
                 UtilitySectionEntity(
                     billId = billId,
@@ -182,18 +192,20 @@ object UtilityUserTemplate {
 
     suspend fun copyBillFromPreviousMonth(
         dao: UtilityDao,
+        propertyId: Int,
         targetYear: Int,
         targetMonth: Int,
         copyAmounts: Boolean,
     ): Int? {
-        dao.getBillByPeriod(targetYear, targetMonth)?.let { return it.id }
-        val previous = dao.getAllBills()
+        dao.getBillByPeriod(propertyId, targetYear, targetMonth)?.let { return it.id }
+        val previous = dao.getAllBills(propertyId)
             .filter { it.year < targetYear || (it.year == targetYear && it.month < targetMonth) }
             .maxWithOrNull(compareBy({ it.year }, { it.month }))
             ?: return null
         val detail = loadBillDetail(dao, previous.id) ?: return null
         val billId = dao.insertBill(
             UtilityBillEntity(
+                propertyId = propertyId,
                 year = targetYear,
                 month = targetMonth,
                 apartmentArea = previous.apartmentArea,
@@ -229,6 +241,16 @@ object UtilityUserTemplate {
             }
         }
         return billId
+    }
+
+    private suspend fun buildTariffMap(dao: UtilityDao, propertyId: Int): Map<Int, Double> {
+        val map = mutableMapOf<Int, Double>()
+        for (section in dao.getAllTemplateSections(propertyId)) {
+            for (line in dao.getTemplateLinesForSection(section.id)) {
+                dao.getTariffForLine(line.id)?.let { map[line.id] = it.tariff }
+            }
+        }
+        return map
     }
 }
 

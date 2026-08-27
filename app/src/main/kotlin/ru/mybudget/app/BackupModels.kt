@@ -15,6 +15,7 @@ import ru.mybudget.app.data.UtilityBillPhotoEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.data.UtilityMeterInfoEntity
 import ru.mybudget.app.data.UtilityMeterReadingEntity
+import ru.mybudget.app.data.UtilityPropertyEntity
 import ru.mybudget.app.data.UtilitySectionEntity
 import ru.mybudget.app.data.UtilityTariffEntity
 import ru.mybudget.app.data.UtilityTemplateLineEntity
@@ -30,6 +31,7 @@ internal data class BackupDataDto(
     @SerializedName("savingsGoals") val savingsGoals: List<SavingsGoalEntity>? = null,
     @SerializedName("recurringTransactions") val recurringTransactions: List<RecurringTransactionEntity>? = null,
     @SerializedName("plannedObligations") val plannedObligations: List<PlannedObligationEntity>? = null,
+    @SerializedName("utilityProperties") val utilityProperties: List<UtilityPropertyEntity>? = null,
     @SerializedName("utilityBills") val utilityBills: List<UtilityBillEntity>? = null,
     @SerializedName("utilityBillPhotos") val utilityBillPhotos: List<UtilityBillPhotoEntity>? = null,
     @SerializedName("utilitySections") val utilitySections: List<UtilitySectionEntity>? = null,
@@ -53,6 +55,7 @@ data class BackupData(
     @SerializedName("savingsGoals") val savingsGoals: List<SavingsGoalEntity> = emptyList(),
     @SerializedName("recurringTransactions") val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
     @SerializedName("plannedObligations") val plannedObligations: List<PlannedObligationEntity> = emptyList(),
+    @SerializedName("utilityProperties") val utilityProperties: List<UtilityPropertyEntity> = emptyList(),
     @SerializedName("utilityBills") val utilityBills: List<UtilityBillEntity> = emptyList(),
     @SerializedName("utilityBillPhotos") val utilityBillPhotos: List<UtilityBillPhotoEntity> = emptyList(),
     @SerializedName("utilitySections") val utilitySections: List<UtilitySectionEntity> = emptyList(),
@@ -66,7 +69,7 @@ data class BackupData(
     @SerializedName("auditActions") val auditActions: List<AuditActionEntity> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 11
+        const val CURRENT_VERSION = 12
     }
 }
 

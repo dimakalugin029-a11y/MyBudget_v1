@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityMeterInfoEntity
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.MeterDateParser
 import ru.mybudget.app.utilities.MeterRepository
 import ru.mybudget.app.utilities.UtilityMeterDialogs
@@ -25,7 +26,10 @@ class UtilityMeterVerificationActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_meter_verification)
         ScreenHeaderHelper.setup(this, getString(R.string.meter_verification_title), getString(R.string.utility_icon_verification))
-        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
+        repository = MeterRepository(
+            BudgetManager.getInstance(this).utilityDao,
+            ActivePropertyPreferences.getActivePropertyId(this),
+        )
         adapter = VerificationAdapter { meter ->
             UtilityMeterDialogs.showEditVerificationDate(this, lifecycleScope, repository, meter) { loadList() }
         }

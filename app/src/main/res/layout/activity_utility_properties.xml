@@ -14,49 +14,30 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
-    <include
-        android:id="@+id/utilityTemplateHint"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        layout="@layout/include_dismissible_hint"/>
+        android:layout_marginBottom="@dimen/space_4"
+        android:text="@string/utility_properties_manage"
+        style="@style/Text.MyBudget.SectionLabel"/>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
-        android:text="@string/utility_template_hint"
-        style="@style/Text.MyBudget.SectionLabel"/>
+        android:text="@string/utility_properties_hint"
+        style="@style/Text.MyBudget.Subtitle"/>
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/templateRecycler"
+        android:id="@+id/utilityPropertiesRecycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"/>
-    <TextView
-        android:gravity="center"
-        android:id="@+id/templateEmpty"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:text="@string/utility_template_empty"
-        android:layout_weight="1"
-        style="@style/Text.MyBudget.Subtitle"/>
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/copyTemplateFromPropertyButton"
+        android:id="@+id/addUtilityPropertyButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
+        android:layout_marginTop="@dimen/space_12"
         android:minHeight="@dimen/touch_min_size"
-        android:text="@string/utility_template_copy_from"
-        app:cornerRadius="@dimen/radius_10"
-        app:strokeColor="@color/utilities_cyan"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/addTemplateSectionButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_8"
-        android:minHeight="@dimen/touch_min_size"
-        android:text="@string/utility_template_add_section"
+        android:text="@string/utility_properties_add"
         app:backgroundTint="@color/utilities_cyan"
         app:cornerRadius="@dimen/radius_10"
         style="@style/Widget.MaterialComponents.Button"/>

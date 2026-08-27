@@ -5,10 +5,10 @@ import ru.mybudget.app.data.PaymentReminderEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.RecurringTransactionEntity
 import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 object PaymentCalendarHelper {
     enum class EntryKind {
@@ -23,6 +23,13 @@ object PaymentCalendarHelper {
         val recurringId: Int? = null,
         val billId: Int? = null,
         val obligationId: Int? = null,
+        val propertyId: Int? = null,
+    )
+
+    data class UnpaidUtilityBill(
+        val bill: UtilityBillEntity,
+        val total: Double,
+        val propertyName: String,
     )
 
     data class Entry(
@@ -37,19 +44,16 @@ object PaymentCalendarHelper {
 
     private val isoFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val displayFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    private val monthNames = arrayOf(
-        "январь", "февраль", "март", "апрель", "май", "июнь",
-        "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь",
-    )
 
     fun buildEntries(
         reminders: List<PaymentReminderEntity>,
         recurring: List<RecurringTransactionEntity>,
-        unpaidBills: List<Pair<UtilityBillEntity, Double>>,
+        unpaidUtilityBills: List<UnpaidUtilityBill>,
         obligations: List<PlannedObligationEntity>,
         categoryNames: Map<Int, String>,
         todayEpochDay: Long,
         horizonDays: Int = 60,
+        utilityPaymentDays: Map<Int, Int> = emptyMap(),
     ): List<Entry> {
         val maxDay = todayEpochDay + horizonDays
         val today = LocalDate.ofEpochDay(todayEpochDay)
@@ -87,32 +91,15 @@ object PaymentCalendarHelper {
             )
         }
 
-        for ((bill, total) in unpaidBills) {
-            if (total <= 0.0) continue
-            val epoch = YearMonth.of(bill.year, bill.month).atEndOfMonth().toEpochDay()
-            if (epoch !in todayEpochDay..maxDay) continue
-            val monthName = monthNames.getOrNull(bill.month - 1) ?: "?"
-            val titled = monthName.replaceFirstChar { ch ->
-                if (ch.isLowerCase()) ch.titlecase(Locale.getDefault()) else ch.toString()
-            }
-            val end = YearMonth.of(bill.year, bill.month).atEndOfMonth()
-            val dateLabel = String.format(
-                Locale.getDefault(),
-                "%02d.%02d.%d",
-                end.dayOfMonth,
-                bill.month,
-                bill.year,
-            )
-            result += Entry(
-                epochDay = epoch,
-                dateLabel = dateLabel,
-                title = "Коммуналка: $titled ${bill.year}",
-                subtitle = "Не списано с бюджета",
-                amount = total,
-                kind = EntryKind.UTILITY,
-                sourceRef = SourceRef(billId = bill.id),
-            )
-        }
+        addUtilityPaymentEntries(
+            result = result,
+            unpaidBills = unpaidUtilityBills,
+            utilityPaymentDays = utilityPaymentDays,
+            today = today,
+            horizonEnd = horizonEnd,
+            todayEpochDay = todayEpochDay,
+            maxDay = maxDay,
+        )
 
         for (ob in obligations.filter { it.isActive }) {
             if (ob.periodType == PlannedObligationHelper.PERIOD_YEARLY) {
@@ -139,6 +126,57 @@ object PaymentCalendarHelper {
         }
 
         return result.sortedWith(compareBy({ it.epochDay }, { it.title }))
+    }
+
+    private fun addUtilityPaymentEntries(
+        result: MutableList<Entry>,
+        unpaidBills: List<UnpaidUtilityBill>,
+        utilityPaymentDays: Map<Int, Int>,
+        today: LocalDate,
+        horizonEnd: LocalDate,
+        todayEpochDay: Long,
+        maxDay: Long,
+    ) {
+        val byProperty = unpaidBills
+            .filter { it.total > 0.0 }
+            .groupBy { it.bill.propertyId }
+        if (byProperty.isEmpty()) return
+
+        for ((propertyId, bills) in byProperty) {
+            val paymentDay = utilityPaymentDays[propertyId] ?: UtilityPaymentReminderPreferences.DEFAULT_DAY
+            val propertyName = bills.first().propertyName.ifBlank { "Квартира" }
+            val totalAmount = bills.sumOf { it.total }
+            val oldestBill = bills.minWithOrNull(
+                compareBy<UnpaidUtilityBill> { it.bill.year }.thenBy { it.bill.month },
+            )?.bill
+            val subtitle = utilityUnpaidSubtitle(bills.size)
+            var ym = YearMonth.from(today)
+            val endYm = YearMonth.from(horizonEnd)
+            while (!ym.isAfter(endYm)) {
+                val dueDate = PlannedObligationHelper.dueLocalDate(ym, paymentDay)
+                val epoch = dueDate.toEpochDay()
+                if (epoch in todayEpochDay..maxDay) {
+                    result += Entry(
+                        epochDay = epoch,
+                        dateLabel = dueDate.format(displayFmt),
+                        title = "Коммуналка: $propertyName",
+                        subtitle = subtitle,
+                        amount = totalAmount,
+                        kind = EntryKind.UTILITY,
+                        sourceRef = SourceRef(propertyId = propertyId, billId = oldestBill?.id),
+                    )
+                }
+                ym = ym.plusMonths(1)
+            }
+        }
+    }
+
+    private fun utilityUnpaidSubtitle(unpaidCount: Int): String {
+        return when {
+            unpaidCount == 1 -> "1 месяц не списано с бюджета"
+            unpaidCount in 2..4 -> "$unpaidCount месяца не списано с бюджета"
+            else -> "$unpaidCount месяцев не списано с бюджета"
+        }
     }
 
     private fun addObligationEntry(

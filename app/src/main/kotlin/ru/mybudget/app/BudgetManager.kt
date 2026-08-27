@@ -11,6 +11,8 @@ import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.data.BudgetProfileEntity
 import ru.mybudget.app.data.BudgetRepository
 import ru.mybudget.app.setup.ActiveBudgetPreferences
+import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 
 class BudgetManager private constructor(context: Context) {
     private val appContext = context.applicationContext
@@ -41,8 +43,17 @@ class BudgetManager private constructor(context: Context) {
         coroutineScope.launch {
             runCatching {
                 repository.ensureDefaultBudgetProfile()
+                ensureUtilityPropertyReady()
                 loadCategoriesFromDatabase(persistParentFixes = true)
             }
+        }
+    }
+
+    private suspend fun ensureUtilityPropertyReady() {
+        val propertyId = UtilityPropertyCopyHelper.ensureDefaultProperty(utilityDao)
+        val activeId = ActivePropertyPreferences.getActivePropertyId(appContext)
+        if (utilityDao.getPropertyById(activeId) == null) {
+            ActivePropertyPreferences.setActivePropertyId(appContext, propertyId)
         }
     }
 

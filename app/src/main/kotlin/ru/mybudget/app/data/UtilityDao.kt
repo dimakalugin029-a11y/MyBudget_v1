@@ -9,6 +9,27 @@ import androidx.room.Update
 @Dao
 interface UtilityDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertProperty(property: UtilityPropertyEntity): Long
+
+    @Update
+    suspend fun updateProperty(property: UtilityPropertyEntity)
+
+    @Query("SELECT * FROM utility_properties ORDER BY sortOrder, id")
+    suspend fun getAllProperties(): List<UtilityPropertyEntity>
+
+    @Query("SELECT * FROM utility_properties WHERE id = :id")
+    suspend fun getPropertyById(id: Int): UtilityPropertyEntity?
+
+    @Query("SELECT COUNT(*) FROM utility_properties")
+    suspend fun getPropertyCount(): Int
+
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM utility_properties")
+    suspend fun getMaxPropertySortOrder(): Int
+
+    @Query("DELETE FROM utility_properties WHERE id = :id")
+    suspend fun deleteProperty(id: Int)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBill(bill: UtilityBillEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -53,6 +74,9 @@ interface UtilityDao {
     @Update
     suspend fun updateTemplateLine(line: UtilityTemplateLineEntity)
 
+    @Query("SELECT * FROM utility_bills WHERE propertyId = :propertyId ORDER BY year DESC, month DESC")
+    suspend fun getAllBills(propertyId: Int): List<UtilityBillEntity>
+
     @Query("SELECT * FROM utility_bills ORDER BY year DESC, month DESC")
     suspend fun getAllBills(): List<UtilityBillEntity>
 
@@ -89,11 +113,11 @@ interface UtilityDao {
     @Query("DELETE FROM utility_bill_photos")
     suspend fun deleteAllBillPhotos()
 
-    @Query("SELECT * FROM utility_bills WHERE year = :year AND month = :month LIMIT 1")
-    suspend fun getBillByPeriod(year: Int, month: Int): UtilityBillEntity?
+    @Query("SELECT * FROM utility_bills WHERE propertyId = :propertyId AND year = :year AND month = :month LIMIT 1")
+    suspend fun getBillByPeriod(propertyId: Int, year: Int, month: Int): UtilityBillEntity?
 
-    @Query("SELECT COUNT(*) FROM utility_bills WHERE year = :year AND month = :month AND budgetPaidAt IS NULL")
-    suspend fun countUnpaidBillsForMonth(year: Int, month: Int): Int
+    @Query("SELECT COUNT(*) FROM utility_bills WHERE propertyId = :propertyId AND year = :year AND month = :month AND budgetPaidAt IS NULL")
+    suspend fun countUnpaidBillsForMonth(propertyId: Int, year: Int, month: Int): Int
 
     @Query("SELECT * FROM utility_bills WHERE budgetPaymentGroupId = :groupId LIMIT 1")
     suspend fun getBillByPaymentGroupId(groupId: String): UtilityBillEntity?
@@ -129,18 +153,23 @@ interface UtilityDao {
     @Query("SELECT * FROM utility_line_items")
     suspend fun getAllLineItemsForExport(): List<UtilityLineItemEntity>
 
+    @Query("SELECT * FROM utility_meter_readings WHERE propertyId = :propertyId ORDER BY groupName, meterName, sortOrder")
+    suspend fun getAllMeterReadings(propertyId: Int): List<UtilityMeterReadingEntity>
+
     @Query("SELECT * FROM utility_meter_readings ORDER BY groupName, meterName, sortOrder")
     suspend fun getAllMeterReadings(): List<UtilityMeterReadingEntity>
 
     @Query(
         """
         SELECT * FROM utility_meter_readings
-        WHERE meterName = :meterName
+        WHERE propertyId = :propertyId
+          AND meterName = :meterName
           AND (:groupName = '' OR groupName = :groupName)
         ORDER BY sortOrder ASC
         """,
     )
     suspend fun getMeterReadingsHistory(
+        propertyId: Int,
         groupName: String,
         meterName: String,
     ): List<UtilityMeterReadingEntity>
@@ -148,13 +177,18 @@ interface UtilityDao {
     @Query(
         """
         SELECT COALESCE(MAX(sortOrder), -1) FROM utility_meter_readings
-        WHERE meterName = :meterName AND (:groupName = '' OR groupName = :groupName)
+        WHERE propertyId = :propertyId
+          AND meterName = :meterName
+          AND (:groupName = '' OR groupName = :groupName)
         """,
     )
-    suspend fun getMaxReadingSortOrder(groupName: String, meterName: String): Int
+    suspend fun getMaxReadingSortOrder(propertyId: Int, groupName: String, meterName: String): Int
 
     @Query("SELECT * FROM utility_meter_readings")
     suspend fun getAllMeterReadingsForExport(): List<UtilityMeterReadingEntity>
+
+    @Query("SELECT * FROM utility_meter_info WHERE propertyId = :propertyId ORDER BY sortOrder, groupName, meterName")
+    suspend fun getAllMeterInfo(propertyId: Int): List<UtilityMeterInfoEntity>
 
     @Query("SELECT * FROM utility_meter_info ORDER BY sortOrder, groupName, meterName")
     suspend fun getAllMeterInfo(): List<UtilityMeterInfoEntity>
@@ -165,16 +199,19 @@ interface UtilityDao {
     @Query(
         """
         SELECT * FROM utility_meter_info
-        WHERE meterName = :meterName AND groupName = :groupName LIMIT 1
+        WHERE propertyId = :propertyId AND meterName = :meterName AND groupName = :groupName LIMIT 1
         """,
     )
-    suspend fun getMeterInfoByKey(groupName: String, meterName: String): UtilityMeterInfoEntity?
+    suspend fun getMeterInfoByKey(propertyId: Int, groupName: String, meterName: String): UtilityMeterInfoEntity?
 
     @Query("SELECT * FROM utility_meter_info")
     suspend fun getAllMeterInfoForExport(): List<UtilityMeterInfoEntity>
 
-    @Query("SELECT COUNT(*) FROM utility_template_sections")
-    suspend fun getTemplateSectionCount(): Int
+    @Query("SELECT COUNT(*) FROM utility_template_sections WHERE propertyId = :propertyId")
+    suspend fun getTemplateSectionCount(propertyId: Int): Int
+
+    @Query("SELECT * FROM utility_template_sections WHERE propertyId = :propertyId ORDER BY sortOrder")
+    suspend fun getAllTemplateSections(propertyId: Int): List<UtilityTemplateSectionEntity>
 
     @Query("SELECT * FROM utility_template_sections ORDER BY sortOrder")
     suspend fun getAllTemplateSections(): List<UtilityTemplateSectionEntity>
@@ -182,8 +219,8 @@ interface UtilityDao {
     @Query("SELECT * FROM utility_template_sections WHERE id = :id")
     suspend fun getTemplateSectionById(id: Int): UtilityTemplateSectionEntity?
 
-    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM utility_template_sections")
-    suspend fun getMaxTemplateSectionSortOrder(): Int
+    @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM utility_template_sections WHERE propertyId = :propertyId")
+    suspend fun getMaxTemplateSectionSortOrder(propertyId: Int): Int
 
     @Query("SELECT * FROM utility_template_lines WHERE sectionId = :sectionId ORDER BY sortOrder")
     suspend fun getTemplateLinesForSection(sectionId: Int): List<UtilityTemplateLineEntity>
@@ -216,26 +253,37 @@ interface UtilityDao {
         """
         SELECT COUNT(*) FROM utility_template_lines
         WHERE lineMode = 'qty_tariff'
+          AND sectionId IN (SELECT id FROM utility_template_sections WHERE propertyId = :propertyId)
     """,
     )
-    suspend fun getTemplateTariffLineCount(): Int
+    suspend fun getTemplateTariffLineCount(propertyId: Int): Int
 
-    @Query("SELECT COUNT(*) FROM utility_tariffs WHERE tariff > 0")
-    suspend fun getFilledTariffCount(): Int
+    @Query(
+        """
+        SELECT COUNT(*) FROM utility_tariffs t
+        INNER JOIN utility_template_lines l ON l.id = t.templateLineId
+        INNER JOIN utility_template_sections s ON s.id = l.sectionId
+        WHERE s.propertyId = :propertyId AND t.tariff > 0
+    """,
+    )
+    suspend fun getFilledTariffCount(propertyId: Int): Int
 
     @Query(
         """
         SELECT COUNT(*) FROM (
             SELECT 1 FROM utility_meter_readings r
-            WHERE NOT EXISTS (
+            WHERE r.propertyId = :propertyId
+              AND NOT EXISTS (
                 SELECT 1 FROM utility_meter_info i
-                WHERE i.groupName = r.groupName AND i.meterName = r.meterName
+                WHERE i.propertyId = r.propertyId
+                  AND i.groupName = r.groupName
+                  AND i.meterName = r.meterName
             )
             GROUP BY r.groupName, r.meterName
         )
     """,
     )
-    suspend fun countReadingsWithoutCatalogEntry(): Int
+    suspend fun countReadingsWithoutCatalogEntry(propertyId: Int): Int
 
     @Query(
         """
@@ -276,10 +324,12 @@ interface UtilityDao {
     @Query(
         """
         DELETE FROM utility_meter_readings
-        WHERE meterName = :meterName AND (:groupName = '' OR groupName = :groupName)
+        WHERE propertyId = :propertyId
+          AND meterName = :meterName
+          AND (:groupName = '' OR groupName = :groupName)
         """,
     )
-    suspend fun deleteReadingsForMeter(groupName: String, meterName: String)
+    suspend fun deleteReadingsForMeter(propertyId: Int, groupName: String, meterName: String)
 
     @Query("DELETE FROM utility_meter_readings")
     suspend fun deleteAllMeterReadings()
@@ -310,6 +360,24 @@ interface UtilityDao {
 
     @Query("DELETE FROM utility_tariffs WHERE templateLineId IN (SELECT id FROM utility_template_lines WHERE sectionId = :sectionId)")
     suspend fun deleteTariffsForSection(sectionId: Int)
+
+    @Query("DELETE FROM utility_bills WHERE propertyId = :propertyId")
+    suspend fun deleteBillsForProperty(propertyId: Int)
+
+    @Query("DELETE FROM utility_meter_readings WHERE propertyId = :propertyId")
+    suspend fun deleteMeterReadingsForProperty(propertyId: Int)
+
+    @Query("DELETE FROM utility_meter_info WHERE propertyId = :propertyId")
+    suspend fun deleteMeterInfoForProperty(propertyId: Int)
+
+    @Query("DELETE FROM utility_template_sections WHERE propertyId = :propertyId")
+    suspend fun deleteTemplateSectionsForProperty(propertyId: Int)
+
+    @Query("SELECT * FROM utility_properties")
+    suspend fun getAllPropertiesForExport(): List<UtilityPropertyEntity>
+
+    @Query("DELETE FROM utility_properties")
+    suspend fun deleteAllProperties()
 
     @Query("DELETE FROM utility_tariffs")
     suspend fun deleteAllTariffs()

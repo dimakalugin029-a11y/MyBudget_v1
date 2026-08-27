@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.MeterBatchEntry
 import ru.mybudget.app.utilities.MeterBatchSaveFailure
 import ru.mybudget.app.utilities.MeterCatalogSummary
@@ -34,7 +35,10 @@ class UtilityMetersBatchActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_meters_batch)
         ScreenHeaderHelper.setup(this, getString(R.string.meter_batch_title), getString(R.string.utility_icon_batch))
-        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
+        repository = MeterRepository(
+            BudgetManager.getInstance(this).utilityDao,
+            ActivePropertyPreferences.getActivePropertyId(this),
+        )
         val dateInput = findViewById<EditText>(R.id.batchDateInput)
         val recycler = findViewById<RecyclerView>(R.id.batchMetersRecycler)
         val emptyText = findViewById<View>(R.id.batchEmptyText)

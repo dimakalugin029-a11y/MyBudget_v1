@@ -39,6 +39,11 @@ class RemindersActivity : AppCompatActivity() {
         setContentView(R.layout.activity_reminders)
         manager = BudgetManager.getInstance(this)
         ScreenHeaderHelper.setup(this, getString(R.string.reminders_title), getString(R.string.main_icon_reminders))
+        ScreenHeaderHelper.bindAction(
+            this,
+            android.R.drawable.ic_input_add,
+            R.string.reminders_add,
+        ) { showReminderDialog(null) }
         findViewById<View>(R.id.remindersHint)?.let {
             ScreenHintHelper.bind(
                 this,
@@ -48,10 +53,10 @@ class RemindersActivity : AppCompatActivity() {
                 showHelpLink = false,
             )
         }
-        bindRow(R.id.paymentCalendarButton, R.string.main_icon_reminders, R.string.reminders_payment_calendar) {
+        bindChip(R.id.paymentCalendarButton) {
             startActivity(Intent(this, PaymentCalendarActivity::class.java))
         }
-        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.reminders_recurring) {
+        bindChip(R.id.recurringButton) {
             startActivity(Intent(this, RecurringActivity::class.java))
         }
         val confirmSwitch = findViewById<SwitchCompat>(R.id.recurringConfirmSwitch)
@@ -64,7 +69,6 @@ class RemindersActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@RemindersActivity)
             this.adapter = this@RemindersActivity.adapter
         }
-        findViewById<View>(R.id.addReminderButton).setOnClickListener { showReminderDialog(null) }
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             manager.repository.getAllReminders().collectLatest { list ->
@@ -80,11 +84,8 @@ class RemindersActivity : AppCompatActivity() {
         }
     }
 
-    private fun bindRow(includeId: Int, iconRes: Int, titleRes: Int, onClick: () -> Unit) {
-        val row = findViewById<View>(includeId)
-        row.findViewById<TextView>(R.id.rowIcon).setText(iconRes)
-        row.findViewById<TextView>(R.id.rowTitle).setText(titleRes)
-        row.setOnClickListener { onClick() }
+    private fun bindChip(chipId: Int, onClick: () -> Unit) {
+        findViewById<TextView>(chipId).setOnClickListener { onClick() }
     }
 
     private fun showReminderDialog(existing: PaymentReminder?) {

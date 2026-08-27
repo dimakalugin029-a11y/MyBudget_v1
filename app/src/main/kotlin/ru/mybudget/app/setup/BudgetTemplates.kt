@@ -6,6 +6,9 @@ import ru.mybudget.app.R
 import ru.mybudget.app.data.BudgetDao
 import ru.mybudget.app.data.BudgetProfileEntity
 import ru.mybudget.app.data.UtilityDao
+import ru.mybudget.app.setup.ActiveBudgetPreferences
+import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 import ru.mybudget.app.utilities.UtilityUserTemplate
 
 data class BudgetTemplateInfo(
@@ -64,6 +67,8 @@ object BudgetTemplates {
         dao.deleteAllCategories()
         dao.deleteAllBudgetProfiles()
         UtilityUserTemplate.clearAllData(utilityDao)
+        val defaultPropertyId = UtilityPropertyCopyHelper.ensureDefaultProperty(utilityDao)
+        ActivePropertyPreferences.setActivePropertyId(context, defaultPropertyId)
 
         dao.insertBudgetProfile(
             BudgetProfileEntity(

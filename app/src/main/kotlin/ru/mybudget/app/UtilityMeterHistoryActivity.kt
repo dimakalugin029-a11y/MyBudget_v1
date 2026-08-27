@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityMeterReadingEntity
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.MeterDateParser
 import ru.mybudget.app.utilities.MeterRepository
 import ru.mybudget.app.utilities.UtilityMeterDialogs
@@ -44,7 +45,10 @@ class UtilityMeterHistoryActivity : AppCompatActivity() {
         } else {
             groupName
         }
-        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
+        repository = MeterRepository(
+            BudgetManager.getInstance(this).utilityDao,
+            ActivePropertyPreferences.getActivePropertyId(this),
+        )
         adapter = HistoryAdapter { confirmDeleteReading(it) }
         findViewById<RecyclerView>(R.id.meterHistoryRecycler).apply {
             layoutManager = LinearLayoutManager(this@UtilityMeterHistoryActivity)

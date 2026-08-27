@@ -63,16 +63,33 @@
         android:elevation="@dimen/card_elevation_low"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
         <include layout="@layout/include_bottom_sheet_handle"/>
-        <LinearLayout
-            android:orientation="vertical"
-            android:id="@+id/utilitiesActionsSheetContent"
-            android:paddingLeft="@dimen/space_16"
-            android:paddingRight="@dimen/space_16"
-            android:paddingBottom="@dimen/space_16"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="@dimen/space_16">
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/addUtilityMonthButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="@dimen/space_16"
+                android:layout_marginTop="@dimen/space_4"
+                android:layout_marginRight="@dimen/space_16"
+                android:layout_marginBottom="@dimen/space_8"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/utility_add_month"
+                android:layout_marginHorizontal="@dimen/space_16"
+                app:backgroundTint="@color/utilities_cyan"
+                app:cornerRadius="@dimen/radius_10"
+                style="@style/Widget.MaterialComponents.Button"/>
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:id="@+id/utilitiesActionsSheetContent"
+                    android:paddingLeft="@dimen/space_16"
+                    android:paddingRight="@dimen/space_16"
+                    android:paddingBottom="@dimen/space_16"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="@dimen/space_16">
+                    <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="@dimen/space_12"
@@ -81,6 +98,20 @@
                     android:orientation="vertical"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
+                    <include
+                        android:id="@+id/utilityPropertyButton"
+                        layout="@layout/include_main_list_row"/>
+                    <View
+                        android:background="@color/border_light"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"/>
+                    <include
+                        android:id="@+id/utilityPaymentDayButton"
+                        layout="@layout/include_main_list_row"/>
+                    <View
+                        android:background="@color/border_light"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"/>
                     <include
                         android:id="@+id/utilityPayCategoryButton"
                         layout="@layout/include_main_list_row"/>
@@ -142,15 +173,7 @@
                         layout="@layout/include_main_list_row"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/addUtilityMonthButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/utility_add_month"
-                app:backgroundTint="@color/utilities_cyan"
-                app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button"/>
-        </LinearLayout>
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

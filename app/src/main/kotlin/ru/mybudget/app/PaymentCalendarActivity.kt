@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
 import ru.mybudget.app.utilities.PaymentCalendarUrgencyHelper
 import java.time.LocalDate
@@ -256,8 +257,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 handlers += { startActivity(Intent(this, RecurringActivity::class.java)) }
             }
             PaymentCalendarHelper.EntryKind.UTILITY -> {
-                labels += getString(R.string.payment_calendar_action_pay)
-                handlers += { openUtilityBill(entry, true) }
+                if (entry.sourceRef.billId != null) {
+                    labels += getString(R.string.payment_calendar_action_pay)
+                    handlers += { openUtilityBill(entry, true) }
+                }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { openUtilityBill(entry, false) }
             }
@@ -328,7 +331,13 @@ class PaymentCalendarActivity : AppCompatActivity() {
     }
 
     private fun openUtilityBill(entry: PaymentCalendarHelper.Entry, openPay: Boolean) {
-        val billId = entry.sourceRef.billId ?: return
+        val billId = entry.sourceRef.billId
+        if (billId == null) {
+            val intent = Intent(this, UtilitiesActivity::class.java)
+            entry.sourceRef.propertyId?.let { intent.putExtra(UtilitiesActivity.EXTRA_PROPERTY_ID, it) }
+            startActivity(intent)
+            return
+        }
         startActivity(
             Intent(this, UtilityBillActivity::class.java)
                 .putExtra(UtilitiesActivity.EXTRA_BILL_ID, billId)
@@ -351,11 +360,23 @@ class PaymentCalendarActivity : AppCompatActivity() {
             val reminders = dao.getRemindersInRange(todayStr, endStr)
             val recurring = dao.getRecurringInRange(todayStr, endStr)
             val totals = db.utilityDao().getBillGrandTotals().associate { it.billId to it.total }
+            val propertyNames = db.utilityDao().getAllProperties().associate { it.id to it.name }
             val unpaid = db.utilityDao().getAllBills().mapNotNull { bill ->
                 val total = totals[bill.id] ?: 0.0
-                if (bill.budgetPaidAt == null && total > 0.0) bill to total else null
+                if (bill.budgetPaidAt == null && total > 0.0) {
+                    PaymentCalendarHelper.UnpaidUtilityBill(
+                        bill = bill,
+                        total = total,
+                        propertyName = propertyNames[bill.propertyId].orEmpty(),
+                    )
+                } else {
+                    null
+                }
             }
             val obligations = dao.getPlannedObligationsByBudgetOnce(budgetManager.getActiveBudgetId())
+            val utilityPaymentDays = db.utilityDao().getAllProperties().associate { property ->
+                property.id to UtilityPaymentReminderPreferences.paymentDay(this@PaymentCalendarActivity, property.id)
+            }
             val entries = PaymentCalendarHelper.buildEntries(
                 reminders,
                 recurring,
@@ -363,6 +384,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 obligations,
                 categoryNames,
                 today.toEpochDay(),
+                utilityPaymentDays = utilityPaymentDays,
             )
             withContext(Dispatchers.Main) {
                 allEntries = entries

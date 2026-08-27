@@ -5,10 +5,13 @@ import ru.mybudget.app.data.UtilityMeterInfoEntity
 import ru.mybudget.app.data.UtilityMeterReadingEntity
 import java.time.LocalDate
 
-class MeterRepository(private val dao: UtilityDao) {
+class MeterRepository(
+    private val dao: UtilityDao,
+    private val propertyId: Int,
+) {
     suspend fun getMeterCatalogSummaries(): List<MeterCatalogSummary> {
-        val infos = dao.getAllMeterInfo()
-        val readings = dao.getAllMeterReadings().groupBy { it.groupName to it.meterName }
+        val infos = dao.getAllMeterInfo(propertyId)
+        val readings = dao.getAllMeterReadings(propertyId).groupBy { it.groupName to it.meterName }
         val today = LocalDate.now()
         return infos.map { info ->
             val list = readings[info.groupName to info.meterName].orEmpty()
@@ -19,7 +22,7 @@ class MeterRepository(private val dao: UtilityDao) {
         }
     }
 
-    suspend fun getAllMeterInfos(): List<UtilityMeterInfoEntity> = dao.getAllMeterInfo()
+    suspend fun getAllMeterInfos(): List<UtilityMeterInfoEntity> = dao.getAllMeterInfo(propertyId)
 
     suspend fun waterTotals(): MeterWaterTotals = waterTotals(getMeterCatalogSummaries())
 
@@ -55,10 +58,11 @@ class MeterRepository(private val dao: UtilityDao) {
         verificationDateLabel: String,
         verificationEpochDay: Long?,
     ): Boolean {
-        if (dao.getMeterInfoByKey(groupName, meterName) != null) return false
-        val order = (dao.getAllMeterInfo().maxOfOrNull { it.sortOrder } ?: -1) + 1
+        if (dao.getMeterInfoByKey(propertyId, groupName, meterName) != null) return false
+        val order = (dao.getAllMeterInfo(propertyId).maxOfOrNull { it.sortOrder } ?: -1) + 1
         dao.insertMeterInfo(
             UtilityMeterInfoEntity(
+                propertyId = propertyId,
                 groupName = groupName,
                 meterName = meterName,
                 verificationDateLabel = verificationDateLabel,
@@ -71,11 +75,11 @@ class MeterRepository(private val dao: UtilityDao) {
 
     suspend fun updateMeter(existing: UtilityMeterInfoEntity, updated: UtilityMeterInfoEntity): Boolean {
         val keyChanged = existing.groupName != updated.groupName || existing.meterName != updated.meterName
-        if (keyChanged && dao.getMeterInfoByKey(updated.groupName, updated.meterName) != null) {
+        if (keyChanged && dao.getMeterInfoByKey(propertyId, updated.groupName, updated.meterName) != null) {
             return false
         }
         if (keyChanged) {
-            dao.getMeterReadingsHistory(existing.groupName, existing.meterName).forEach { reading ->
+            dao.getMeterReadingsHistory(propertyId, existing.groupName, existing.meterName).forEach { reading ->
                 dao.updateMeterReading(
                     reading.copy(groupName = updated.groupName, meterName = updated.meterName),
                 )
@@ -94,12 +98,12 @@ class MeterRepository(private val dao: UtilityDao) {
     }
 
     suspend fun deleteMeter(info: UtilityMeterInfoEntity) {
-        dao.deleteReadingsForMeter(info.groupName, info.meterName)
+        dao.deleteReadingsForMeter(propertyId, info.groupName, info.meterName)
         dao.deleteMeterInfoById(info.id)
     }
 
     suspend fun getHistory(groupName: String, meterName: String): List<UtilityMeterReadingEntity> {
-        return dao.getMeterReadingsHistory(groupName, meterName)
+        return dao.getMeterReadingsHistory(propertyId, groupName, meterName)
             .sortedWith(compareByDescending<UtilityMeterReadingEntity> { periodEpoch(it.periodLabel) ?: Long.MIN_VALUE }
                 .thenByDescending { it.sortOrder })
     }
@@ -114,7 +118,7 @@ class MeterRepository(private val dao: UtilityDao) {
         if (readingValue < 0.0) return MeterReadingSaveResult.Invalid
         if (consumption != null && consumption < 0.0) return MeterReadingSaveResult.Invalid
         val periodLabel = LocalDate.ofEpochDay(periodEpochDay).toString()
-        val history = dao.getMeterReadingsHistory(groupName, meterName)
+        val history = dao.getMeterReadingsHistory(propertyId, groupName, meterName)
             .sortedWith(compareBy({ periodEpoch(it.periodLabel) ?: Long.MIN_VALUE }, { it.sortOrder }))
         if (history.any { it.periodLabel == periodLabel || periodEpoch(it.periodLabel) == periodEpochDay }) {
             return MeterReadingSaveResult.DuplicateDate
@@ -124,9 +128,10 @@ class MeterRepository(private val dao: UtilityDao) {
         if (earlier != null && readingValue + 1e-6 < earlier.readingValue) return MeterReadingSaveResult.InconsistentPast
         if (later != null && readingValue - 1e-6 > later.readingValue) return MeterReadingSaveResult.InconsistentFuture
         val computedConsumption = consumption ?: earlier?.let { (readingValue - it.readingValue).coerceAtLeast(0.0) }
-        val sort = (dao.getMaxReadingSortOrder(groupName, meterName) + 1)
+        val sort = (dao.getMaxReadingSortOrder(propertyId, groupName, meterName) + 1)
         dao.insertMeterReading(
             UtilityMeterReadingEntity(
+                propertyId = propertyId,
                 groupName = groupName,
                 meterName = meterName,
                 periodLabel = periodLabel,
@@ -135,7 +140,7 @@ class MeterRepository(private val dao: UtilityDao) {
                 sortOrder = sort,
             ),
         )
-        if (dao.getMeterInfoByKey(groupName, meterName) == null) {
+        if (dao.getMeterInfoByKey(propertyId, groupName, meterName) == null) {
             createMeter(groupName, meterName, "", null)
         }
         return MeterReadingSaveResult.Saved

@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -20,6 +21,10 @@ import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityTemplateLineEntity
 import ru.mybudget.app.data.UtilityTemplateSectionEntity
 import ru.mybudget.app.data.UtilityTemplateSectionWithLines
+import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.utilities.UtilityPropertyCopyDialogHelper
+import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
+import ru.mybudget.app.utilities.UtilityPropertyCopyOptions
 import ru.mybudget.app.utilities.UtilityUserTemplate
 
 class UtilityTemplateActivity : AppCompatActivity() {
@@ -50,6 +55,7 @@ class UtilityTemplateActivity : AppCompatActivity() {
             this.adapter = this@UtilityTemplateActivity.adapter
         }
         findViewById<View>(R.id.addTemplateSectionButton).setOnClickListener { showAddSectionDialog() }
+        findViewById<View>(R.id.copyTemplateFromPropertyButton).setOnClickListener { showCopyFromPropertyDialog() }
         loadTemplate()
     }
 
@@ -60,14 +66,97 @@ class UtilityTemplateActivity : AppCompatActivity() {
 
     private fun dao() = BudgetManager.getInstance(this).utilityDao
 
+    private fun propertyId() = ActivePropertyPreferences.getActivePropertyId(this)
+
     private fun loadTemplate() {
         lifecycleScope.launch {
-            val sections = withContext(Dispatchers.IO) { UtilityUserTemplate.getTemplateWithLines(dao()) }
+            val sections = withContext(Dispatchers.IO) {
+                UtilityUserTemplate.getTemplateWithLines(dao(), propertyId())
+            }
             adapter.submit(sections)
             val empty = sections.isEmpty()
             findViewById<View>(R.id.templateEmpty).visibility = if (empty) View.VISIBLE else View.GONE
             findViewById<View>(R.id.templateRecycler).visibility = if (empty) View.GONE else View.VISIBLE
         }
+    }
+
+    private fun showCopyFromPropertyDialog() {
+        lifecycleScope.launch {
+            val sources = withContext(Dispatchers.IO) {
+                dao().getAllProperties().filter { it.id != propertyId() }
+            }
+            if (sources.isEmpty()) {
+                Toast.makeText(
+                    this@UtilityTemplateActivity,
+                    R.string.utility_properties_copy_no_source,
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@launch
+            }
+            val labels = sources.map { it.name }.toTypedArray()
+            var selectedIndex = 0
+            AlertDialog.Builder(this@UtilityTemplateActivity)
+                .setTitle(R.string.utility_template_copy_from)
+                .setSingleChoiceItems(labels, 0) { _, which -> selectedIndex = which }
+                .setPositiveButton(R.string.utility_properties_copy_confirm_button) { _, _ ->
+                    val source = sources[selectedIndex]
+                    showCopyOptionsDialog(source)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun showCopyOptionsDialog(source: ru.mybudget.app.data.UtilityPropertyEntity) {
+        val targetId = propertyId()
+        val optionsView = UtilityPropertyCopyDialogHelper.buildOptionsView(
+            this,
+            UtilityPropertyCopyOptions(template = true, tariffs = true, meters = false),
+        )
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 16, 48, 8)
+            addView(
+                TextView(this@UtilityTemplateActivity).apply {
+                    text = getString(R.string.utility_template_copy_from_source, source.name)
+                },
+            )
+            addView(
+                TextView(this@UtilityTemplateActivity).apply {
+                    text = getString(R.string.utility_properties_copy_pick)
+                    setPadding(0, 16, 0, 8)
+                },
+            )
+            addView(optionsView.container)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.utility_template_copy_from)
+            .setView(container)
+            .setPositiveButton(R.string.utility_properties_copy_confirm_button) { _, _ ->
+                val options = optionsView.readOptions()
+                if (!options.hasAny()) {
+                    Toast.makeText(this, R.string.utility_properties_copy_nothing, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        UtilityPropertyCopyHelper.copyPropertyData(
+                            dao(),
+                            source.id,
+                            targetId,
+                            options,
+                        )
+                    }
+                    Toast.makeText(
+                        this@UtilityTemplateActivity,
+                        R.string.utility_properties_copy_done,
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    loadTemplate()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showAddSectionDialog() {
@@ -82,7 +171,7 @@ class UtilityTemplateActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 lifecycleScope.launch(Dispatchers.IO) {
-                    UtilityUserTemplate.addSection(dao(), name)
+                    UtilityUserTemplate.addSection(dao(), propertyId(), name)
                     withContext(Dispatchers.Main) { loadTemplate() }
                 }
             }

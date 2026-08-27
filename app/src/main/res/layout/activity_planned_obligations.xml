@@ -12,12 +12,12 @@
     <include
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         app:cardBackgroundColor="@android:color/transparent"
         app:cardElevation="0dp">
         <LinearLayout
@@ -25,75 +25,59 @@
             android:layout_height="wrap_content"
             android:background="@drawable/obligations_hero_card_bg"
             android:orientation="vertical"
-            android:padding="@dimen/space_16">
+            android:paddingHorizontal="@dimen/space_12"
+            android:paddingVertical="@dimen/space_10">
             <TextView
                 android:id="@+id/obligationsSummaryMonthly"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/main_hero_text_primary"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
-                style="@style/Text.MyBudget.Section" />
+                style="@style/Text.MyBudget.Section"/>
             <TextView
                 android:id="@+id/obligationsSummaryPerPaycheck"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_6"
+                android:layout_marginTop="@dimen/space_2"
                 android:textColor="@color/obligations_hero_text_secondary"
-                style="@style/Text.MyBudget.Subtitle" />
+                android:textSize="12sp"
+                style="@style/Text.MyBudget.Subtitle"/>
             <TextView
                 android:id="@+id/obligationsPaychecksHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:textColor="@color/obligations_hero_text_secondary"
-                android:textSize="12sp"
-                style="@style/Text.MyBudget.Subtitle" />
+                android:textColor="@color/expense_red"
+                android:textSize="11sp"
+                android:visibility="gone"
+                style="@style/Text.MyBudget.Subtitle"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
-    <TextView
+    <HorizontalScrollView
+        android:scrollbars="none"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/main_section_actions"
-        style="@style/Text.MyBudget.SectionLabel"/>
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        style="@style/Card.MyBudget.Surface">
+        android:layout_marginBottom="@dimen/space_8">
         <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="match_parent"
+            android:orientation="horizontal"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content">
-            <include
+            <TextView
                 android:id="@+id/obligationsPaychecksButton"
-                layout="@layout/include_main_list_row"/>
-            <View
-                android:background="@color/border_light"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"/>
-            <include
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/obligations_chip_paychecks"
+                android:layout_marginEnd="@dimen/space_6"
+                style="@style/Chip.MyBudget.Filter"/>
+            <TextView
                 android:id="@+id/obligationsSyncDefaultsButton"
-                layout="@layout/include_main_list_row"/>
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/obligations_chip_sync"
+                style="@style/Chip.MyBudget.Filter"/>
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/addObligationButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        android:minHeight="@dimen/touch_min_size"
-        android:text="@string/obligations_add"
-        app:backgroundTint="@color/obligations_indigo"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/main_section_planning"
-        style="@style/Text.MyBudget.SectionLabel"/>
+    </HorizontalScrollView>
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

@@ -38,6 +38,21 @@ class BudgetActivity : AppCompatActivity() {
         setContentView(R.layout.activity_budget)
         manager = BudgetManager.getInstance(this)
         ScreenHeaderHelper.setup(this, getString(R.string.budget_screen_title), getString(R.string.main_icon_budget))
+        ScreenHeaderHelper.bindAction(
+            this,
+            android.R.drawable.ic_input_add,
+            R.string.budget_add_category_btn,
+        ) {
+            BudgetDialogs.showAddCategory(this, manager) { reload() }
+        }
+        ScreenHeaderHelper.bindSecondaryAction(
+            this,
+            android.R.drawable.ic_popup_sync,
+            R.string.budget_refresh_btn,
+        ) {
+            reload()
+            Toast.makeText(this, R.string.budget_refreshed, Toast.LENGTH_SHORT).show()
+        }
         findViewById<View>(R.id.budgetHint)?.let {
             ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.BUDGET, R.string.hint_budget, showHelpLink = false)
         }
@@ -48,13 +63,6 @@ class BudgetActivity : AppCompatActivity() {
         activeBudgetNameText = findViewById(R.id.activeBudgetNameText)
         safeToSpendText = findViewById(R.id.safeToSpendText)
 
-        findViewById<View>(R.id.addCategoryButton).setOnClickListener {
-            BudgetDialogs.showAddCategory(this, manager) { reload() }
-        }
-        findViewById<View>(R.id.refreshButton).setOnClickListener {
-            reload()
-            Toast.makeText(this, R.string.budget_refreshed, Toast.LENGTH_SHORT).show()
-        }
         findViewById<View>(R.id.activeBudgetPicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = { reload() })
         }

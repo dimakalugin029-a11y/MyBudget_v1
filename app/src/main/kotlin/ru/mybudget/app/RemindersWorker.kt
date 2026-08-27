@@ -74,8 +74,11 @@ class RemindersWorker(
     }
 
     private suspend fun processMeterVerifications() {
-        val meters = BudgetDatabase.getInstance(applicationContext).utilityDao().getAllMeterInfo()
-        val due = MeterVerificationNotifier.filterDueWithinDays(meters, LocalDate.now().toEpochDay())
+        val utilityDao = BudgetDatabase.getInstance(applicationContext).utilityDao()
+        val allMeters = utilityDao.getAllProperties().flatMap { property ->
+            utilityDao.getAllMeterInfo(property.id)
+        }
+        val due = MeterVerificationNotifier.filterDueWithinDays(allMeters, LocalDate.now().toEpochDay())
         MeterVerificationNotifier.notifyDueMeters(applicationContext, due)
     }
 }

@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.MeterRepository
 import ru.mybudget.app.utilities.UtilityMonthCompareRow
 import ru.mybudget.app.utilities.UtilityUserTemplate
@@ -31,7 +32,7 @@ class UtilityCompareActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_compare)
         ScreenHeaderHelper.setup(this, getString(R.string.utility_compare_title), getString(R.string.main_icon_utilities))
-        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
+        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao, ActivePropertyPreferences.getActivePropertyId(this))
         adapter = CompareAdapter()
         findViewById<RecyclerView>(R.id.compareRecycler).apply {
             layoutManager = LinearLayoutManager(this@UtilityCompareActivity)
@@ -44,8 +45,9 @@ class UtilityCompareActivity : AppCompatActivity() {
         lifecycleScope.launch {
             bills = withContext(Dispatchers.IO) {
                 val dao = BudgetManager.getInstance(this@UtilityCompareActivity).utilityDao
+                val propertyId = ActivePropertyPreferences.getActivePropertyId(this@UtilityCompareActivity)
                 val totals = dao.getBillGrandTotals().associate { it.billId to it.total }
-                dao.getAllBills().map { it to (totals[it.id] ?: 0.0) }
+                dao.getAllBills(propertyId).map { it to (totals[it.id] ?: 0.0) }
             }
             if (bills.size < 2) {
                 Toast.makeText(this@UtilityCompareActivity, R.string.utility_compare_need_two, Toast.LENGTH_LONG).show()

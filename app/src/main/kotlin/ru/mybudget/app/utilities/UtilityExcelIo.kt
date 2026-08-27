@@ -14,18 +14,18 @@ object UtilityExcelIo {
         }.isSuccess
     }
 
-    suspend fun saveMeters(resolver: ContentResolver, uri: Uri, dao: UtilityDao): Boolean =
+    suspend fun saveMeters(resolver: ContentResolver, uri: Uri, dao: UtilityDao, propertyId: Int): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
-                resolver.openOutputStream(uri)?.use { UtilityExcelExporter.exportMeters(dao, it) }
+                resolver.openOutputStream(uri)?.use { UtilityExcelExporter.exportMeters(dao, propertyId, it) }
                     ?: error("no stream")
             }.isSuccess
         }
 
-    suspend fun saveCommunal(resolver: ContentResolver, uri: Uri, dao: UtilityDao): Boolean =
+    suspend fun saveCommunal(resolver: ContentResolver, uri: Uri, dao: UtilityDao, propertyId: Int): Boolean =
         withContext(Dispatchers.IO) {
             runCatching {
-                resolver.openOutputStream(uri)?.use { UtilityExcelExporter.exportCommunal(dao, it) }
+                resolver.openOutputStream(uri)?.use { UtilityExcelExporter.exportCommunal(dao, propertyId, it) }
                     ?: error("no stream")
             }.isSuccess
         }
@@ -34,11 +34,12 @@ object UtilityExcelIo {
         resolver: ContentResolver,
         uri: Uri,
         dao: UtilityDao,
+        propertyId: Int,
         replaceReadings: Boolean,
     ): Result<UtilityExcelImporter.MetersImportResult> = withContext(Dispatchers.IO) {
         runCatching {
             resolver.openInputStream(uri)?.use { input ->
-                UtilityExcelImporter(dao).importMetersFromStream(input, replaceReadings)
+                UtilityExcelImporter(dao, propertyId).importMetersFromStream(input, replaceReadings)
             } ?: error("no stream")
         }
     }
@@ -47,11 +48,12 @@ object UtilityExcelIo {
         resolver: ContentResolver,
         uri: Uri,
         dao: UtilityDao,
+        propertyId: Int,
         replaceExisting: Boolean,
     ): Result<UtilityExcelImporter.ImportResult> = withContext(Dispatchers.IO) {
         runCatching {
             resolver.openInputStream(uri)?.use { input ->
-                UtilityExcelImporter(dao).importFromStream(input, replaceExisting)
+                UtilityExcelImporter(dao, propertyId).importFromStream(input, replaceExisting)
             } ?: error("no stream")
         }
     }

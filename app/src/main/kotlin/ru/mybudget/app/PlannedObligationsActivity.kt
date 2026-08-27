@@ -43,16 +43,13 @@ class PlannedObligationsActivity : AppCompatActivity() {
         manager = BudgetManager.getInstance(this)
         budgetId = manager.getActiveBudgetId()
         ScreenHeaderHelper.setup(this, getString(R.string.obligations_title), getString(R.string.main_icon_obligations))
-        MenuRowHelper.bind(
-            findViewById(R.id.obligationsPaychecksButton),
-            "💵",
-            getString(R.string.obligations_paychecks_btn),
-        ) { showPaychecksDialog() }
-        MenuRowHelper.bind(
-            findViewById(R.id.obligationsSyncDefaultsButton),
-            "⇄",
-            getString(R.string.obligations_sync_defaults_btn),
-        ) { syncDefaultAmounts() }
+        ScreenHeaderHelper.bindAction(
+            this,
+            android.R.drawable.ic_input_add,
+            R.string.obligations_add,
+        ) { showEditDialog(null) }
+        findViewById<TextView>(R.id.obligationsPaychecksButton).setOnClickListener { showPaychecksDialog() }
+        findViewById<TextView>(R.id.obligationsSyncDefaultsButton).setOnClickListener { syncDefaultAmounts() }
         adapter = ObligationAdapter(
             monthNames = monthNames,
             categoryName = { id -> categoryLabel(id) },
@@ -64,7 +61,6 @@ class PlannedObligationsActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@PlannedObligationsActivity)
             this.adapter = this@PlannedObligationsActivity.adapter
         }
-        findViewById<View>(R.id.addObligationButton).setOnClickListener { showEditDialog(null) }
     }
 
     override fun onResume() {
@@ -103,22 +99,23 @@ class PlannedObligationsActivity : AppCompatActivity() {
     private fun updateSummary(list: List<PlannedObligationEntity>) {
         val monthly = PlannedObligationHelper.totalMonthly(list)
         val perPaycheck = PlannedObligationHelper.totalPerPaycheck(list)
+        val unlinked = PlannedObligationHelper.unlinkedCount(list)
+        val paychecks = ObligationPreferences.getPaychecksPerMonth(this)
         findViewById<TextView>(R.id.obligationsSummaryMonthly).text =
             getString(R.string.obligations_summary_monthly, MoneyFormat.formatRub(monthly))
         findViewById<TextView>(R.id.obligationsSummaryPerPaycheck).text =
-            getString(R.string.obligations_summary_per_paycheck, MoneyFormat.formatRub(perPaycheck))
-        val unlinked = PlannedObligationHelper.unlinkedCount(list)
-        val paychecks = ObligationPreferences.getPaychecksPerMonth(this)
-        val hint = buildString {
-            append(getString(R.string.obligations_default_paychecks, paychecks))
-            if (unlinked > 0) {
-                append('\n')
-                append(getString(R.string.obligations_unlinked_hint, unlinked))
-            }
-        }
+            getString(
+                R.string.obligations_summary_per_paycheck_compact,
+                MoneyFormat.formatRub(perPaycheck),
+                paychecks,
+            )
         findViewById<TextView>(R.id.obligationsPaychecksHint).apply {
-            text = hint
-            visibility = View.VISIBLE
+            if (unlinked > 0) {
+                text = getString(R.string.obligations_unlinked_hint, unlinked)
+                visibility = View.VISIBLE
+            } else {
+                visibility = View.GONE
+            }
         }
     }
 

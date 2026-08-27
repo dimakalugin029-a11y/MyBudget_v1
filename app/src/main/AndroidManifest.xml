@@ -72,6 +72,7 @@
         <activity android:name=".PlannedObligationsActivity" android:exported="false" />
         <activity android:name=".RecurringActivity" android:exported="false" />
         <activity android:name=".UtilitiesActivity" android:exported="false" />
+        <activity android:name=".UtilityPropertiesActivity" android:exported="false" />
         <activity android:name=".UtilityBillActivity" android:exported="false" />
         <activity android:name=".UtilityBillPhotosActivity" android:exported="false" />
         <activity android:name=".UtilityMetersActivity" android:exported="false" />

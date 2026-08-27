@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_8"
+    android:foreground="?android:attr/selectableItemBackground"
+    style="@style/Card.MyBudget.Surface">
+    <LinearLayout
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="@dimen/space_16"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1">
+            <TextView
+                android:textSize="16sp"
+                android:id="@+id/utilityPropertyName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Text.MyBudget.Section"/>
+            <TextView
+                android:textSize="12sp"
+                android:textColor="@color/primary_green"
+                android:id="@+id/utilityPropertyActiveBadge"
+                android:visibility="gone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_4"
+                android:text="@string/utility_properties_active"
+                style="@style/Text.MyBudget.Subtitle"/>
+        </LinearLayout>
+        <ImageButton
+            android:id="@+id/utilityPropertyMenuButton"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:layout_width="@dimen/touch_min_size"
+            android:layout_height="@dimen/touch_min_size"
+            android:src="@android:drawable/ic_menu_more"
+            android:contentDescription="@string/utility_properties_actions"
+            app:tint="@color/text_secondary"/>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

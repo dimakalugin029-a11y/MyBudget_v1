@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityMeterInfoEntity
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.utilities.MeterCatalogSummary
 import ru.mybudget.app.utilities.MeterDateParser
 import ru.mybudget.app.utilities.MeterExcelFormat
@@ -48,7 +49,7 @@ class UtilityMetersActivity : AppCompatActivity() {
             val ok = if (template) {
                 UtilityExcelIo.saveTemplate(contentResolver, uri)
             } else {
-                UtilityExcelIo.saveMeters(contentResolver, uri, repositoryDao())
+                UtilityExcelIo.saveMeters(contentResolver, uri, repositoryDao(), propertyId())
             }
             hideLoading()
             Toast.makeText(
@@ -91,7 +92,7 @@ class UtilityMetersActivity : AppCompatActivity() {
                 showHelpLink = false,
             )
         }
-        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao)
+        repository = MeterRepository(BudgetManager.getInstance(this).utilityDao, propertyId())
         adapter = MeterGroupAdapter(
             onOpenHistory = { openHistory(it) },
             onEdit = { summary ->
@@ -179,7 +180,7 @@ class UtilityMetersActivity : AppCompatActivity() {
         pendingImportUri = null
         showLoading(getString(R.string.settings_import_loading))
         lifecycleScope.launch {
-            val result = UtilityExcelIo.importMeters(contentResolver, uri, repositoryDao(), replace)
+            val result = UtilityExcelIo.importMeters(contentResolver, uri, repositoryDao(), propertyId(), replace)
             hideLoading()
             result.fold(
                 onSuccess = { imported ->
@@ -210,6 +211,8 @@ class UtilityMetersActivity : AppCompatActivity() {
     }
 
     private fun repositoryDao() = BudgetManager.getInstance(this).utilityDao
+
+    private fun propertyId() = ActivePropertyPreferences.getActivePropertyId(this)
 
     private fun showLoading(message: String) {
         hideLoading()

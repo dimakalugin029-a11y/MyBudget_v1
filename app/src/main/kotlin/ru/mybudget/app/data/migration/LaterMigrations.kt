@@ -121,6 +121,66 @@ object Migration25To26 {
     }
 }
 
+object Migration26To27 {
+    val MIGRATION: Migration = object : Migration(26, 27) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS utility_properties (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    name TEXT NOT NULL,
+                    sortOrder INTEGER NOT NULL DEFAULT 0
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "INSERT INTO utility_properties (id, name, sortOrder) VALUES (1, 'Квартира 1', 0)",
+            )
+            database.execSQL(
+                "ALTER TABLE utility_bills ADD COLUMN propertyId INTEGER NOT NULL DEFAULT 1",
+            )
+            database.execSQL(
+                "ALTER TABLE utility_meter_readings ADD COLUMN propertyId INTEGER NOT NULL DEFAULT 1",
+            )
+            database.execSQL(
+                "ALTER TABLE utility_meter_info ADD COLUMN propertyId INTEGER NOT NULL DEFAULT 1",
+            )
+            database.execSQL(
+                "ALTER TABLE utility_template_sections ADD COLUMN propertyId INTEGER NOT NULL DEFAULT 1",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_utility_bills_propertyId ON utility_bills(propertyId)",
+            )
+            database.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_utility_bills_propertyId_year_month ON utility_bills(propertyId, year, month)",
+            )
+            database.execSQL(
+                "DROP INDEX IF EXISTS index_utility_meter_info_groupName_meterName",
+            )
+            database.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_utility_meter_info_propertyId_groupName_meterName
+                ON utility_meter_info(propertyId, groupName, meterName)
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_utility_meter_readings_propertyId ON utility_meter_readings(propertyId)",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_utility_template_sections_propertyId ON utility_template_sections(propertyId)",
+            )
+        }
+    }
+}
+
+object Migration27To28 {
+    val MIGRATION: Migration = object : Migration(27, 28) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // Схема без FK на utility_properties — выравнивание identity hash Room.
+        }
+    }
+}
+
 private const val CREATE_AUDIT_ACTIONS = """
 CREATE TABLE IF NOT EXISTS audit_actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

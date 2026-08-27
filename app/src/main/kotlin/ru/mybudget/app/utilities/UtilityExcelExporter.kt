@@ -54,20 +54,20 @@ object UtilityExcelExporter {
         XlsxWorkbook().apply { addSheet(MeterExcelFormat.SHEET_NAME, rows) }.writeTo(output)
     }
 
-    suspend fun exportMeters(dao: UtilityDao, output: OutputStream) {
-        XlsxWorkbook().apply { addSheet(MeterExcelFormat.SHEET_NAME, buildMeterRows(dao)) }.writeTo(output)
+    suspend fun exportMeters(dao: UtilityDao, propertyId: Int, output: OutputStream) {
+        XlsxWorkbook().apply { addSheet(MeterExcelFormat.SHEET_NAME, buildMeterRows(dao, propertyId)) }.writeTo(output)
     }
 
-    suspend fun exportCommunal(dao: UtilityDao, output: OutputStream) {
+    suspend fun exportCommunal(dao: UtilityDao, propertyId: Int, output: OutputStream) {
         XlsxWorkbook().apply {
-            addSheet(MeterExcelFormat.COMMUNAL_SHEET_NAME, buildCommunalRows(dao))
-            addSheet(MeterExcelFormat.SHEET_NAME, buildMeterRows(dao))
+            addSheet(MeterExcelFormat.COMMUNAL_SHEET_NAME, buildCommunalRows(dao, propertyId))
+            addSheet(MeterExcelFormat.SHEET_NAME, buildMeterRows(dao, propertyId))
         }.writeTo(output)
     }
 
-    private suspend fun buildMeterRows(dao: UtilityDao): List<List<CellValue>> {
-        val infos = dao.getAllMeterInfo()
-        val readings = dao.getAllMeterReadings().sortedWith(
+    private suspend fun buildMeterRows(dao: UtilityDao, propertyId: Int): List<List<CellValue>> {
+        val infos = dao.getAllMeterInfo(propertyId)
+        val readings = dao.getAllMeterReadings(propertyId).sortedWith(
             compareBy<ru.mybudget.app.data.UtilityMeterReadingEntity> { it.groupName }
                 .thenBy { it.meterName }
                 .thenByDescending { UtilityExcelParser.readingSortKey(it.periodLabel, it.sortOrder) },
@@ -103,8 +103,8 @@ object UtilityExcelExporter {
         return catalog + listOf(listOf(CellValue.Empty)) + readingRows
     }
 
-    private suspend fun buildCommunalRows(dao: UtilityDao): List<List<CellValue>> {
-        val bills = dao.getAllBills().sortedWith(compareBy({ it.year }, { it.month }))
+    private suspend fun buildCommunalRows(dao: UtilityDao, propertyId: Int): List<List<CellValue>> {
+        val bills = dao.getAllBills(propertyId).sortedWith(compareBy({ it.year }, { it.month }))
         val sections = dao.getAllSectionsForExport()
         val lines = dao.getAllLineItemsForExport()
         val rows = mutableListOf<List<CellValue>>()

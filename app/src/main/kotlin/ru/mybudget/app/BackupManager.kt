@@ -24,11 +24,14 @@ import ru.mybudget.app.data.UtilityBillPhotoEntity
 import ru.mybudget.app.data.UtilityLineItemEntity
 import ru.mybudget.app.data.UtilityMeterInfoEntity
 import ru.mybudget.app.data.UtilityMeterReadingEntity
+import ru.mybudget.app.data.UtilityPropertyEntity
 import ru.mybudget.app.data.UtilitySectionEntity
 import ru.mybudget.app.data.UtilityTemplateLineEntity
 import ru.mybudget.app.data.UtilityTemplateSectionEntity
 import ru.mybudget.app.security.BackupCrypto
 import ru.mybudget.app.setup.ActiveBudgetPreferences
+import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
@@ -113,6 +116,7 @@ class BackupManager(context: Context) {
             savingsGoals = dao.getAllSavingsGoalsForExport(),
             recurringTransactions = dao.getAllRecurringForExport(),
             plannedObligations = dao.getAllPlannedObligationsForExport(),
+            utilityProperties = utilityDao.getAllPropertiesForExport(),
             utilityBills = utilityDao.getAllBillsForExport(),
             utilityBillPhotos = utilityDao.getAllBillPhotosForExport(),
             utilitySections = utilityDao.getAllSectionsForExport(),
@@ -191,6 +195,7 @@ class BackupManager(context: Context) {
         utilityDao.deleteAllLineItems()
         utilityDao.deleteAllSections()
         utilityDao.deleteAllBills()
+        utilityDao.deleteAllProperties()
 
         val defaultBudgetName = appContext.getString(R.string.budget_profiles_default_name)
         val profiles = data.budgetProfiles.ifEmpty {
@@ -278,10 +283,30 @@ class BackupManager(context: Context) {
             )
         }
 
+        val propertyIdMap = mutableMapOf<Int, Int>()
+        if (data.utilityProperties.isNotEmpty()) {
+            for (property in data.utilityProperties) {
+                val newId = utilityDao.insertProperty(property.copy(id = 0)).toInt()
+                if (property.id > 0) propertyIdMap[property.id] = newId
+                propertyIdMap[newId] = newId
+            }
+        } else {
+            val defaultId = UtilityPropertyCopyHelper.ensureDefaultProperty(utilityDao)
+            propertyIdMap[ActivePropertyPreferences.DEFAULT_PROPERTY_ID] = defaultId
+            propertyIdMap[defaultId] = defaultId
+        }
+        fun remapPropertyId(sourceId: Int): Int {
+            return propertyIdMap[sourceId]
+                ?: propertyIdMap.values.firstOrNull()
+                ?: ActivePropertyPreferences.DEFAULT_PROPERTY_ID
+        }
+
         val billIdMap = mutableMapOf<Int, Int>()
         val insertedBillIds = mutableListOf<Int>()
         for (bill in data.utilityBills) {
-            val newId = utilityDao.insertBill(bill.copy(id = 0)).toInt()
+            val newId = utilityDao.insertBill(
+                bill.copy(id = 0, propertyId = remapPropertyId(bill.propertyId)),
+            ).toInt()
             insertedBillIds.add(newId)
             if (bill.id > 0) billIdMap[bill.id] = newId
             if (!bill.receiptPhotoUri.isNullOrBlank() &&
@@ -331,16 +356,30 @@ class BackupManager(context: Context) {
 
         for (reading in data.utilityMeterReadings) {
             val meterName = reading.meterName.ifBlank { DEFAULT_METER_NAME }
-            utilityDao.insertMeterReading(reading.copy(id = 0, meterName = meterName))
+            utilityDao.insertMeterReading(
+                reading.copy(
+                    id = 0,
+                    propertyId = remapPropertyId(reading.propertyId),
+                    meterName = meterName,
+                ),
+            )
         }
         for (info in data.utilityMeterInfo) {
             val meterName = info.meterName.ifBlank { DEFAULT_METER_NAME }
-            utilityDao.insertMeterInfo(info.copy(id = 0, meterName = meterName))
+            utilityDao.insertMeterInfo(
+                info.copy(
+                    id = 0,
+                    propertyId = remapPropertyId(info.propertyId),
+                    meterName = meterName,
+                ),
+            )
         }
 
         val templateSectionIdMap = mutableMapOf<Int, Int>()
         for (section in data.utilityTemplateSections) {
-            val newId = utilityDao.insertTemplateSection(section.copy(id = 0)).toInt()
+            val newId = utilityDao.insertTemplateSection(
+                section.copy(id = 0, propertyId = remapPropertyId(section.propertyId)),
+            ).toInt()
             if (section.id > 0) templateSectionIdMap[section.id] = newId
         }
         val singleTemplateSectionId = templateSectionIdMap.values.singleOrNull()
@@ -450,6 +489,7 @@ class BackupManager(context: Context) {
         savingsGoals = savingsGoals.orEmpty(),
         recurringTransactions = recurringTransactions.orEmpty(),
         plannedObligations = plannedObligations.orEmpty(),
+        utilityProperties = utilityProperties.orEmpty(),
         utilityBills = utilityBills.orEmpty(),
         utilityBillPhotos = utilityBillPhotos.orEmpty(),
         utilitySections = utilitySections.orEmpty(),

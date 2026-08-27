@@ -33,7 +33,7 @@ object UtilityMeterBillLinker {
     suspend fun applyMeterReadingsToBill(dao: UtilityDao, billId: Int): ApplyResult {
         val bill = dao.getBillById(billId)
             ?: return ApplyResult(0, 0, listOf("Счёт не найден"))
-        val consumptions = loadConsumptionsForMonth(dao, bill.year, bill.month)
+        val consumptions = loadConsumptionsForMonth(dao, bill.propertyId, bill.year, bill.month)
         if (consumptions.isEmpty()) {
             return ApplyResult(0, 0, listOf("Нет показаний за этот месяц"))
         }
@@ -77,10 +77,11 @@ object UtilityMeterBillLinker {
 
     private suspend fun loadConsumptionsForMonth(
         dao: UtilityDao,
+        propertyId: Int,
         year: Int,
         month: Int,
     ): List<MeterConsumption> {
-        val readings = dao.getAllMeterReadings().mapNotNull { reading ->
+        val readings = dao.getAllMeterReadings(propertyId).mapNotNull { reading ->
             val epoch = UtilityExcelParser.parsePeriodToEpochDay(reading.periodLabel) ?: return@mapNotNull null
             val date = LocalDate.ofEpochDay(epoch)
             if (date.year != year || date.monthValue != month) return@mapNotNull null

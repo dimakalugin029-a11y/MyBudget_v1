@@ -5,9 +5,23 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "utility_bills")
+@Entity(tableName = "utility_properties")
+data class UtilityPropertyEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val name: String,
+    val sortOrder: Int = 0,
+)
+
+@Entity(
+    tableName = "utility_bills",
+    indices = [
+        Index("propertyId"),
+        Index(value = ["propertyId", "year", "month"], unique = true),
+    ],
+)
 data class UtilityBillEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val propertyId: Int = 1,
     val year: Int,
     val month: Int,
     val apartmentArea: Double,
@@ -87,9 +101,13 @@ data class UtilityLineItemEntity(
     val sortOrder: Int = 0,
 )
 
-@Entity(tableName = "utility_meter_readings")
+@Entity(
+    tableName = "utility_meter_readings",
+    indices = [Index("propertyId")],
+)
 data class UtilityMeterReadingEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val propertyId: Int = 1,
     val groupName: String = "",
     val meterName: String,
     val periodLabel: String = "",
@@ -100,10 +118,11 @@ data class UtilityMeterReadingEntity(
 
 @Entity(
     tableName = "utility_meter_info",
-    indices = [Index(value = ["groupName", "meterName"], unique = true)],
+    indices = [Index(value = ["propertyId", "groupName", "meterName"], unique = true)],
 )
 data class UtilityMeterInfoEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val propertyId: Int = 1,
     val groupName: String = "",
     val meterName: String,
     val verificationDateLabel: String = "",
@@ -111,9 +130,13 @@ data class UtilityMeterInfoEntity(
     val sortOrder: Int = 0,
 )
 
-@Entity(tableName = "utility_template_sections")
+@Entity(
+    tableName = "utility_template_sections",
+    indices = [Index("propertyId")],
+)
 data class UtilityTemplateSectionEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val propertyId: Int = 1,
     val name: String,
     val sortOrder: Int = 0,
 )

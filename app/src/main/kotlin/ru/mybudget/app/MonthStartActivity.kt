@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.setup.ActivePropertyPreferences
 import ru.mybudget.app.setup.MonthStartPreferences
 import kotlin.math.max
 
@@ -69,11 +70,12 @@ class MonthStartActivity : AppCompatActivity() {
             val monthlyPlans = dao.getMonthlyPlansForBudgetMonth(budgetId, currentMonth.year, currentMonth.month)
             expensePlanCount = monthlyPlans.count { it.isEnabled && it.plannedAmount > 0.0 }
             val utilityDao = BudgetDatabase.getInstance(this@MonthStartActivity).utilityDao()
+            val propertyId = ActivePropertyPreferences.getActivePropertyId(this@MonthStartActivity)
             val obligations = dao.getPlannedObligationsByBudgetOnce(budgetId)
             obligationMonthly = PlannedObligationHelper.totalMonthly(obligations)
             obligationUnlinked = PlannedObligationHelper.unlinkedCount(obligations)
-            val tariffLines = utilityDao.getTemplateTariffLineCount()
-            val filledTariffs = utilityDao.getFilledTariffCount()
+            val tariffLines = utilityDao.getTemplateTariffLineCount(propertyId)
+            val filledTariffs = utilityDao.getFilledTariffCount(propertyId)
             tariffLinesMissing = max(tariffLines - filledTariffs, 0)
             withContext(Dispatchers.Main) {
                 if (step in 1..4) showStep()

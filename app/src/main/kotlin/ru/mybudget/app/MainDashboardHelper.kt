@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.first
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
+import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
 import ru.mybudget.app.utilities.UtilityAttentionHelper
 import java.text.SimpleDateFormat
@@ -74,14 +75,32 @@ object MainDashboardHelper {
         val recurringWeek = dao.getRecurringInRange(today, endStr)
         val categories = budgetManager.getCategoriesAsync()
         val categoryNames = categories.associate { it.id to it.name }
+        val totals = utilityDao.getBillGrandTotals().associate { it.billId to it.total }
+        val propertyNames = utilityDao.getAllProperties().associate { it.id to it.name }
+        val unpaidUtilityBills = utilityDao.getAllBills().mapNotNull { bill ->
+            val total = totals[bill.id] ?: 0.0
+            if (bill.budgetPaidAt == null && total > 0.0) {
+                PaymentCalendarHelper.UnpaidUtilityBill(
+                    bill = bill,
+                    total = total,
+                    propertyName = propertyNames[bill.propertyId].orEmpty(),
+                )
+            } else {
+                null
+            }
+        }
+        val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
+            property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
+        }
         val calendarCount = PaymentCalendarHelper.buildEntries(
             reminders = remindersWeek,
             recurring = recurringWeek,
-            unpaidBills = emptyList(),
+            unpaidUtilityBills = unpaidUtilityBills,
             obligations = obligations,
             categoryNames = categoryNames,
             todayEpochDay = LocalDate.now().toEpochDay(),
             horizonDays = 7,
+            utilityPaymentDays = utilityPaymentDays,
         ).size
         val upcomingPaymentsLine = if (calendarCount > 0) {
             context.resources.getQuantityString(

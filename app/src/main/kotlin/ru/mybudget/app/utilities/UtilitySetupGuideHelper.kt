@@ -30,11 +30,11 @@ data class UtilitySetupState(
         }
 
     companion object {
-        suspend fun load(dao: UtilityDao): UtilitySetupState {
-            val sectionCount = dao.getTemplateSectionCount()
-            val tariffLines = dao.getTemplateTariffLineCount()
-            val filled = dao.getFilledTariffCount()
-            val billCount = dao.getBillCount()
+        suspend fun load(dao: UtilityDao, propertyId: Int): UtilitySetupState {
+            val sectionCount = dao.getTemplateSectionCount(propertyId)
+            val tariffLines = dao.getTemplateTariffLineCount(propertyId)
+            val filled = dao.getFilledTariffCount(propertyId)
+            val billCount = dao.getAllBills(propertyId).size
             return UtilitySetupState(
                 hasTemplate = sectionCount > 0,
                 tariffLinesCount = tariffLines,

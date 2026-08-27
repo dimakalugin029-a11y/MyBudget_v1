@@ -11,6 +11,7 @@ object MenuRowHelper {
 
     fun bind(row: View, icon: String, title: String, onClick: () -> Unit) {
         bind(row, icon, title)
-        row.setOnClickListener { onClick() }
+        val target = row.findViewById<View>(R.id.mainListRowRoot) ?: row
+        target.setOnClickListener { onClick() }
     }
 }

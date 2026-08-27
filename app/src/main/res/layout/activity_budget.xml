@@ -24,7 +24,7 @@
         android:id="@+id/budgetBalanceCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         app:cardBackgroundColor="@android:color/transparent"
         app:cardElevation="0dp">
         <LinearLayout
@@ -32,90 +32,71 @@
             android:layout_height="wrap_content"
             android:background="@drawable/main_hero_card_bg"
             android:orientation="vertical"
-            android:padding="@dimen/space_16">
-            <TextView
-                android:layout_width="wrap_content"
+            android:paddingHorizontal="@dimen/space_12"
+            android:paddingVertical="@dimen/space_10">
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:letterSpacing="0.06"
-                android:text="@string/budget_balance_label"
-                android:textAllCaps="true"
-                android:textColor="@color/main_hero_text_secondary"
-                android:textSize="11sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:letterSpacing="0.06"
+                    android:text="@string/budget_balance_label"
+                    android:textAllCaps="true"
+                    android:textColor="@color/main_hero_text_secondary"
+                    android:textSize="11sp"/>
+                <LinearLayout
+                    android:id="@+id/activeBudgetPicker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/main_hero_profile_chip"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/space_8"
+                    android:paddingVertical="@dimen/space_4">
+                    <TextView
+                        android:id="@+id/activeBudgetNameText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="@string/budget_profiles_default_name"
+                        android:textColor="@color/main_hero_text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_2"
+                        android:text="@string/ui_chevron_down"
+                        android:textColor="@color/main_hero_text_secondary"
+                        android:textSize="11sp"/>
+                </LinearLayout>
+            </LinearLayout>
             <TextView
                 android:id="@+id/totalBalanceText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
+                android:layout_marginTop="@dimen/space_2"
                 android:text="@string/budget_balance_zero"
                 android:textColor="@color/main_hero_balance_positive"
-                android:textSize="34sp"
-                android:textStyle="bold" />
+                android:textSize="28sp"
+                android:textStyle="bold"/>
             <TextView
                 android:id="@+id/safeToSpendText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
+                android:layout_marginTop="@dimen/space_2"
                 android:textColor="@color/main_hero_text_secondary"
-                android:textSize="13sp"
-                android:visibility="gone" />
-            <LinearLayout
-                android:id="@+id/activeBudgetPicker"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_12"
-                android:background="@drawable/main_hero_profile_chip"
-                android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/space_12"
-                android:paddingVertical="@dimen/space_6">
-                <TextView
-                    android:id="@+id/activeBudgetNameText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/budget_profiles_default_name"
-                    android:textColor="@color/main_hero_text_primary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/space_4"
-                    android:text="@string/ui_chevron_down"
-                    android:textColor="@color/main_hero_text_secondary"
-                    android:textSize="12sp" />
-            </LinearLayout>
+                android:textSize="12sp"
+                android:visibility="gone"/>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12">
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/addCategoryButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/touch_min_size"
-            android:text="@string/budget_add_category_btn"
-            android:layout_weight="1"
-            android:layout_marginEnd="@dimen/space_6"
-            app:backgroundTint="@color/income_green"
-            app:cornerRadius="@dimen/radius_10"
-            style="@style/Widget.MaterialComponents.Button"/>
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/refreshButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/touch_min_size"
-            android:text="@string/budget_refresh_btn"
-            android:layout_weight="1"
-            android:layout_marginStart="@dimen/space_6"
-            app:cornerRadius="@dimen/radius_10"
-            app:strokeColor="@color/budget_blue"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-    </LinearLayout>
     <androidx.cardview.widget.CardView
         android:id="@+id/selectionBar"
         android:visibility="gone"
@@ -237,12 +218,6 @@
             android:paddingEnd="0dp"
             style="@style/Chip.MyBudget.Filter"/>
     </FrameLayout>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/budget_categories_section"
-        style="@style/Text.MyBudget.SectionLabel"/>
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

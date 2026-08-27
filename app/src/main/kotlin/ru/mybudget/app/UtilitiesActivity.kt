@@ -22,7 +22,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityBillEntity
 import ru.mybudget.app.backup.AutoBackupWorker
+import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.setup.UtilitySetupPreferences
+import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 import ru.mybudget.app.utilities.EnrichedUtilityBillSummary
 import ru.mybudget.app.utilities.MeterExcelFormat
 import ru.mybudget.app.utilities.UtilityAnomalyHelper
@@ -43,6 +46,7 @@ import java.util.Calendar
 class UtilitiesActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_BILL_ID = "utility_bill_id"
+        const val EXTRA_PROPERTY_ID = "utility_property_id"
     }
 
     private lateinit var manager: BudgetManager
@@ -56,7 +60,7 @@ class UtilitiesActivity : AppCompatActivity() {
         if (uri == null) return@registerForActivityResult
         showLoading(getString(R.string.settings_export_loading))
         lifecycleScope.launch {
-            val ok = UtilityExcelIo.saveCommunal(contentResolver, uri, manager.utilityDao)
+            val ok = UtilityExcelIo.saveCommunal(contentResolver, uri, manager.utilityDao, propertyId())
             hideLoading()
             Toast.makeText(
                 this@UtilitiesActivity,
@@ -117,6 +121,18 @@ class UtilitiesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utilities)
         manager = BudgetManager.getInstance(this)
+        lifecycleScope.launch(Dispatchers.IO) {
+            UtilityPropertyCopyHelper.ensureDefaultProperty(manager.utilityDao)
+            val activeId = ActivePropertyPreferences.getActivePropertyId(this@UtilitiesActivity)
+            if (manager.utilityDao.getPropertyById(activeId) == null) {
+                val fallback = manager.utilityDao.getAllProperties().firstOrNull()?.id
+                    ?: ActivePropertyPreferences.DEFAULT_PROPERTY_ID
+                ActivePropertyPreferences.setActivePropertyId(this@UtilitiesActivity, fallback)
+            }
+        }
+        intent.getIntExtra(EXTRA_PROPERTY_ID, 0).takeIf { it > 0 }?.let {
+            ActivePropertyPreferences.setActivePropertyId(this, it)
+        }
         ScreenHeaderHelper.setup(this, getString(R.string.main_menu_utilities), getString(R.string.main_icon_utilities))
         adapter = MonthAdapter(
             onOpen = { billId ->
@@ -129,11 +145,13 @@ class UtilitiesActivity : AppCompatActivity() {
         val recycler = findViewById<RecyclerView>(R.id.utilitiesRecyclerView)
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
+        refreshPropertyRow()
         MenuRowHelper.bind(
             findViewById(R.id.utilityPayCategoryButton),
             "🏦",
             getString(R.string.utility_pay_category_setting),
         ) { pickPayCategory() }
+        refreshPaymentDayRow()
         MenuRowHelper.bind(
             findViewById(R.id.utilityTemplateButton),
             "📋",
@@ -171,13 +189,30 @@ class UtilitiesActivity : AppCompatActivity() {
         ) { confirmMarkPastAsLegacyPaid() }
         refreshPhotoFolderRow()
         findViewById<View>(R.id.addUtilityMonthButton).setOnClickListener { showAddMonthDialog() }
-        CollapsibleBottomSheetHelper.attach(
+        val sheetBehavior = CollapsibleBottomSheetHelper.attach(
             findViewById(R.id.utilitiesActionsSheet),
             findViewById(R.id.bottomSheetHeader),
             findViewById(R.id.bottomSheetChevron),
             recycler,
             resources.getDimensionPixelSize(R.dimen.space_8),
         )
+        val addMonthButton = findViewById<View>(R.id.addUtilityMonthButton)
+        val sheetHeader = findViewById<View>(R.id.bottomSheetHeader)
+        val extraPadding = resources.getDimensionPixelSize(R.dimen.space_8)
+        sheetHeader.post {
+            addMonthButton.post {
+                val peek = sheetHeader.height + addMonthButton.height + extraPadding
+                if (peek > 0) {
+                    sheetBehavior.peekHeight = peek
+                    recycler.setPadding(
+                        recycler.paddingLeft,
+                        recycler.paddingTop,
+                        recycler.paddingRight,
+                        peek + extraPadding,
+                    )
+                }
+            }
+        }
         if (!UtilitySetupPreferences.hasSeenIntro(this)) {
             showIntroDialog()
         }
@@ -186,7 +221,9 @@ class UtilitiesActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadMonths()
+        refreshPropertyRow()
         refreshPayCategoryRow()
+        refreshPaymentDayRow()
         refreshPhotoFolderRow()
         refreshSetupGuide()
     }
@@ -201,7 +238,7 @@ class UtilitiesActivity : AppCompatActivity() {
         pendingImportUri = null
         showLoading(getString(R.string.settings_import_loading))
         lifecycleScope.launch {
-            val result = UtilityExcelIo.importCommunal(contentResolver, uri, manager.utilityDao, replace)
+            val result = UtilityExcelIo.importCommunal(contentResolver, uri, manager.utilityDao, propertyId(), replace)
             hideLoading()
             result.fold(
                 onSuccess = { imported ->
@@ -246,7 +283,7 @@ class UtilitiesActivity : AppCompatActivity() {
 
     private fun refreshSetupGuide() {
         lifecycleScope.launch {
-            val state = withContext(Dispatchers.IO) { UtilitySetupState.load(manager.utilityDao) }
+            val state = withContext(Dispatchers.IO) { UtilitySetupState.load(manager.utilityDao, propertyId()) }
             UtilitySetupGuideHelper.bind(
                 this@UtilitiesActivity,
                 findViewById(R.id.utilitiesSetupGuide),
@@ -280,12 +317,15 @@ class UtilitiesActivity : AppCompatActivity() {
         }
     }
 
+    private fun propertyId() = ActivePropertyPreferences.getActivePropertyId(this)
+
     private suspend fun loadEnrichedSummaries(): List<EnrichedUtilityBillSummary> {
         val dao = manager.utilityDao
-        val bills = dao.getAllBills()
+        val activePropertyId = propertyId()
+        val bills = dao.getAllBills(activePropertyId)
         val totals = dao.getBillGrandTotals().associate { it.billId to it.total }
         val totalsByPeriod = bills.associate { (it.year to it.month) to (totals[it.id] ?: 0.0) }
-        val meterMonths = dao.getAllMeterReadings().mapNotNull { reading ->
+        val meterMonths = dao.getAllMeterReadings(activePropertyId).mapNotNull { reading ->
             val epoch = UtilityExcelParser.parsePeriodToEpochDay(reading.periodLabel) ?: return@mapNotNull null
             val date = LocalDate.ofEpochDay(epoch)
             date.year to date.monthValue
@@ -311,6 +351,60 @@ class UtilitiesActivity : AppCompatActivity() {
         }
     }
 
+    private fun refreshPropertyRow() {
+        lifecycleScope.launch {
+            val property = withContext(Dispatchers.IO) {
+                manager.utilityDao.getPropertyById(propertyId())
+            }
+            val name = property?.name ?: getString(R.string.utility_properties_setting)
+            val title = "${getString(R.string.utility_properties_setting)} · $name"
+            MenuRowHelper.bind(
+                findViewById(R.id.utilityPropertyButton),
+                "🏠",
+                title,
+            ) { startActivity(Intent(this@UtilitiesActivity, UtilityPropertiesActivity::class.java)) }
+        }
+    }
+
+    private fun refreshPaymentDayRow() {
+        val dayLabel = PlannedObligationHelper.dueDayLabel(
+            this,
+            UtilityPaymentReminderPreferences.paymentDay(this, propertyId()),
+        )
+        val title = "${getString(R.string.utility_payment_day_setting)}\n$dayLabel"
+        MenuRowHelper.bind(
+            findViewById(R.id.utilityPaymentDayButton),
+            "📅",
+            title,
+        ) { pickPaymentDay() }
+    }
+
+    private fun pickPaymentDay() {
+        val labels = paymentDaySpinnerLabels()
+        val currentDay = UtilityPaymentReminderPreferences.paymentDay(this, propertyId())
+        AlertDialog.Builder(this)
+            .setTitle(R.string.utility_payment_day_setting)
+            .setSingleChoiceItems(
+                labels.toTypedArray(),
+                PlannedObligationHelper.dueDaySpinnerPosition(currentDay),
+            ) { dialog, which ->
+                UtilityPaymentReminderPreferences.setPaymentDay(
+                    this,
+                    propertyId(),
+                    PlannedObligationHelper.dueDayFromSpinnerPosition(which),
+                )
+                Toast.makeText(this, R.string.utility_payment_day_saved, Toast.LENGTH_SHORT).show()
+                refreshPaymentDayRow()
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun paymentDaySpinnerLabels(): List<String> =
+        (1..31).map { getString(R.string.obligations_due_day_number, it) } +
+            getString(R.string.obligations_due_day_last)
+
     private fun refreshPhotoFolderRow() {
         val uri = UtilityPhotoPreferences.folderUri(this)
         val subtitle = if (uri == null) {
@@ -333,7 +427,7 @@ class UtilitiesActivity : AppCompatActivity() {
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             val budgetId = manager.getActiveBudgetId()
-            val categoryId = UtilitySetupPreferences.getPayPrimaryCategoryId(this@UtilitiesActivity, budgetId)
+            val categoryId = UtilitySetupPreferences.getPayPrimaryCategoryId(this@UtilitiesActivity, propertyId())
             val name = manager.getCategories().firstOrNull { it.id == categoryId }?.name
                 ?: getString(R.string.utility_pay_category_not_set)
             val title = "${getString(R.string.utility_pay_category_setting)} · $name"
@@ -358,11 +452,11 @@ class UtilitiesActivity : AppCompatActivity() {
             AlertDialog.Builder(this@UtilitiesActivity)
                 .setTitle(R.string.utility_pay_category_setting_title)
                 .setItems(labels) { _, which ->
-                    val budgetId = manager.getActiveBudgetId()
+                    val activePropertyId = propertyId()
                     UtilitySetupPreferences.setPayPrimaryCategoryId(
                         this@UtilitiesActivity,
                         leaves[which].id,
-                        budgetId,
+                        activePropertyId,
                     )
                     Toast.makeText(this@UtilitiesActivity, R.string.utility_pay_category_saved, Toast.LENGTH_SHORT).show()
                     refreshPayCategoryRow()
@@ -376,9 +470,10 @@ class UtilitiesActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val (templateDone, tariffsDone) = withContext(Dispatchers.IO) {
                 val dao = manager.utilityDao
-                val sections = dao.getTemplateSectionCount()
-                val tariffLines = dao.getTemplateTariffLineCount()
-                val filled = dao.getFilledTariffCount()
+                val activePropertyId = propertyId()
+                val sections = dao.getTemplateSectionCount(activePropertyId)
+                val tariffLines = dao.getTemplateTariffLineCount(activePropertyId)
+                val filled = dao.getFilledTariffCount(activePropertyId)
                 (sections > 0) to (tariffLines == 0 || filled >= tariffLines)
             }
             if (!templateDone) {
@@ -449,8 +544,9 @@ class UtilitiesActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val (existing, hasPrev) = withContext(Dispatchers.IO) {
                 val dao = manager.utilityDao
-                val already = dao.getBillByPeriod(year, month) != null
-                val previous = dao.getAllBills().any {
+                val activePropertyId = propertyId()
+                val already = dao.getBillByPeriod(activePropertyId, year, month) != null
+                val previous = dao.getAllBills(activePropertyId).any {
                     it.year < year || (it.year == year && it.month < month)
                 }
                 already to previous
@@ -494,6 +590,7 @@ class UtilitiesActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val billId = UtilityUserTemplate.createBillFromUserTemplate(
                 manager.utilityDao,
+                propertyId(),
                 year,
                 month,
                 applyTariffs = true,
@@ -508,6 +605,7 @@ class UtilitiesActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             val billId = UtilityUserTemplate.copyBillFromPreviousMonth(
                 manager.utilityDao,
+                propertyId(),
                 year,
                 month,
                 copyAmounts,
@@ -602,7 +700,8 @@ class UtilitiesActivity : AppCompatActivity() {
                 if (!groupId.isNullOrBlank()) {
                     manager.repository.cancelTransactionGroup(groupId)
                 } else {
-                    val desc = UtilityUserTemplate.paymentDescription(bill.year, bill.month)
+                    val propertyName = manager.utilityDao.getPropertyById(bill.propertyId)?.name.orEmpty()
+                    val desc = UtilityUserTemplate.paymentDescription(propertyName, bill.year, bill.month)
                     manager.repository.getExpenseTransactionsByDescription(desc).forEach { tx ->
                         manager.repository.cancelTransaction(tx)
                     }
