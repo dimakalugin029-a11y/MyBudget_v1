@@ -184,10 +184,16 @@ object BudgetDialogs {
         kind: TransactionKind,
         onDone: () -> Unit,
     ) {
-        val input = EditText(activity).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            hint = activity.getString(R.string.budget_amount_hint)
-            setPadding(dp(activity, 16), dp(activity, 16), dp(activity, 16), dp(activity, 16))
+        val dialogView = LayoutInflater.from(activity).inflate(R.layout.dialog_add_budget_transaction, null)
+        val amountInput = dialogView.findViewById<EditText>(R.id.addTransactionAmount)
+        val descriptionInput = dialogView.findViewById<EditText>(R.id.addTransactionDescription)
+        val descriptionLabel = dialogView.findViewById<TextView>(R.id.addTransactionDescriptionLabel)
+        if (kind == TransactionKind.INCOME) {
+            descriptionLabel.setText(R.string.income_description_label)
+            descriptionInput.setHint(R.string.income_description_hint)
+        } else {
+            descriptionLabel.setText(R.string.expense_description_label)
+            descriptionInput.setHint(R.string.expense_description_hint)
         }
         val title = if (kind == TransactionKind.INCOME) {
             R.string.budget_add_income_title
@@ -197,17 +203,17 @@ object BudgetDialogs {
         AlertDialog.Builder(activity)
             .setTitle(title)
             .setMessage(category.name)
-            .setView(wrap(activity, input))
             .setPositiveButton(R.string.save) { _, _ ->
-                val amount = MoneyFormat.parse(input.text)
+                val amount = MoneyFormat.parse(amountInput.text)
                 if (amount == null || amount <= 0.0) {
                     Toast.makeText(activity, R.string.error_invalid_amount, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-                val type = if (kind == TransactionKind.INCOME) "income" else "expense"
-                val description = activity.getString(
+                val defaultDescription = activity.getString(
                     if (kind == TransactionKind.INCOME) R.string.transaction_income else R.string.transaction_expense,
                 )
+                val description = descriptionInput.text.toString().trim().ifBlank { defaultDescription }
+                val type = if (kind == TransactionKind.INCOME) "income" else "expense"
                 activity.lifecycleScope.launch {
                     manager.recordTransaction(category.id, amount, type, description)
                     val toastRes = if (kind == TransactionKind.INCOME) {
@@ -225,7 +231,7 @@ object BudgetDialogs {
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .showWithIme(dialogView, arrayOf(amountInput, descriptionInput))
     }
 
     private fun nameInput(activity: AppCompatActivity, value: String = "", hint: String): EditText {

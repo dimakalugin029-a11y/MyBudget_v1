@@ -49,7 +49,9 @@ class PlannedObligationsActivity : AppCompatActivity() {
             R.string.obligations_add,
         ) { showEditDialog(null) }
         findViewById<TextView>(R.id.obligationsPaychecksButton).setOnClickListener { showPaychecksDialog() }
-        findViewById<TextView>(R.id.obligationsSyncDefaultsButton).setOnClickListener { syncDefaultAmounts() }
+        findViewById<TextView>(R.id.obligationsSyncDefaultsButton).setOnClickListener {
+            syncDefaultAmounts()
+        }
         adapter = ObligationAdapter(
             monthNames = monthNames,
             categoryName = { id -> categoryLabel(id) },
@@ -127,26 +129,40 @@ class PlannedObligationsActivity : AppCompatActivity() {
             .setSingleChoiceItems(options, current) { dialog, which ->
                 ObligationPreferences.setPaychecksPerMonth(this, which + 1)
                 updateSummary(currentList)
+                syncDefaultAmounts(showEmptyToast = false, showSuccessToast = false)
                 dialog.dismiss()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    private fun syncDefaultAmounts() {
-        val map = PlannedObligationHelper.distributionByCategory(currentList)
-        if (map.isEmpty()) {
-            Toast.makeText(this, R.string.obligations_sync_nothing, Toast.LENGTH_LONG).show()
-            return
-        }
-        lifecycleScope.launch(Dispatchers.IO) {
-            map.forEach { (categoryId, amount) ->
-                manager.repository.updateDefaultIncomeAmount(categoryId, amount)
+    private fun syncDefaultAmounts(
+        showEmptyToast: Boolean = true,
+        showSuccessToast: Boolean = true,
+        onComplete: (() -> Unit)? = null,
+    ) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                ObligationDefaultAmountsSync.apply(manager.repository, budgetId)
+            }
+            if (result.updatedCount == 0) {
+                if (showEmptyToast) {
+                    Toast.makeText(this@PlannedObligationsActivity, R.string.obligations_sync_nothing, Toast.LENGTH_LONG).show()
+                }
+                onComplete?.invoke()
+                return@launch
             }
             manager.getCategoriesAsync(forceReload = true)
             withContext(Dispatchers.Main) {
-                Toast.makeText(this@PlannedObligationsActivity, R.string.obligations_sync_done, Toast.LENGTH_SHORT).show()
+                if (showSuccessToast) {
+                    Toast.makeText(
+                        this@PlannedObligationsActivity,
+                        getString(R.string.obligations_sync_done, result.updatedCount),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
                 reload()
+                onComplete?.invoke()
             }
         }
     }
@@ -172,7 +188,19 @@ class PlannedObligationsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.budget_delete_selected) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
                     manager.repository.deletePlannedObligation(item.id)
-                    withContext(Dispatchers.Main) { reload() }
+                    withContext(Dispatchers.Main) {
+                        if (item.categoryId > 0) {
+                            syncDefaultAmounts(showEmptyToast = false, showSuccessToast = false) {
+                                Toast.makeText(
+                                    this@PlannedObligationsActivity,
+                                    R.string.obligations_deleted_synced,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        } else {
+                            reload()
+                        }
+                    }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -316,7 +344,19 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     } else {
                         manager.repository.updatePlannedObligation(entity)
                     }
-                    withContext(Dispatchers.Main) { reload() }
+                    withContext(Dispatchers.Main) {
+                        if (entity.categoryId > 0) {
+                            syncDefaultAmounts(showEmptyToast = false, showSuccessToast = false) {
+                                Toast.makeText(
+                                    this@PlannedObligationsActivity,
+                                    R.string.obligations_saved_synced,
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        } else {
+                            reload()
+                        }
+                    }
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)

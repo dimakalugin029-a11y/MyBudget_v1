@@ -72,12 +72,35 @@ object PlannedObligationHelper {
     }
 
     fun distributionByCategory(obligations: List<PlannedObligationEntity>): Map<Int, Double> {
-        val map = linkedMapOf<Int, Double>()
-        obligations.filter { it.categoryId > 0 }.forEach { item ->
-            val current = map[item.categoryId] ?: 0.0
-            map[item.categoryId] = MoneyFormat.roundMoney(current + perPaycheck(item))
+        return breakdownByCategory(obligations).mapValues { (_, lines) ->
+            MoneyFormat.roundMoney(lines.sumOf { it.perPaycheck })
+        }
+    }
+
+    data class ObligationCategoryLine(
+        val name: String,
+        val perPaycheck: Double,
+    )
+
+    fun breakdownByCategory(obligations: List<PlannedObligationEntity>): Map<Int, List<ObligationCategoryLine>> {
+        val map = linkedMapOf<Int, MutableList<ObligationCategoryLine>>()
+        obligations.filter { it.isActive && it.categoryId > 0 }.forEach { item ->
+            map.getOrPut(item.categoryId) { mutableListOf() }
+                .add(ObligationCategoryLine(item.name, perPaycheck(item)))
         }
         return map
+    }
+
+    fun formatBreakdown(context: Context, lines: List<ObligationCategoryLine>): String {
+        if (lines.isEmpty()) return ""
+        val parts = lines.joinToString(" + ") { line ->
+            context.getString(
+                R.string.obligations_breakdown_item,
+                line.name,
+                MoneyFormat.formatRub(line.perPaycheck),
+            )
+        }
+        return context.getString(R.string.default_amounts_obligations_line, parts)
     }
 
     fun unlinkedCount(obligations: List<PlannedObligationEntity>): Int {

@@ -17,5 +17,6 @@
   <dimen name="space_4">4dp</dimen>
   <dimen name="space_6">6dp</dimen>
   <dimen name="space_8">8dp</dimen>
+  <dimen name="budget_child_indent">32dp</dimen>
   <dimen name="touch_min_size">44dp</dimen>
 </resources>

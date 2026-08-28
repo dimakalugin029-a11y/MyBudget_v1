@@ -24,9 +24,16 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         android:text="@string/default_amounts_subtitle"
         style="@style/Text.MyBudget.Subtitle"/>
+    <TextView
+        android:id="@+id/defaultAmountsSyncButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        android:text="@string/default_amounts_sync_obligations"
+        style="@style/Chip.MyBudget.Filter"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/defaultAmountsRecycler"
         android:paddingBottom="@dimen/space_24"

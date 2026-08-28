@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 class DefaultAmountsActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
     private lateinit var adapter: DefaultAmountsAdapter
+    private var obligationBreakdown: Map<Int, List<PlannedObligationHelper.ObligationCategoryLine>> = emptyMap()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +33,7 @@ class DefaultAmountsActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@DefaultAmountsActivity)
             this.adapter = this@DefaultAmountsActivity.adapter
         }
+        findViewById<TextView>(R.id.defaultAmountsSyncButton).setOnClickListener { syncFromObligations(showEmptyToast = true) }
         loadCategories()
     }
 
@@ -46,14 +48,44 @@ class DefaultAmountsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             val budgetId = manager.getActiveBudgetId()
+            val obligations = withContext(Dispatchers.IO) {
+                manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
+            }
+            obligationBreakdown = PlannedObligationHelper.breakdownByCategory(obligations)
             val parents = manager.getRootCategories(budgetId).associate { it.id to it.name }
             val leaves = manager.getCategoriesForBudget(budgetId)
                 .filter { !manager.hasSubcategories(it.id) }
-                .sortedWith(compareBy({ parents[it.parentId].orEmpty() }, { it.name }))
-            adapter.update(leaves, parents)
+                .sortedWith(
+                    compareByDescending<BudgetCategory> { obligationBreakdown.containsKey(it.id) }
+                        .thenBy { parents[it.parentId].orEmpty() }
+                        .thenBy { it.name },
+                )
+            adapter.update(leaves, parents, obligationBreakdown)
             val isEmpty = leaves.isEmpty()
             empty.visibility = if (isEmpty) View.VISIBLE else View.GONE
             recycler.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        }
+    }
+
+    private fun syncFromObligations(showEmptyToast: Boolean) {
+        lifecycleScope.launch {
+            val budgetId = manager.getActiveBudgetId()
+            val result = withContext(Dispatchers.IO) {
+                ObligationDefaultAmountsSync.apply(manager.repository, budgetId)
+            }
+            if (result.updatedCount == 0) {
+                if (showEmptyToast) {
+                    Toast.makeText(this@DefaultAmountsActivity, R.string.obligations_sync_nothing, Toast.LENGTH_LONG).show()
+                }
+                return@launch
+            }
+            manager.getCategoriesAsync(forceReload = true)
+            Toast.makeText(
+                this@DefaultAmountsActivity,
+                getString(R.string.obligations_sync_done, result.updatedCount),
+                Toast.LENGTH_SHORT,
+            ).show()
+            loadCategories()
         }
     }
 
@@ -77,16 +109,23 @@ class DefaultAmountsActivity : AppCompatActivity() {
     ) : RecyclerView.Adapter<DefaultAmountsAdapter.Holder>() {
         private var categories: List<BudgetCategory> = emptyList()
         private var parentNames: Map<Int, String> = emptyMap()
+        private var obligationBreakdown: Map<Int, List<PlannedObligationHelper.ObligationCategoryLine>> = emptyMap()
 
-        fun update(newCategories: List<BudgetCategory>, parents: Map<Int, String>) {
+        fun update(
+            newCategories: List<BudgetCategory>,
+            parents: Map<Int, String>,
+            breakdown: Map<Int, List<PlannedObligationHelper.ObligationCategoryLine>>,
+        ) {
             categories = newCategories
             parentNames = parents
+            obligationBreakdown = breakdown
             notifyDataSetChanged()
         }
 
         class Holder(v: View) : RecyclerView.ViewHolder(v) {
             val categoryName: TextView = v.findViewById(R.id.categoryName)
             val parentCategory: TextView = v.findViewById(R.id.parentCategory)
+            val obligationLine: TextView = v.findViewById(R.id.categoryType)
             val amountInput: EditText = v.findViewById(R.id.amountInput)
             val saveButton: CardView = v.findViewById(R.id.saveButton)
         }
@@ -98,13 +137,20 @@ class DefaultAmountsActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val category = categories[position]
+            val ctx = holder.itemView.context
             holder.categoryName.text = category.name
-            holder.itemView.findViewById<TextView>(R.id.categoryType)?.visibility = View.GONE
+            val lines = obligationBreakdown[category.id].orEmpty()
+            if (lines.isNotEmpty()) {
+                holder.obligationLine.text = PlannedObligationHelper.formatBreakdown(ctx, lines)
+                holder.obligationLine.visibility = View.VISIBLE
+            } else {
+                holder.obligationLine.visibility = View.GONE
+            }
             if (category.parentId == 0) {
                 holder.parentCategory.visibility = View.GONE
             } else {
                 val parentName = parentNames[category.parentId].orEmpty()
-                holder.parentCategory.text = holder.itemView.context.getString(
+                holder.parentCategory.text = ctx.getString(
                     R.string.default_amounts_parent,
                     parentName,
                 )

@@ -4,6 +4,7 @@
   <color name="black">#ff000000</color>
   <color name="border_light">#eeeeee</color>
   <color name="budget_blue">#2196f3</color>
+  <color name="budget_section_border">#e0e0e0</color>
   <color name="card_background">#ffffffff</color>
   <color name="card_background_white">#ffffff</color>
   <color name="chart_grid">#e5e7eb</color>

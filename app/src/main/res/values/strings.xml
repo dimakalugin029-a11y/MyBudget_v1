@@ -149,6 +149,7 @@
   <string name="budget_quick_income">+ Доход</string>
   <string name="budget_refresh_btn">Обновить</string>
   <string name="budget_refreshed">Данные обновлены</string>
+  <string name="budget_menu_add_subcategory">Добавить подстатью</string>
   <string name="budget_rename">Переименовать</string>
   <string name="budget_runway_days">хватит ~%1$d дн. при текущем темпе</string>
   <string name="budget_safe_to_spend">~%1$s ₽/день · осталось %2$d дн.</string>
@@ -192,7 +193,9 @@
   <string name="default_amounts_parent">Категория: %1$s</string>
   <string name="default_amounts_save_error">Не удалось сохранить</string>
   <string name="default_amounts_saved">Сохранено: %1$s</string>
-  <string name="default_amounts_subtitle">Стандартные суммы для распределения дохода по подстатьям</string>
+  <string name="default_amounts_subtitle">Суммы с каждого дохода. Строки с обязательными платежами обновляются автоматически при их изменении.</string>
+  <string name="default_amounts_sync_obligations">⇄ Из обязательств</string>
+  <string name="default_amounts_obligations_line">Обязательства: %1$s</string>
   <string name="default_amounts_title">Суммы по умолчанию</string>
   <string name="delete">Удалить</string>
   <string name="distribution_add_categories">+ Добавить статьи</string>
@@ -604,8 +607,11 @@
   <string name="obligations_summary_monthly">Нагрузка в месяц: %1$s</string>
   <string name="obligations_summary_per_paycheck">С каждого дохода откладывать: %1$s</string>
   <string name="obligations_sync_defaults_btn">В суммы по умолчанию</string>
-  <string name="obligations_sync_done">Суммы по умолчанию обновлены по обязательствам</string>
+  <string name="obligations_sync_done">Суммы по умолчанию обновлены (%1$d статей)</string>
   <string name="obligations_sync_nothing">Нет обязательств с привязкой к статьям бюджета</string>
+  <string name="obligations_saved_synced">Платёж сохранён · суммы по умолчанию обновлены</string>
+  <string name="obligations_deleted_synced">Платёж удалён · суммы по умолчанию обновлены</string>
+  <string name="obligations_breakdown_item">%1$s — %2$s</string>
   <string name="obligations_title">Обязательные платежи</string>
   <string name="obligations_unlinked_hint">⚠ %1$d без привязки к статье — не попадут в распределение дохода</string>
   <string name="obligations_validation">Укажите название и сумму</string>

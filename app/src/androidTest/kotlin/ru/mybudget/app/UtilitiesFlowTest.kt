@@ -72,8 +72,9 @@ class UtilitiesFlowTest {
         manager.recordTransaction(leafCategory.id, 10_000.0, "income", "utilities-flow-test")
 
         val bill = dao.getBillById(billId)!!
+        val propertyName = dao.getPropertyById(bill.propertyId)?.name.orEmpty()
         val total = dao.getLineItemsForBill(billId).sumOf { it.amount }
-        val description = UtilityUserTemplate.paymentDescription(year, month)
+        val description = UtilityUserTemplate.paymentDescription(propertyName, bill.year, bill.month)
         val groupId = UUID.randomUUID().toString()
         manager.repository.applyTransactionGroup(
             items = listOf(leafCategory.id to total),
