@@ -6,12 +6,14 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import ru.mybudget.app.setup.PendingDistributionPreferences
 
 class IncomeActivity : AppCompatActivity() {
@@ -21,7 +23,10 @@ class IncomeActivity : AppCompatActivity() {
     private lateinit var descriptionInput: EditText
     private lateinit var selectedBalanceText: TextView
     private lateinit var budgetNameText: TextView
+    private lateinit var planSuggestions: View
+    private lateinit var planSuggestionChips: LinearLayout
     private var leafOptions: List<LeafOption> = emptyList()
+    private var planPrefillApplied = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +45,8 @@ class IncomeActivity : AppCompatActivity() {
         descriptionInput = findViewById(R.id.incomeDescription)
         selectedBalanceText = findViewById(R.id.selectedBalanceText)
         budgetNameText = findViewById(R.id.transactionBudgetNameText)
+        planSuggestions = findViewById(R.id.incomePlanSuggestions)
+        planSuggestionChips = findViewById(R.id.incomePlanSuggestionChips)
         findViewById<View>(R.id.transactionBudgetPicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = { loadCategories() })
         }
@@ -78,6 +85,7 @@ class IncomeActivity : AppCompatActivity() {
                     listOf(getString(R.string.error_no_categories)),
                 )
                 selectedBalanceText.visibility = View.GONE
+                planSuggestions.visibility = View.GONE
                 return@launch
             }
             categorySpinner.adapter = ArrayAdapter(
@@ -88,7 +96,67 @@ class IncomeActivity : AppCompatActivity() {
             val index = leafOptions.indexOfFirst { it.category.id == preferredId }.takeIf { it >= 0 } ?: 0
             categorySpinner.setSelection(index)
             updateBalanceHint()
+            applyIntentPrefill()
+            loadPlanSuggestions(activeId)
         }
+    }
+
+    private fun applyIntentPrefill() {
+        if (planPrefillApplied) return
+        val plannedAmount = intent.getDoubleExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT, -1.0)
+        val plannedName = intent.getStringExtra(BudgetIntentExtras.PLANNED_INCOME_NAME)?.trim().orEmpty()
+        if (plannedAmount > 0.0 && amountInput.text.isNullOrBlank()) {
+            amountInput.setText(MoneyFormat.format(plannedAmount))
+        }
+        if (plannedName.isNotEmpty() && descriptionInput.text.isNullOrBlank()) {
+            descriptionInput.setText(plannedName)
+        }
+        if (plannedAmount > 0.0 || plannedName.isNotEmpty()) {
+            planPrefillApplied = true
+        }
+    }
+
+    private suspend fun loadPlanSuggestions(budgetId: Int) {
+        if (!amountInput.text.isNullOrBlank()) {
+            planSuggestions.visibility = View.GONE
+            return
+        }
+        val sources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
+        val suggestions = PlannedIncomeHelper.suggestionsForIncomeEntry(sources)
+        if (suggestions.isEmpty()) {
+            planSuggestions.visibility = View.GONE
+            return
+        }
+        planSuggestionChips.removeAllViews()
+        suggestions.forEach { source ->
+            val chip = TextView(this).apply {
+                text = getString(
+                    R.string.income_plan_suggestion_chip,
+                    source.name,
+                    MoneyFormat.formatRub(source.amount),
+                )
+                setTextAppearance(R.style.Chip_MyBudget_Filter)
+                setOnClickListener { applyPlanSuggestion(source) }
+            }
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginEnd = resources.getDimensionPixelSize(R.dimen.space_6)
+            }
+            chip.layoutParams = params
+            planSuggestionChips.addView(chip)
+        }
+        planSuggestions.visibility = View.VISIBLE
+    }
+
+    private fun applyPlanSuggestion(source: PlannedIncomeSourceEntity) {
+        amountInput.setText(MoneyFormat.format(source.amount))
+        if (descriptionInput.text.isNullOrBlank()) {
+            descriptionInput.setText(source.name)
+        }
+        planSuggestions.visibility = View.GONE
+        amountInput.requestFocus()
     }
 
     private fun updateBalanceHint() {
@@ -140,6 +208,7 @@ class IncomeActivity : AppCompatActivity() {
             ).show()
             amountInput.text.clear()
             descriptionInput.text.clear()
+            planPrefillApplied = false
             loadCategories()
         }
     }
@@ -161,6 +230,7 @@ class IncomeActivity : AppCompatActivity() {
         startActivity(intent)
         amountInput.text.clear()
         descriptionInput.text.clear()
+        planPrefillApplied = false
     }
 
     private data class LeafOption(val category: BudgetCategory, val label: String)

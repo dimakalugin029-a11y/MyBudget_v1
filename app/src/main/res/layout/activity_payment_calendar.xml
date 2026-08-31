@@ -152,6 +152,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/upcoming_payments_filter_utilities"
+                android:layout_marginEnd="@dimen/space_6"
+                style="@style/Chip.MyBudget.Filter"/>
+            <TextView
+                android:id="@+id/paymentFilterIncome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/upcoming_payments_filter_income"
                 style="@style/Chip.MyBudget.Filter"/>
         </LinearLayout>
     </HorizontalScrollView>

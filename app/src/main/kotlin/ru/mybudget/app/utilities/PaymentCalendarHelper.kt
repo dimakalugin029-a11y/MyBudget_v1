@@ -1,7 +1,9 @@
 package ru.mybudget.app.utilities
 
+import ru.mybudget.app.PlannedIncomeHelper
 import ru.mybudget.app.PlannedObligationHelper
 import ru.mybudget.app.data.PaymentReminderEntity
+import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.RecurringTransactionEntity
 import ru.mybudget.app.data.UtilityBillEntity
@@ -12,6 +14,7 @@ import java.time.format.DateTimeFormatter
 
 object PaymentCalendarHelper {
     enum class EntryKind {
+        INCOME,
         REMINDER,
         RECURRING,
         UTILITY,
@@ -19,6 +22,7 @@ object PaymentCalendarHelper {
     }
 
     data class SourceRef(
+        val incomeSourceId: Int? = null,
         val reminderId: Int? = null,
         val recurringId: Int? = null,
         val billId: Int? = null,
@@ -51,6 +55,7 @@ object PaymentCalendarHelper {
         recurring: List<RecurringTransactionEntity>,
         unpaidUtilityBills: List<UnpaidUtilityBill>,
         obligations: List<PlannedObligationEntity>,
+        plannedIncome: List<PlannedIncomeSourceEntity> = emptyList(),
         categoryNames: Map<Int, String>,
         todayEpochDay: Long,
         horizonDays: Int = 60,
@@ -127,6 +132,13 @@ object PaymentCalendarHelper {
                 }
             }
         }
+
+        addPlannedIncomeEntries(
+            result = result,
+            plannedIncome = plannedIncome,
+            todayEpochDay = todayEpochDay,
+            horizonDays = horizonDays,
+        )
 
         return dedupeOverlappingEntries(
             result.sortedWith(compareBy({ it.epochDay }, { it.title })),
@@ -213,6 +225,26 @@ object PaymentCalendarHelper {
             categoryId = ob.categoryId,
             sourceRef = SourceRef(obligationId = ob.id),
         )
+    }
+
+    private fun addPlannedIncomeEntries(
+        result: MutableList<Entry>,
+        plannedIncome: List<PlannedIncomeSourceEntity>,
+        todayEpochDay: Long,
+        horizonDays: Int,
+    ) {
+        for (occurrence in PlannedIncomeHelper.occurrencesInHorizon(plannedIncome, todayEpochDay, horizonDays)) {
+            val source = occurrence.source
+            result += Entry(
+                epochDay = occurrence.epochDay,
+                dateLabel = PlannedIncomeHelper.formatOccurrenceDate(occurrence.epochDay),
+                title = PlannedIncomeHelper.calendarTitle(source),
+                subtitle = "",
+                amount = source.amount,
+                kind = EntryKind.INCOME,
+                sourceRef = SourceRef(incomeSourceId = source.id),
+            )
+        }
     }
 
     internal data class CalendarDedupeKey(

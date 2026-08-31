@@ -70,6 +70,7 @@
         <activity android:name=".RemindersActivity" android:exported="false" />
         <activity android:name=".GoalsActivity" android:exported="false" />
         <activity android:name=".PlannedObligationsActivity" android:exported="false" />
+        <activity android:name=".PlannedIncomeActivity" android:exported="false" />
         <activity android:name=".RecurringActivity" android:exported="false" />
         <activity android:name=".UtilitiesActivity" android:exported="false" />
         <activity android:name=".UtilityPropertiesActivity" android:exported="false" />

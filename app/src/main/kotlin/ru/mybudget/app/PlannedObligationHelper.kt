@@ -9,6 +9,47 @@ object PlannedObligationHelper {
     const val PERIOD_MONTHLY = "monthly"
     const val PERIOD_YEARLY = "yearly"
 
+    const val KIND_FILTER_ALL = "all"
+    const val KIND_CREDIT = "credit"
+    const val KIND_UTILITIES = "utilities"
+    const val KIND_SUBSCRIPTION = "subscription"
+    const val KIND_OTHER = "other"
+
+    val OBLIGATION_KINDS = listOf(KIND_CREDIT, KIND_UTILITIES, KIND_SUBSCRIPTION, KIND_OTHER)
+
+    fun normalizeKind(kind: String?): String {
+        return when (kind) {
+            KIND_CREDIT, KIND_UTILITIES, KIND_SUBSCRIPTION, KIND_OTHER -> kind
+            else -> KIND_OTHER
+        }
+    }
+
+    fun kindLabel(context: Context, kind: String): String {
+        return when (normalizeKind(kind)) {
+            KIND_CREDIT -> context.getString(R.string.obligations_kind_credit)
+            KIND_UTILITIES -> context.getString(R.string.obligations_kind_utilities)
+            KIND_SUBSCRIPTION -> context.getString(R.string.obligations_kind_subscription)
+            else -> context.getString(R.string.obligations_kind_other)
+        }
+    }
+
+    fun kindFromSpinnerPosition(position: Int): String {
+        return OBLIGATION_KINDS.getOrElse(position) { KIND_OTHER }
+    }
+
+    fun kindSpinnerPosition(kind: String): Int {
+        val normalized = normalizeKind(kind)
+        return OBLIGATION_KINDS.indexOf(normalized).coerceAtLeast(0)
+    }
+
+    fun filterByKind(
+        obligations: List<PlannedObligationEntity>,
+        kindFilter: String,
+    ): List<PlannedObligationEntity> {
+        if (kindFilter == KIND_FILTER_ALL) return obligations
+        return obligations.filter { normalizeKind(it.obligationKind) == kindFilter }
+    }
+
     fun dueLocalDate(yearMonth: YearMonth, dueDay: Int): LocalDate {
         if (dueDay <= 0) return yearMonth.atEndOfMonth()
         return yearMonth.atDay(dueDay.coerceIn(1, yearMonth.lengthOfMonth()))
@@ -44,8 +85,16 @@ object PlannedObligationHelper {
 
     fun dueDayFromSpinnerPosition(position: Int): Int = if (position >= 31) 0 else position + 1
 
+    fun isLinkedToIncome(obligation: PlannedObligationEntity): Boolean {
+        return obligation.linkedIncomeSourceId != null && obligation.linkedIncomeSourceId > 0
+    }
+
+    fun effectivePaychecks(obligation: PlannedObligationEntity): Int {
+        return if (isLinkedToIncome(obligation)) 1 else obligation.paychecksPerMonth.coerceAtLeast(1)
+    }
+
     fun perPaycheck(obligation: PlannedObligationEntity): Double {
-        val paychecks = obligation.paychecksPerMonth.coerceAtLeast(1)
+        val paychecks = effectivePaychecks(obligation)
         val raw = if (obligation.periodType == PERIOD_YEARLY) {
             (obligation.amount / 12.0) / paychecks
         } else {
@@ -64,7 +113,33 @@ object PlannedObligationHelper {
     }
 
     fun totalMonthly(obligations: List<PlannedObligationEntity>): Double {
-        return MoneyFormat.roundMoney(obligations.sumOf { monthlyEquivalent(it) })
+        return MoneyFormat.roundMoney(
+            obligations.filter { it.isActive }.sumOf { monthlyEquivalent(it) },
+        )
+    }
+
+    fun monthlyLoadForSource(sourceId: Int, obligations: List<PlannedObligationEntity>): Double {
+        return MoneyFormat.roundMoney(
+            obligations
+                .filter { it.isActive && it.linkedIncomeSourceId == sourceId }
+                .sumOf { monthlyEquivalent(it) },
+        )
+    }
+
+    fun unlinkedMonthlyLoad(obligations: List<PlannedObligationEntity>): Double {
+        return MoneyFormat.roundMoney(
+            obligations
+                .filter { it.isActive && !isLinkedToIncome(it) }
+                .sumOf { monthlyEquivalent(it) },
+        )
+    }
+
+    fun linkedIncomeName(
+        obligation: PlannedObligationEntity,
+        sources: List<ru.mybudget.app.data.PlannedIncomeSourceEntity>,
+    ): String? {
+        val sourceId = obligation.linkedIncomeSourceId ?: return null
+        return sources.firstOrNull { it.id == sourceId }?.name
     }
 
     fun totalPerPaycheck(obligations: List<PlannedObligationEntity>): Double {

@@ -32,6 +32,16 @@
             <TextView
                 android:textSize="11sp"
                 android:textStyle="bold"
+                android:id="@+id/obligationKindBadge"
+                android:background="@color/md_theme_surfaceVariant"
+                android:paddingHorizontal="@dimen/space_8"
+                android:paddingVertical="@dimen/space_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/space_6"/>
+            <TextView
+                android:textSize="11sp"
+                android:textStyle="bold"
                 android:id="@+id/obligationPeriodBadge"
                 android:background="@color/md_theme_surfaceVariant"
                 android:paddingLeft="@dimen/space_8"

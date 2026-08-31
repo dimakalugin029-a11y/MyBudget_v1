@@ -28,7 +28,7 @@ import java.util.Calendar
 import java.util.Locale
 
 class PaymentCalendarActivity : AppCompatActivity() {
-    private enum class CalendarFilter { ALL, REMINDER, RECURRING, UTILITY, OBLIGATION }
+    private enum class CalendarFilter { ALL, INCOME, REMINDER, RECURRING, UTILITY, OBLIGATION }
     private enum class TimeHorizon { WEEK, ALL }
     private enum class ViewMode { LIST, MONTH }
     private data class DayCell(val day: Int?, val epochDay: Long?, val entryCount: Int)
@@ -41,6 +41,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
     private lateinit var filterRecurring: TextView
     private lateinit var filterObligations: TextView
     private lateinit var filterUtilities: TextView
+    private lateinit var filterIncome: TextView
     private lateinit var horizonWeek: TextView
     private lateinit var horizonAll: TextView
     private lateinit var calendarHint: TextView
@@ -84,6 +85,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
         filterRecurring = findViewById(R.id.paymentFilterRecurring)
         filterObligations = findViewById(R.id.paymentFilterObligations)
         filterUtilities = findViewById(R.id.paymentFilterUtilities)
+        filterIncome = findViewById(R.id.paymentFilterIncome)
         horizonWeek = findViewById(R.id.paymentHorizonWeek)
         horizonAll = findViewById(R.id.paymentHorizonAll)
         calendarHint = findViewById(R.id.paymentCalendarHint)
@@ -163,6 +165,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
         filterRecurring.setOnClickListener { applyFilter(CalendarFilter.RECURRING) }
         filterObligations.setOnClickListener { applyFilter(CalendarFilter.OBLIGATION) }
         filterUtilities.setOnClickListener { applyFilter(CalendarFilter.UTILITY) }
+        filterIncome.setOnClickListener { applyFilter(CalendarFilter.INCOME) }
         updateFilterSelection()
     }
 
@@ -180,6 +183,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             filterRecurring to CalendarFilter.RECURRING,
             filterObligations to CalendarFilter.OBLIGATION,
             filterUtilities to CalendarFilter.UTILITY,
+            filterIncome to CalendarFilter.INCOME,
         ).forEach { (view, filter) ->
             view.isSelected = filter == currentFilter
         }
@@ -197,6 +201,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             CalendarFilter.RECURRING -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.RECURRING }
             CalendarFilter.UTILITY -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.UTILITY }
             CalendarFilter.OBLIGATION -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
+            CalendarFilter.INCOME -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.INCOME }
         }
         val day = selectedDayEpoch ?: return byType
         return byType.filter { it.epochDay == day }
@@ -256,6 +261,12 @@ class PaymentCalendarActivity : AppCompatActivity() {
         val labels = mutableListOf<String>()
         val handlers = mutableListOf<() -> Unit>()
         when (entry.kind) {
+            PaymentCalendarHelper.EntryKind.INCOME -> {
+                labels += getString(R.string.payment_calendar_action_record_income)
+                handlers += { openIncomeFromPlan(entry) }
+                labels += getString(R.string.payment_calendar_action_open)
+                handlers += { startActivity(Intent(this, PlannedIncomeActivity::class.java)) }
+            }
             PaymentCalendarHelper.EntryKind.REMINDER -> {
                 labels += getString(R.string.payment_calendar_action_pay)
                 handlers += { payReminder(entry) }
@@ -299,6 +310,20 @@ class PaymentCalendarActivity : AppCompatActivity() {
             .setItems(labels.toTypedArray()) { _, which -> handlers[which]() }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun openIncomeFromPlan(entry: PaymentCalendarHelper.Entry) {
+        val intent = Intent(this, IncomeActivity::class.java)
+            .putExtra(BudgetIntentExtras.BUDGET_ID, budgetManager.getActiveBudgetId())
+        val amount = entry.amount
+        if (amount != null && amount > 0.0) {
+            intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT, amount)
+        }
+        intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_NAME, entry.title)
+        entry.sourceRef.incomeSourceId?.let {
+            intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, it)
+        }
+        startActivity(intent)
     }
 
     private fun payReminder(entry: PaymentCalendarHelper.Entry) {
@@ -384,6 +409,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 }
             }
             val obligations = dao.getPlannedObligationsByBudgetOnce(budgetManager.getActiveBudgetId())
+            val plannedIncome = dao.getPlannedIncomeSourcesByBudgetOnce(budgetManager.getActiveBudgetId())
+            val incomeById = plannedIncome.associateBy { it.id }
             val utilityPaymentDays = db.utilityDao().getAllProperties().associate { property ->
                 property.id to UtilityPaymentReminderPreferences.paymentDay(this@PaymentCalendarActivity, property.id)
             }
@@ -392,10 +419,22 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 recurring,
                 unpaid,
                 obligations,
+                plannedIncome,
                 categoryNames,
                 today.toEpochDay(),
                 utilityPaymentDays = utilityPaymentDays,
-            )
+            ).map { entry ->
+                if (entry.kind != PaymentCalendarHelper.EntryKind.INCOME || entry.subtitle.isNotBlank()) {
+                    entry
+                } else {
+                    val source = entry.sourceRef.incomeSourceId?.let { incomeById[it] }
+                    if (source == null) {
+                        entry
+                    } else {
+                        entry.copy(subtitle = PlannedIncomeHelper.calendarSubtitle(this@PaymentCalendarActivity, source))
+                    }
+                }
+            }
             withContext(Dispatchers.Main) {
                 allEntries = entries
                 publishFiltered()
@@ -432,7 +471,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
             val item = items[position]
             val ctx = holder.itemView.context
             val daysUntil = (item.epochDay - todayEpochDay).toInt()
-            val urgencyColor = PaymentCalendarUrgencyHelper.accentColor(daysUntil)
+            val isIncome = item.kind == PaymentCalendarHelper.EntryKind.INCOME
+            val urgencyColor = PaymentCalendarUrgencyHelper.accentColor(daysUntil, isIncome)
             holder.date.text = item.dateLabel
             holder.date.setTextColor(urgencyColor)
             holder.title.text = item.title

@@ -8,8 +8,9 @@ object PaymentCalendarUrgencyHelper {
     private const val GREEN = 0xFF2E7D32.toInt()
     private const val RED_OVERDUE = 0xFFB71C1C.toInt()
 
-    /** Days until payment: 0 = today, negative = overdue. */
-    fun accentColor(daysUntil: Int): Int {
+    /** Days until payment: 0 = today, negative = overdue. Income entries always use green. */
+    fun accentColor(daysUntil: Int, isIncome: Boolean = false): Int {
+        if (isIncome) return GREEN
         return when {
             daysUntil < 0 -> RED_OVERDUE
             daysUntil > 7 -> GREEN

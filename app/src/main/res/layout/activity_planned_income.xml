@@ -23,12 +23,12 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/obligations_hero_card_bg"
+            android:background="@drawable/screen_hero_card_bg_blue"
             android:orientation="vertical"
             android:paddingHorizontal="@dimen/space_12"
             android:paddingVertical="@dimen/space_10">
             <TextView
-                android:id="@+id/obligationsSummaryMonthly"
+                android:id="@+id/incomePlanSummaryTotal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="@color/main_hero_text_primary"
@@ -36,15 +36,15 @@
                 android:textStyle="bold"
                 style="@style/Text.MyBudget.Section"/>
             <TextView
-                android:id="@+id/obligationsSummaryPerPaycheck"
+                android:id="@+id/incomePlanSummaryBalance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:textColor="@color/obligations_hero_text_secondary"
+                android:layout_marginTop="@dimen/space_4"
+                android:textColor="@color/main_hero_text_secondary"
                 android:textSize="12sp"
                 style="@style/Text.MyBudget.Subtitle"/>
             <TextView
-                android:id="@+id/obligationsPaychecksHint"
+                android:id="@+id/incomePlanSummaryHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
@@ -58,68 +58,16 @@
         android:scrollbars="none"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_6">
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
-            <TextView
-                android:id="@+id/obligationsFilterAll"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_filter_all"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/obligationsFilterCredit"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_filter_credit"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/obligationsFilterUtilities"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_filter_utilities"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/obligationsFilterSubscription"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_filter_subscription"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/obligationsFilterOther"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_filter_other"
-                style="@style/Chip.MyBudget.Filter"/>
-        </LinearLayout>
-    </HorizontalScrollView>
-    <HorizontalScrollView
-        android:scrollbars="none"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8">
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
             <TextView
-                android:id="@+id/obligationsPaychecksButton"
+                android:id="@+id/incomePlanObligationsButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/obligations_chip_paychecks"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/obligationsSyncDefaultsButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obligations_chip_sync"
+                android:text="@string/income_plan_chip_obligations"
                 style="@style/Chip.MyBudget.Filter"/>
         </LinearLayout>
     </HorizontalScrollView>
@@ -128,17 +76,17 @@
         android:layout_height="0dp"
         android:layout_weight="1">
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/obligationsRecycler"
+            android:id="@+id/incomePlanRecycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
         <TextView
             android:gravity="center"
-            android:id="@+id/obligationsEmptyState"
+            android:id="@+id/incomePlanEmptyState"
             android:padding="@dimen/space_24"
             android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:text="@string/obligations_empty"
+            android:text="@string/income_plan_empty"
             style="@style/Text.MyBudget.Subtitle"/>
     </FrameLayout>
 </LinearLayout>

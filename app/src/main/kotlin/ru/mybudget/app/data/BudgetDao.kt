@@ -37,6 +37,9 @@ abstract class BudgetDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract suspend fun insertPlannedObligation(obligation: PlannedObligationEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    abstract suspend fun insertPlannedIncomeSource(source: PlannedIncomeSourceEntity): Long
+
     @Update
     abstract suspend fun updateBudgetProfile(profile: BudgetProfileEntity)
 
@@ -57,6 +60,9 @@ abstract class BudgetDao {
 
     @Update
     abstract suspend fun updatePlannedObligation(obligation: PlannedObligationEntity)
+
+    @Update
+    abstract suspend fun updatePlannedIncomeSource(source: PlannedIncomeSourceEntity)
 
     @Query("SELECT * FROM budget_profiles WHERE isActive = 1 ORDER BY sortOrder, id")
     abstract fun getAllBudgetProfiles(): Flow<List<BudgetProfileEntity>>
@@ -252,6 +258,12 @@ abstract class BudgetDao {
     @Query("SELECT * FROM planned_obligations WHERE id = :id LIMIT 1")
     abstract suspend fun getPlannedObligationById(id: Int): PlannedObligationEntity?
 
+    @Query("SELECT * FROM planned_income_sources WHERE isActive = 1 AND budgetId = :budgetId ORDER BY sortOrder, id")
+    abstract suspend fun getPlannedIncomeSourcesByBudgetOnce(budgetId: Int): List<PlannedIncomeSourceEntity>
+
+    @Query("SELECT * FROM planned_income_sources ORDER BY id")
+    abstract suspend fun getAllPlannedIncomeSourcesForExport(): List<PlannedIncomeSourceEntity>
+
     @Query(
         """
         SELECT COALESCE(SUM(amount), 0) FROM transactions
@@ -334,6 +346,12 @@ abstract class BudgetDao {
 
     @Query("DELETE FROM planned_obligations")
     abstract suspend fun deleteAllPlannedObligations()
+
+    @Query("UPDATE planned_income_sources SET isActive = 0 WHERE id = :id")
+    abstract suspend fun deletePlannedIncomeSource(id: Int)
+
+    @Query("DELETE FROM planned_income_sources")
+    abstract suspend fun deleteAllPlannedIncomeSources()
 
     @Query("DELETE FROM monthly_category_plans")
     abstract suspend fun deleteAllMonthlyPlans()

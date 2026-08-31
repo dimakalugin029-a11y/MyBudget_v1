@@ -17,6 +17,7 @@ data class MainDashboardSummary(
     val overspendLine: String? = null,
     val utilitiesLine: String? = null,
     val pendingDistributionLine: String? = null,
+    val incomePlanLine: String? = null,
     val upcomingPaymentsLine: String? = null,
     val goalsLine: String? = null,
 )
@@ -40,6 +41,14 @@ object MainDashboardHelper {
 
         val activeId = budgetManager.getActiveBudgetId()
         val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
+        val incomeSources = dao.getPlannedIncomeSourcesByBudgetOnce(activeId)
+        val incomeMonthly = PlannedIncomeHelper.monthlyTotal(incomeSources)
+        val obligationsMonthly = PlannedObligationHelper.totalMonthly(obligations)
+        val incomePlanLine = PlannedIncomeHelper.buildDashboardLine(
+            context,
+            incomeMonthly,
+            obligationsMonthly,
+        )
 
         val pending = PendingDistributionPreferences.getPending(context)
         val pendingDistributionLine = if (pending != null && pending.budgetId == activeId && pending.amount > 0.01) {
@@ -110,6 +119,7 @@ object MainDashboardHelper {
             overspendLine = overspendLine,
             utilitiesLine = utilitiesLine,
             pendingDistributionLine = pendingDistributionLine,
+            incomePlanLine = incomePlanLine,
             upcomingPaymentsLine = upcomingPaymentsLine,
             goalsLine = buildUrgentGoalsLine(context, budgetManager),
         )

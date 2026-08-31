@@ -21,6 +21,30 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         layout="@layout/include_dismissible_hint"/>
+    <LinearLayout
+        android:id="@+id/incomePlanSuggestions"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_6"
+            android:text="@string/income_plan_suggestion_title"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <HorizontalScrollView
+            android:scrollbars="none"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:id="@+id/incomePlanSuggestionChips"
+                android:orientation="horizontal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </HorizontalScrollView>
+    </LinearLayout>
     <androidx.core.widget.NestedScrollView
         android:id="@+id/incomeScroll"
         android:clipToPadding="false"

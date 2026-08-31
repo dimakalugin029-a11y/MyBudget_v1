@@ -27,12 +27,37 @@ class PlannedObligationHelperTest {
         assertEquals(emptyMap<Int, Double>(), PlannedObligationHelper.distributionByCategory(obligations))
     }
 
+    @Test
+    fun perPaycheck_linkedToIncome_usesFullMonthlyAmount() {
+        val obligation = obligation(
+            name = "Ипотека",
+            categoryId = 10,
+            amount = 30_000.0,
+            paychecks = 2,
+            linkedIncomeSourceId = 5,
+        )
+
+        assertEquals(30_000.0, PlannedObligationHelper.perPaycheck(obligation), 0.01)
+    }
+
+    @Test
+    fun monthlyLoadForSource_sumsLinkedObligationsOnly() {
+        val obligations = listOf(
+            obligation(name = "Кредит", categoryId = 10, amount = 20_000.0, paychecks = 1, linkedIncomeSourceId = 1),
+            obligation(name = "Интернет", categoryId = 10, amount = 600.0, paychecks = 2),
+            obligation(name = "Детсад", categoryId = 20, amount = 10_000.0, paychecks = 1, linkedIncomeSourceId = 1),
+        )
+
+        assertEquals(30_000.0, PlannedObligationHelper.monthlyLoadForSource(1, obligations), 0.01)
+    }
+
     private fun obligation(
         name: String,
         categoryId: Int,
         amount: Double,
         paychecks: Int,
         isActive: Boolean = true,
+        linkedIncomeSourceId: Int? = null,
     ) = PlannedObligationEntity(
         budgetId = 1,
         name = name,
@@ -43,5 +68,6 @@ class PlannedObligationHelperTest {
         dueMonth = 1,
         dueDay = 10,
         isActive = isActive,
+        linkedIncomeSourceId = linkedIncomeSourceId,
     )
 }

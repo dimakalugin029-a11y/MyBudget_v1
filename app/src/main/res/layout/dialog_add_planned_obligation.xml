@@ -43,6 +43,18 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_kind_label"
+            style="@style/Text.MyBudget.SectionLabel" />
+        <Spinner
+            android:id="@+id/obligationKindSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_4"
             android:text="@string/obligations_period_label"
             style="@style/Text.MyBudget.SectionLabel" />
         <Spinner
@@ -92,6 +104,19 @@
             android:layout_marginBottom="@dimen/space_12"
             android:padding="@dimen/space_4" />
         <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_4"
+            android:text="@string/obligations_income_source_label"
+            style="@style/Text.MyBudget.SectionLabel" />
+        <Spinner
+            android:id="@+id/obligationIncomeSourceSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
+            android:padding="@dimen/space_4" />
+        <TextView
+            android:id="@+id/obligationPaychecksLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_4"

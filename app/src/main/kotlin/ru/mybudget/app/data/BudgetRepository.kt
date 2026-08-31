@@ -309,6 +309,20 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         return budgetDao.getPlannedObligationById(id)
     }
 
+    suspend fun getPlannedIncomeSourcesByBudgetOnce(budgetId: Int): List<PlannedIncomeSourceEntity> =
+        budgetDao.getPlannedIncomeSourcesByBudgetOnce(budgetId)
+
+    suspend fun getAllPlannedIncomeSourcesForExport(): List<PlannedIncomeSourceEntity> =
+        budgetDao.getAllPlannedIncomeSourcesForExport()
+
+    suspend fun insertPlannedIncomeSource(source: PlannedIncomeSourceEntity): Long =
+        budgetDao.insertPlannedIncomeSource(source)
+
+    suspend fun updatePlannedIncomeSource(source: PlannedIncomeSourceEntity) =
+        budgetDao.updatePlannedIncomeSource(source)
+
+    suspend fun deletePlannedIncomeSource(id: Int) = budgetDao.deletePlannedIncomeSource(id)
+
     suspend fun insertAuditAction(action: AuditActionEntity): Long = budgetDao.insertAuditAction(action)
 
     suspend fun getActiveAuditActions(limit: Int = 50): List<AuditActionEntity> {

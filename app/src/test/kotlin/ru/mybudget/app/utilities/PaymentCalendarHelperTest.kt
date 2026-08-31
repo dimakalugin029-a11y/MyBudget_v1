@@ -3,6 +3,8 @@ package ru.mybudget.app.utilities
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import ru.mybudget.app.PlannedIncomeHelper
+import java.time.LocalDate
 import ru.mybudget.app.utilities.PaymentCalendarHelper.EntryKind
 
 class PaymentCalendarHelperTest {
@@ -58,5 +60,35 @@ class PaymentCalendarHelperTest {
         val result = PaymentCalendarHelper.dedupeOverlappingEntries(listOf(obligation, reminder))
 
         assertEquals(2, result.size)
+    }
+
+    @Test
+    fun buildEntries_includesPlannedIncomeOnExpectedDays() {
+        val today = LocalDate.of(2026, 8, 31)
+        val todayEpoch = today.toEpochDay()
+        val income = listOf(
+            ru.mybudget.app.data.PlannedIncomeSourceEntity(
+                id = 7,
+                budgetId = 1,
+                name = "Аванс",
+                amount = 45_000.0,
+                sourceType = PlannedIncomeHelper.TYPE_ADVANCE,
+                dayOfMonth = 25,
+            ),
+        )
+
+        val result = PaymentCalendarHelper.buildEntries(
+            reminders = emptyList(),
+            recurring = emptyList(),
+            unpaidUtilityBills = emptyList(),
+            obligations = emptyList(),
+            plannedIncome = income,
+            categoryNames = emptyMap(),
+            todayEpochDay = todayEpoch,
+            horizonDays = 60,
+        )
+
+        assertTrue(result.any { it.kind == EntryKind.INCOME && it.title == "Аванс" })
+        assertEquals(45_000.0, result.first { it.kind == EntryKind.INCOME }.amount ?: 0.0, 0.01)
     }
 }

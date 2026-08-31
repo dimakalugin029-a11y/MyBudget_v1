@@ -89,6 +89,8 @@ class AllActivitiesSmokeTest {
 
     @Test fun plannedObligationsActivity() = smokeLaunch(PlannedObligationsActivity::class.java)
 
+    @Test fun plannedIncomeActivity() = smokeLaunch(PlannedIncomeActivity::class.java)
+
     @Test fun participantsReportActivity() = smokeLaunch(ParticipantsReportActivity::class.java)
 
     @Test fun recurringActivity() = smokeLaunch(RecurringActivity::class.java)

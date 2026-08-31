@@ -323,6 +323,53 @@ object Migration30To31 {
     }
 }
 
+object Migration31To32 {
+    val MIGRATION: Migration = object : Migration(31, 32) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS planned_income_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    budgetId INTEGER NOT NULL,
+                    name TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    sourceType TEXT NOT NULL,
+                    dayOfMonth INTEGER NOT NULL DEFAULT 0,
+                    sortOrder INTEGER NOT NULL DEFAULT 0,
+                    isActive INTEGER NOT NULL DEFAULT 1,
+                    createdAt INTEGER NOT NULL,
+                    FOREIGN KEY(budgetId) REFERENCES budget_profiles(id)
+                        ON UPDATE NO ACTION ON DELETE RESTRICT
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_planned_income_sources_budgetId ON planned_income_sources (budgetId)",
+            )
+        }
+    }
+}
+
+object Migration32To33 {
+    val MIGRATION: Migration = object : Migration(32, 33) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE planned_obligations ADD COLUMN obligationKind TEXT NOT NULL DEFAULT 'other'",
+            )
+        }
+    }
+}
+
+object Migration33To34 {
+    val MIGRATION: Migration = object : Migration(33, 34) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE planned_obligations ADD COLUMN linkedIncomeSourceId INTEGER DEFAULT NULL",
+            )
+        }
+    }
+}
+
 private const val CREATE_AUDIT_ACTIONS = """
 CREATE TABLE IF NOT EXISTS audit_actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,

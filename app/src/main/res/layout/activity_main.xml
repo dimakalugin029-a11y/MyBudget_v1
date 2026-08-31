@@ -160,6 +160,20 @@
                     </LinearLayout>
                     <LinearLayout
                         android:orientation="vertical"
+                        android:id="@+id/mainAttentionIncomePlan"
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <include
+                            android:id="@+id/mainAttentionIncomePlanRow"
+                            layout="@layout/include_main_list_row"/>
+                        <View
+                            android:background="@color/border_light"
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:orientation="vertical"
                         android:id="@+id/mainAttentionUpcoming"
                         android:visibility="gone"
                         android:layout_width="match_parent"
@@ -312,6 +326,13 @@
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
+                <include
+                    android:id="@+id/incomePlanButton"
+                    layout="@layout/include_main_list_row"/>
+                <View
+                    android:background="@color/border_light"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"/>
                 <include
                     android:id="@+id/expensePlanButton"
                     layout="@layout/include_main_list_row"/>

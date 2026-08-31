@@ -178,6 +178,32 @@ data class PlannedObligationEntity(
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "0") val remindEnabled: Boolean = false,
     @ColumnInfo(defaultValue = "0") val autoPostEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "'other'") val obligationKind: String = "other",
+    @ColumnInfo(defaultValue = "NULL") val linkedIncomeSourceId: Int? = null,
+)
+
+@Entity(
+    tableName = "planned_income_sources",
+    foreignKeys = [
+        ForeignKey(
+            entity = BudgetProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["budgetId"],
+            onDelete = ForeignKey.RESTRICT,
+        ),
+    ],
+    indices = [Index("budgetId")],
+)
+data class PlannedIncomeSourceEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val budgetId: Int,
+    val name: String,
+    val amount: Double,
+    val sourceType: String,
+    @ColumnInfo(defaultValue = "0") val dayOfMonth: Int = 0,
+    @ColumnInfo(defaultValue = "0") val sortOrder: Int = 0,
+    val isActive: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
 )
 
 @Entity(

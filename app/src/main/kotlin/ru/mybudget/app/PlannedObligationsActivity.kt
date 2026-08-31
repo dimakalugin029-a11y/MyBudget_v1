@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.setup.ObligationPreferences
 import java.text.DateFormatSymbols
@@ -31,6 +32,9 @@ class PlannedObligationsActivity : AppCompatActivity() {
     private lateinit var adapter: ObligationAdapter
     private var budgetId = 1
     private var currentList: List<PlannedObligationEntity> = emptyList()
+    private var incomeSources: List<PlannedIncomeSourceEntity> = emptyList()
+    private var currentKindFilter = PlannedObligationHelper.KIND_FILTER_ALL
+    private lateinit var kindFilterViews: Map<String, TextView>
     private var leafCategories: List<BudgetCategory> = emptyList()
     private var parentNames: Map<Int, String> = emptyMap()
     private val monthNames: Array<String> = DateFormatSymbols(Locale("ru")).months
@@ -53,9 +57,20 @@ class PlannedObligationsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.obligationsSyncDefaultsButton).setOnClickListener {
             syncDefaultAmounts()
         }
+        kindFilterViews = mapOf(
+            PlannedObligationHelper.KIND_FILTER_ALL to findViewById(R.id.obligationsFilterAll),
+            PlannedObligationHelper.KIND_CREDIT to findViewById(R.id.obligationsFilterCredit),
+            PlannedObligationHelper.KIND_UTILITIES to findViewById(R.id.obligationsFilterUtilities),
+            PlannedObligationHelper.KIND_SUBSCRIPTION to findViewById(R.id.obligationsFilterSubscription),
+            PlannedObligationHelper.KIND_OTHER to findViewById(R.id.obligationsFilterOther),
+        )
+        kindFilterViews.forEach { (kind, view) ->
+            view.setOnClickListener { applyKindFilter(kind) }
+        }
         adapter = ObligationAdapter(
             monthNames = monthNames,
             categoryName = { id -> categoryLabel(id) },
+            incomeSourceName = { id -> incomeSources.firstOrNull { it.id == id }?.name },
             onEdit = { showEditDialog(it) },
             onDelete = { showDeleteDialog(it) },
         )
@@ -84,11 +99,31 @@ class PlannedObligationsActivity : AppCompatActivity() {
             manager.getCategoriesAsync()
             refreshLeaves()
             val list = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
+            incomeSources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
             currentList = list
-            adapter.submit(list)
-            findViewById<View>(R.id.obligationsEmptyState).visibility =
-                if (list.isEmpty()) View.VISIBLE else View.GONE
             updateSummary(list)
+            applyKindFilter(currentKindFilter)
+        }
+    }
+
+    private fun applyKindFilter(kindFilter: String) {
+        currentKindFilter = kindFilter
+        kindFilterViews.forEach { (kind, view) ->
+            view.isSelected = kind == kindFilter
+        }
+        val filtered = PlannedObligationHelper.filterByKind(currentList, kindFilter)
+        adapter.submit(filtered)
+        val emptyView = findViewById<TextView>(R.id.obligationsEmptyState)
+        when {
+            currentList.isEmpty() -> {
+                emptyView.visibility = View.VISIBLE
+                emptyView.setText(R.string.obligations_empty)
+            }
+            filtered.isEmpty() -> {
+                emptyView.visibility = View.VISIBLE
+                emptyView.setText(R.string.obligations_empty_filter)
+            }
+            else -> emptyView.visibility = View.GONE
         }
     }
 
@@ -224,10 +259,18 @@ class PlannedObligationsActivity : AppCompatActivity() {
         val dueMonthSpinner = inflate.findViewById<Spinner>(R.id.obligationDueMonthSpinner)
         val categorySpinner = inflate.findViewById<Spinner>(R.id.obligationCategorySpinner)
         val paychecksSpinner = inflate.findViewById<Spinner>(R.id.obligationPaychecksSpinner)
+        val paychecksLabel = inflate.findViewById<TextView>(R.id.obligationPaychecksLabel)
+        val incomeSourceSpinner = inflate.findViewById<Spinner>(R.id.obligationIncomeSourceSpinner)
         val previewLine = inflate.findViewById<TextView>(R.id.obligationPreviewLine)
         val remindSwitch = inflate.findViewById<SwitchCompat>(R.id.obligationRemindSwitch)
         val autoPostSwitch = inflate.findViewById<SwitchCompat>(R.id.obligationAutoPostSwitch)
+        val kindSpinner = inflate.findViewById<Spinner>(R.id.obligationKindSpinner)
 
+        kindSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            PlannedObligationHelper.OBLIGATION_KINDS.map { PlannedObligationHelper.kindLabel(this, it) },
+        )
         periodSpinner.adapter = ArrayAdapter(
             this,
             android.R.layout.simple_spinner_dropdown_item,
@@ -255,6 +298,17 @@ class PlannedObligationsActivity : AppCompatActivity() {
             android.R.layout.simple_spinner_dropdown_item,
             (1..4).map { getString(R.string.obligations_paychecks_option, it) },
         )
+        incomeSourceSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            listOf(getString(R.string.obligations_income_source_any)) + incomeSources.map { it.name },
+        )
+
+        val updatePaychecksVisibility = {
+            val linked = incomeSourceSpinner.selectedItemPosition > 0
+            paychecksLabel.visibility = if (linked) View.GONE else View.VISIBLE
+            paychecksSpinner.visibility = if (linked) View.GONE else View.VISIBLE
+        }
 
         if (existing != null) {
             nameInput.setText(existing.name)
@@ -267,10 +321,20 @@ class PlannedObligationsActivity : AppCompatActivity() {
             paychecksSpinner.setSelection((existing.paychecksPerMonth - 1).coerceIn(0, 3))
             remindSwitch.isChecked = existing.remindEnabled
             autoPostSwitch.isChecked = existing.autoPostEnabled
+            kindSpinner.setSelection(PlannedObligationHelper.kindSpinnerPosition(existing.obligationKind))
+            val linkedIndex = incomeSources.indexOfFirst { it.id == existing.linkedIncomeSourceId }
+            incomeSourceSpinner.setSelection(if (linkedIndex >= 0) linkedIndex + 1 else 0)
         } else {
             paychecksSpinner.setSelection((ObligationPreferences.getPaychecksPerMonth(this) - 1).coerceIn(0, 3))
             dueDaySpinner.setSelection(PlannedObligationHelper.dueDaySpinnerPosition(1))
             remindSwitch.isChecked = true
+            kindSpinner.setSelection(PlannedObligationHelper.kindSpinnerPosition(PlannedObligationHelper.KIND_OTHER))
+            incomeSourceSpinner.setSelection(0)
+        }
+
+        val selectedLinkedSourceId = {
+            val pos = incomeSourceSpinner.selectedItemPosition
+            if (pos <= 0) null else incomeSources.getOrNull(pos - 1)?.id
         }
 
         val updateAutoPostState = {
@@ -290,7 +354,12 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 } else {
                     PlannedObligationHelper.PERIOD_MONTHLY
                 }
-                val paychecks = paychecksSpinner.selectedItemPosition + 1
+                val paychecks = if (incomeSourceSpinner.selectedItemPosition > 0) {
+                    1
+                } else {
+                    paychecksSpinner.selectedItemPosition + 1
+                }
+                val linkedSourceId = selectedLinkedSourceId()
                 val draft = PlannedObligationEntity(
                     budgetId = 0,
                     name = "",
@@ -300,9 +369,15 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     paychecksPerMonth = paychecks,
                     dueMonth = 1,
                     dueDay = 1,
+                    linkedIncomeSourceId = linkedSourceId,
                 )
                 val per = PlannedObligationHelper.perPaycheck(draft)
-                previewLine.text = getString(R.string.obligations_preview, MoneyFormat.formatRub(per), paychecks)
+                previewLine.text = if (linkedSourceId != null) {
+                    val sourceName = incomeSources.firstOrNull { it.id == linkedSourceId }?.name.orEmpty()
+                    getString(R.string.obligations_preview_linked, MoneyFormat.formatRub(per), sourceName)
+                } else {
+                    getString(R.string.obligations_preview, MoneyFormat.formatRub(per), paychecks)
+                }
             }
         }
         periodSpinner.onItemSelectedListener = simpleItemSelected {
@@ -310,6 +385,10 @@ class PlannedObligationsActivity : AppCompatActivity() {
             updateAutoPostState()
         }
         paychecksSpinner.onItemSelectedListener = simpleItemSelected { updatePreview() }
+        incomeSourceSpinner.onItemSelectedListener = simpleItemSelected {
+            updatePaychecksVisibility()
+            updatePreview()
+        }
         amountInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -317,6 +396,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
         })
         updatePreview()
         updateAutoPostState()
+        updatePaychecksVisibility()
 
         AlertDialog.Builder(this)
             .setTitle(if (existing == null) R.string.obligations_add else R.string.obligations_edit)
@@ -336,6 +416,8 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 val catPos = categorySpinner.selectedItemPosition
                 val categoryId = if (catPos <= 0) 0 else leafCategories[catPos - 1].id
                 val isYearly = periodSpinner.selectedItemPosition == 1
+                val linkedSourceId = selectedLinkedSourceId()
+                val paychecks = if (linkedSourceId != null) 1 else paychecksSpinner.selectedItemPosition + 1
                 val entity = PlannedObligationEntity(
                     id = existing?.id ?: 0,
                     budgetId = budgetId,
@@ -343,12 +425,14 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     amount = amount,
                     periodType = period,
                     categoryId = categoryId,
-                    paychecksPerMonth = paychecksSpinner.selectedItemPosition + 1,
+                    paychecksPerMonth = paychecks,
                     dueMonth = if (isYearly) dueMonthSpinner.selectedItemPosition + 1 else 1,
                     dueDay = PlannedObligationHelper.dueDayFromSpinnerPosition(dueDaySpinner.selectedItemPosition),
                     createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                     remindEnabled = remindSwitch.isChecked && categoryId > 0,
                     autoPostEnabled = autoPostSwitch.isChecked && categoryId > 0,
+                    obligationKind = PlannedObligationHelper.kindFromSpinnerPosition(kindSpinner.selectedItemPosition),
+                    linkedIncomeSourceId = linkedSourceId,
                 )
                 lifecycleScope.launch(Dispatchers.IO) {
                     val savedId = if (existing == null) {
@@ -406,6 +490,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
     private class ObligationAdapter(
         private val monthNames: Array<String>,
         private val categoryName: (Int) -> String,
+        private val incomeSourceName: (Int?) -> String?,
         private val onEdit: (PlannedObligationEntity) -> Unit,
         private val onDelete: (PlannedObligationEntity) -> Unit,
     ) : RecyclerView.Adapter<ObligationAdapter.Holder>() {
@@ -418,6 +503,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
 
         class Holder(v: View) : RecyclerView.ViewHolder(v) {
             val name: TextView = v.findViewById(R.id.obligationName)
+            val kindBadge: TextView = v.findViewById(R.id.obligationKindBadge)
             val badge: TextView = v.findViewById(R.id.obligationPeriodBadge)
             val amountLine: TextView = v.findViewById(R.id.obligationAmountLine)
             val perPaycheckLine: TextView = v.findViewById(R.id.obligationPerPaycheckLine)
@@ -436,6 +522,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
             val ctx = holder.itemView.context
             val isYearly = item.periodType == PlannedObligationHelper.PERIOD_YEARLY
             holder.name.text = item.name
+            holder.kindBadge.text = PlannedObligationHelper.kindLabel(ctx, item.obligationKind)
             holder.badge.text = ctx.getString(
                 if (isYearly) R.string.obligations_period_yearly_short else R.string.obligations_period_monthly_short,
             )
@@ -444,11 +531,16 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 MoneyFormat.formatRub(item.amount),
             )
             val per = PlannedObligationHelper.perPaycheck(item)
-            holder.perPaycheckLine.text = ctx.getString(
-                R.string.obligations_item_per_paycheck,
-                MoneyFormat.formatRub(per),
-                item.paychecksPerMonth,
-            )
+            val linkedName = incomeSourceName(item.linkedIncomeSourceId)
+            holder.perPaycheckLine.text = if (!linkedName.isNullOrBlank()) {
+                ctx.getString(R.string.obligations_item_linked_paycheck, MoneyFormat.formatRub(per), linkedName)
+            } else {
+                ctx.getString(
+                    R.string.obligations_item_per_paycheck,
+                    MoneyFormat.formatRub(per),
+                    item.paychecksPerMonth,
+                )
+            }
             holder.categoryLine.text = ctx.getString(R.string.obligations_item_category, categoryName(item.categoryId))
             holder.dueLine.visibility = View.VISIBLE
             holder.dueLine.text = if (isYearly) {

@@ -117,6 +117,7 @@ class BackupManager(context: Context) {
             savingsGoals = dao.getAllSavingsGoalsForExport(),
             recurringTransactions = dao.getAllRecurringForExport(),
             plannedObligations = dao.getAllPlannedObligationsForExport(),
+            plannedIncomeSources = dao.getAllPlannedIncomeSourcesForExport(),
             utilityProperties = utilityDao.getAllPropertiesForExport(),
             utilityBills = utilityDao.getAllBillsForExport(),
             utilityBillPhotos = utilityDao.getAllBillPhotosForExport(),
@@ -182,6 +183,7 @@ class BackupManager(context: Context) {
         dao.deleteAllSavingsGoals()
         dao.deleteAllRecurring()
         dao.deleteAllPlannedObligations()
+        dao.deleteAllPlannedIncomeSources()
         dao.deleteAllCategories()
         dao.deleteAllBudgetProfiles()
         dao.deleteAllMonthlyPlans()
@@ -236,10 +238,27 @@ class BackupManager(context: Context) {
             }
         }
         val obligationIdMap = mutableMapOf<Int, Int>()
+        val incomeSourceIdMap = mutableMapOf<Int, Int>()
+        for (incomeSource in data.plannedIncomeSources) {
+            val budgetId = remapId(incomeSource.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
+            val sourceId = incomeSource.id
+            val newId = dao.insertPlannedIncomeSource(incomeSource.copy(id = 0, budgetId = budgetId)).toInt()
+            if (sourceId > 0) incomeSourceIdMap[sourceId] = newId
+        }
         for (obligation in data.plannedObligations) {
             val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
             val sourceId = obligation.id
-            val newId = dao.insertPlannedObligation(obligation.copy(id = 0, budgetId = budgetId)).toInt()
+            val linkedIncomeSourceId = obligation.linkedIncomeSourceId?.let { oldId ->
+                incomeSourceIdMap[oldId]
+            }
+            val newId = dao.insertPlannedObligation(
+                obligation.copy(
+                    id = 0,
+                    budgetId = budgetId,
+                    obligationKind = PlannedObligationHelper.normalizeKind(obligation.obligationKind),
+                    linkedIncomeSourceId = linkedIncomeSourceId,
+                ),
+            ).toInt()
             if (sourceId > 0) obligationIdMap[sourceId] = newId
         }
         fun remapObligationId(sourceId: Int?): Int? {
@@ -511,6 +530,7 @@ class BackupManager(context: Context) {
         savingsGoals = savingsGoals.orEmpty(),
         recurringTransactions = recurringTransactions.orEmpty(),
         plannedObligations = plannedObligations.orEmpty(),
+        plannedIncomeSources = plannedIncomeSources.orEmpty(),
         utilityProperties = utilityProperties.orEmpty(),
         utilityBills = utilityBills.orEmpty(),
         utilityBillPhotos = utilityBillPhotos.orEmpty(),
