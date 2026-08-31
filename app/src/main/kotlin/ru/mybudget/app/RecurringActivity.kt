@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +22,7 @@ import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.data.BudgetRepository
 import ru.mybudget.app.data.RecurringTransactionEntity
+import ru.mybudget.app.setup.RecurringPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,7 +41,12 @@ class RecurringActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_recurring)
-        ScreenHeaderHelper.setup(this, getString(R.string.reminders_recurring), getString(R.string.main_icon_recurring))
+        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_recurring), getString(R.string.main_icon_recurring))
+        val confirmSwitch = findViewById<SwitchCompat>(R.id.recurringConfirmSwitch)
+        confirmSwitch.isChecked = RecurringPreferences.isConfirmBeforeApply(this)
+        confirmSwitch.setOnCheckedChangeListener { _, checked ->
+            RecurringPreferences.setConfirmBeforeApply(this, checked)
+        }
         repository = BudgetRepository(BudgetDatabase.getInstance(this).budgetDao())
         manager = BudgetManager.getInstance(this)
         recycler = findViewById(R.id.recurringRecycler)
@@ -48,6 +55,10 @@ class RecurringActivity : AppCompatActivity() {
         recycler.adapter = adapter
         findViewById<View>(R.id.addRecurringButton).setOnClickListener { showAddDialog() }
         observeRecurring()
+        if (intent.getBooleanExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, false)) {
+            intent.removeExtra(PlanningEntryWizard.EXTRA_AUTO_ADD)
+            showAddDialog()
+        }
     }
 
     private fun observeRecurring() {
@@ -56,7 +67,7 @@ class RecurringActivity : AppCompatActivity() {
                 val empty = list.isEmpty()
                 recycler.visibility = if (empty) View.GONE else View.VISIBLE
                 emptyState.visibility = if (empty) View.VISIBLE else View.GONE
-                adapter.submit(list)
+                adapter.submit(list.filter { it.obligationId == null || it.obligationId == 0 })
             }
         }
     }

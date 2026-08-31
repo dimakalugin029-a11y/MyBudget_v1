@@ -110,5 +110,36 @@
             android:paddingTop="@dimen/space_4"
             android:textColor="@color/primary_green"
             style="@style/Text.MyBudget.Subtitle" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/obligationRemindSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_12"
+            android:minHeight="40dp"
+            android:text="@string/obligations_remind_switch"
+            android:textSize="14sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="52dp"
+            android:layout_marginBottom="@dimen/space_8"
+            android:text="@string/obligations_remind_switch_hint"
+            android:textSize="11sp"
+            style="@style/Text.MyBudget.Subtitle" />
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/obligationAutoPostSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/obligations_auto_post_switch"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/obligationAutoPostHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="52dp"
+            android:text="@string/obligations_auto_post_switch_hint"
+            android:textSize="11sp"
+            style="@style/Text.MyBudget.Subtitle" />
     </LinearLayout>
 </ScrollView>

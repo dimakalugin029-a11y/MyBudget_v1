@@ -327,13 +327,6 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"/>
                 <include
-                    android:id="@+id/remindersButton"
-                    layout="@layout/include_main_list_row"/>
-                <View
-                    android:background="@color/border_light"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"/>
-                <include
                     android:id="@+id/paymentCalendarButton"
                     layout="@layout/include_main_list_row"/>
                 <View
@@ -341,14 +334,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"/>
                 <include
-                    android:id="@+id/recurringButton"
+                    android:id="@+id/obligationsButton"
                     layout="@layout/include_main_list_row"/>
                 <View
                     android:background="@color/border_light"
                     android:layout_width="match_parent"
                     android:layout_height="1dp"/>
                 <include
-                    android:id="@+id/obligationsButton"
+                    android:id="@+id/recurringButton"
                     layout="@layout/include_main_list_row"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>

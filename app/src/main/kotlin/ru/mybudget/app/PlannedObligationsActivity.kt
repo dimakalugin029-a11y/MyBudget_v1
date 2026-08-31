@@ -12,6 +12,7 @@ import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.widget.SwitchCompat
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -56,12 +57,19 @@ class PlannedObligationsActivity : AppCompatActivity() {
             monthNames = monthNames,
             categoryName = { id -> categoryLabel(id) },
             onEdit = { showEditDialog(it) },
-            onCreateReminder = { createReminderFromObligation(it) },
             onDelete = { showDeleteDialog(it) },
         )
         findViewById<RecyclerView>(R.id.obligationsRecycler).apply {
             layoutManager = LinearLayoutManager(this@PlannedObligationsActivity)
             this.adapter = this@PlannedObligationsActivity.adapter
+        }
+        if (intent.getBooleanExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, false)) {
+            intent.removeExtra(PlanningEntryWizard.EXTRA_AUTO_ADD)
+            lifecycleScope.launch {
+                manager.getCategoriesAsync()
+                refreshLeaves()
+                showEditDialog(null)
+            }
         }
     }
 
@@ -167,26 +175,13 @@ class PlannedObligationsActivity : AppCompatActivity() {
         }
     }
 
-    private fun createReminderFromObligation(item: PlannedObligationEntity) {
-        if (item.categoryId <= 0) {
-            Toast.makeText(this, R.string.obligations_reminder_need_category, Toast.LENGTH_LONG).show()
-            return
-        }
-        val reminder = ObligationReminderHelper.buildReminder(item, categoryLabel(item.categoryId)) ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            manager.repository.insertReminder(reminder)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@PlannedObligationsActivity, R.string.obligations_reminder_created, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     private fun showDeleteDialog(item: PlannedObligationEntity) {
         AlertDialog.Builder(this)
             .setTitle(R.string.obligations_delete_title)
             .setMessage(getString(R.string.obligations_delete_msg, item.name))
             .setPositiveButton(R.string.budget_delete_selected) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
+                    ObligationLinkedSync.onDeleted(manager.repository, item.id)
                     manager.repository.deletePlannedObligation(item.id)
                     withContext(Dispatchers.Main) {
                         if (item.categoryId > 0) {
@@ -230,6 +225,8 @@ class PlannedObligationsActivity : AppCompatActivity() {
         val categorySpinner = inflate.findViewById<Spinner>(R.id.obligationCategorySpinner)
         val paychecksSpinner = inflate.findViewById<Spinner>(R.id.obligationPaychecksSpinner)
         val previewLine = inflate.findViewById<TextView>(R.id.obligationPreviewLine)
+        val remindSwitch = inflate.findViewById<SwitchCompat>(R.id.obligationRemindSwitch)
+        val autoPostSwitch = inflate.findViewById<SwitchCompat>(R.id.obligationAutoPostSwitch)
 
         periodSpinner.adapter = ArrayAdapter(
             this,
@@ -268,9 +265,18 @@ class PlannedObligationsActivity : AppCompatActivity() {
             val catIndex = leafCategories.indexOfFirst { it.id == existing.categoryId }
             categorySpinner.setSelection(if (catIndex >= 0) catIndex + 1 else 0)
             paychecksSpinner.setSelection((existing.paychecksPerMonth - 1).coerceIn(0, 3))
+            remindSwitch.isChecked = existing.remindEnabled
+            autoPostSwitch.isChecked = existing.autoPostEnabled
         } else {
             paychecksSpinner.setSelection((ObligationPreferences.getPaychecksPerMonth(this) - 1).coerceIn(0, 3))
             dueDaySpinner.setSelection(PlannedObligationHelper.dueDaySpinnerPosition(1))
+            remindSwitch.isChecked = true
+        }
+
+        val updateAutoPostState = {
+            val yearly = periodSpinner.selectedItemPosition == 1
+            autoPostSwitch.isEnabled = !yearly
+            if (yearly) autoPostSwitch.isChecked = false
         }
 
         val updatePreview = {
@@ -299,7 +305,10 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 previewLine.text = getString(R.string.obligations_preview, MoneyFormat.formatRub(per), paychecks)
             }
         }
-        periodSpinner.onItemSelectedListener = simpleItemSelected { updatePreview() }
+        periodSpinner.onItemSelectedListener = simpleItemSelected {
+            updatePreview()
+            updateAutoPostState()
+        }
         paychecksSpinner.onItemSelectedListener = simpleItemSelected { updatePreview() }
         amountInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -307,6 +316,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) { updatePreview() }
         })
         updatePreview()
+        updateAutoPostState()
 
         AlertDialog.Builder(this)
             .setTitle(if (existing == null) R.string.obligations_add else R.string.obligations_edit)
@@ -337,13 +347,17 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     dueMonth = if (isYearly) dueMonthSpinner.selectedItemPosition + 1 else 1,
                     dueDay = PlannedObligationHelper.dueDayFromSpinnerPosition(dueDaySpinner.selectedItemPosition),
                     createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                    remindEnabled = remindSwitch.isChecked && categoryId > 0,
+                    autoPostEnabled = autoPostSwitch.isChecked && categoryId > 0,
                 )
                 lifecycleScope.launch(Dispatchers.IO) {
-                    if (existing == null) {
-                        manager.repository.insertPlannedObligation(entity)
+                    val savedId = if (existing == null) {
+                        manager.repository.insertPlannedObligation(entity).toInt()
                     } else {
                         manager.repository.updatePlannedObligation(entity)
+                        entity.id
                     }
+                    ObligationLinkedSync.sync(manager.repository, entity.copy(id = savedId))
                     withContext(Dispatchers.Main) {
                         if (entity.categoryId > 0) {
                             syncDefaultAmounts(showEmptyToast = false, showSuccessToast = false) {
@@ -393,7 +407,6 @@ class PlannedObligationsActivity : AppCompatActivity() {
         private val monthNames: Array<String>,
         private val categoryName: (Int) -> String,
         private val onEdit: (PlannedObligationEntity) -> Unit,
-        private val onCreateReminder: (PlannedObligationEntity) -> Unit,
         private val onDelete: (PlannedObligationEntity) -> Unit,
     ) : RecyclerView.Adapter<ObligationAdapter.Holder>() {
         private var items: List<PlannedObligationEntity> = emptyList()
@@ -410,6 +423,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
             val perPaycheckLine: TextView = v.findViewById(R.id.obligationPerPaycheckLine)
             val categoryLine: TextView = v.findViewById(R.id.obligationCategoryLine)
             val dueLine: TextView = v.findViewById(R.id.obligationDueLine)
+            val flagsLine: TextView = v.findViewById(R.id.obligationFlagsLine)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -449,6 +463,16 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     PlannedObligationHelper.dueDayLabel(ctx, item.dueDay),
                 )
             }
+            val flags = buildList {
+                if (item.remindEnabled) add(ctx.getString(R.string.obligations_flags_remind))
+                if (item.autoPostEnabled) add(ctx.getString(R.string.obligations_flags_auto))
+            }
+            if (flags.isEmpty()) {
+                holder.flagsLine.visibility = View.GONE
+            } else {
+                holder.flagsLine.visibility = View.VISIBLE
+                holder.flagsLine.text = flags.joinToString(" · ")
+            }
             holder.itemView.setOnClickListener { onEdit(item) }
             holder.itemView.setOnLongClickListener {
                 AlertDialog.Builder(ctx)
@@ -456,14 +480,12 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     .setItems(
                         arrayOf(
                             ctx.getString(R.string.obligations_edit),
-                            ctx.getString(R.string.obligations_create_reminder),
                             ctx.getString(R.string.budget_delete_selected),
                         ),
                     ) { _, which ->
                         when (which) {
                             0 -> onEdit(item)
-                            1 -> onCreateReminder(item)
-                            2 -> onDelete(item)
+                            1 -> onDelete(item)
                         }
                     }
                     .show()

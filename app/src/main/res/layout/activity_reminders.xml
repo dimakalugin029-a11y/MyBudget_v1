@@ -34,37 +34,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/reminders_chip_calendar"
-                android:layout_marginEnd="@dimen/space_6"
-                style="@style/Chip.MyBudget.Filter"/>
-            <TextView
-                android:id="@+id/recurringButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/reminders_chip_recurring"
                 style="@style/Chip.MyBudget.Filter"/>
         </LinearLayout>
     </HorizontalScrollView>
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:paddingVertical="@dimen/space_2">
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/recurringConfirmSwitch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="40dp"
-            android:text="@string/recurring_confirm_switch_short"
-            android:textSize="13sp"/>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="52dp"
-            android:text="@string/recurring_confirm_hint"
-            android:textSize="11sp"
-            style="@style/Text.MyBudget.Subtitle"/>
-    </LinearLayout>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/remindersRecyclerView"
         android:paddingBottom="@dimen/space_8"

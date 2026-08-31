@@ -65,9 +65,19 @@ class PaymentCalendarActivity : AppCompatActivity() {
         setContentView(R.layout.activity_payment_calendar)
         ScreenHeaderHelper.setup(
             this,
-            getString(R.string.upcoming_payments_title),
-            getString(R.string.main_icon_reminders),
+            getString(R.string.payment_calendar_title),
+            getString(R.string.main_icon_payment_calendar),
         )
+        ScreenHeaderHelper.bindAction(
+            this,
+            android.R.drawable.ic_input_add,
+            R.string.payment_calendar_add_plan,
+        ) { PlanningEntryWizard.show(this) }
+        ScreenHeaderHelper.bindSecondaryAction(
+            this,
+            android.R.drawable.ic_menu_recent_history,
+            R.string.payment_calendar_open_reminders,
+        ) { startActivity(Intent(this, RemindersActivity::class.java)) }
         budgetManager = BudgetManager.getInstance(this)
         filterAll = findViewById(R.id.paymentFilterAll)
         filterReminders = findViewById(R.id.paymentFilterReminders)
@@ -268,7 +278,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 labels += getString(R.string.payment_calendar_action_pay)
                 handlers += { payObligation(entry) }
                 labels += getString(R.string.payment_calendar_action_open)
-                handlers += { startActivity(Intent(this, PlanFactActivity::class.java)) }
+                handlers += { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
             }
         }
         val message = buildString {

@@ -14,10 +14,8 @@ import java.util.Calendar
 import java.util.Locale
 
 data class MainDashboardSummary(
-    val remindersLine: String? = null,
     val overspendLine: String? = null,
     val utilitiesLine: String? = null,
-    val obligationsLine: String? = null,
     val pendingDistributionLine: String? = null,
     val upcomingPaymentsLine: String? = null,
     val goalsLine: String? = null,
@@ -31,16 +29,6 @@ object MainDashboardHelper {
         val todayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val today = todayFmt.format(Calendar.getInstance().time)
 
-        val upcomingReminders = dao.getUpcomingReminders(today, 3)
-        val remindersLine = if (upcomingReminders.isEmpty()) {
-            null
-        } else {
-            upcomingReminders.joinToString(" · ") { reminder ->
-                val title = reminder.title.ifBlank { context.getString(R.string.reminder_default_title) }
-                "${reminder.dueDate}: $title"
-            }
-        }
-
         val overspendCount = countOverspentCategories(context, budgetManager)
         val overspendLine = if (overspendCount > 0) {
             context.resources.getQuantityString(R.plurals.main_overspend_summary, overspendCount, overspendCount)
@@ -52,15 +40,6 @@ object MainDashboardHelper {
 
         val activeId = budgetManager.getActiveBudgetId()
         val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
-        val obligationsLine = if (obligations.isEmpty()) {
-            null
-        } else {
-            context.getString(
-                R.string.main_obligations_summary,
-                MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
-                MoneyFormat.formatRub(PlannedObligationHelper.totalPerPaycheck(obligations)),
-            )
-        }
 
         val pending = PendingDistributionPreferences.getPending(context)
         val pendingDistributionLine = if (pending != null && pending.budgetId == activeId && pending.amount > 0.01) {
@@ -103,20 +82,33 @@ object MainDashboardHelper {
             utilityPaymentDays = utilityPaymentDays,
         ).size
         val upcomingPaymentsLine = if (calendarCount > 0) {
-            context.resources.getQuantityString(
+            val base = context.resources.getQuantityString(
                 R.plurals.main_upcoming_payments_summary,
                 calendarCount,
                 calendarCount,
+            )
+            if (obligations.isEmpty()) {
+                base
+            } else {
+                context.getString(
+                    R.string.main_upcoming_with_obligations,
+                    base,
+                    MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
+                )
+            }
+        } else if (obligations.isNotEmpty()) {
+            context.getString(
+                R.string.main_obligations_summary,
+                MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
+                MoneyFormat.formatRub(PlannedObligationHelper.totalPerPaycheck(obligations)),
             )
         } else {
             null
         }
 
         return MainDashboardSummary(
-            remindersLine = remindersLine,
             overspendLine = overspendLine,
             utilitiesLine = utilitiesLine,
-            obligationsLine = obligationsLine,
             pendingDistributionLine = pendingDistributionLine,
             upcomingPaymentsLine = upcomingPaymentsLine,
             goalsLine = buildUrgentGoalsLine(context, budgetManager),

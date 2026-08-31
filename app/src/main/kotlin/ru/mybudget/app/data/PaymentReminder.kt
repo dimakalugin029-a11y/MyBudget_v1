@@ -15,6 +15,7 @@ data class PaymentReminder(
     val repeatType: String,
     val isCompleted: Boolean = false,
     val createdAt: Date = Date(),
+    val obligationId: Int = 0,
 ) {
     fun toPaymentReminderEntity(): PaymentReminderEntity {
         val format = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -27,6 +28,7 @@ data class PaymentReminder(
             repeatType = repeatType,
             isActive = !isCompleted,
             createdAt = createdAt.time,
+            obligationId = obligationId.takeIf { it > 0 },
         )
     }
 

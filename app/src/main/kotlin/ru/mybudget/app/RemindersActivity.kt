@@ -14,7 +14,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,7 +21,6 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.mybudget.app.data.PaymentReminder
-import ru.mybudget.app.setup.RecurringPreferences
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -56,14 +54,6 @@ class RemindersActivity : AppCompatActivity() {
         bindChip(R.id.paymentCalendarButton) {
             startActivity(Intent(this, PaymentCalendarActivity::class.java))
         }
-        bindChip(R.id.recurringButton) {
-            startActivity(Intent(this, RecurringActivity::class.java))
-        }
-        val confirmSwitch = findViewById<SwitchCompat>(R.id.recurringConfirmSwitch)
-        confirmSwitch.isChecked = RecurringPreferences.isConfirmBeforeApply(this)
-        confirmSwitch.setOnCheckedChangeListener { _, checked ->
-            RecurringPreferences.setConfirmBeforeApply(this, checked)
-        }
         adapter = RemindersAdapter()
         findViewById<RecyclerView>(R.id.remindersRecyclerView).apply {
             layoutManager = LinearLayoutManager(this@RemindersActivity)
@@ -73,13 +63,22 @@ class RemindersActivity : AppCompatActivity() {
             manager.getCategoriesAsync()
             manager.repository.getAllReminders().collectLatest { list ->
                 val names = manager.getCategories().associate { it.id to it.name }
-                val rows = list.map { reminder ->
+                val rows = list
+                    .filter { it.obligationId <= 0 }
+                    .map { reminder ->
                     reminder.copy(categoryName = names[reminder.categoryId.toInt()].orEmpty())
                 }
                 adapter.submit(rows)
                 val empty = rows.isEmpty()
                 findViewById<View>(R.id.remindersRecyclerView).visibility = if (empty) View.GONE else View.VISIBLE
                 findViewById<View>(R.id.remindersEmptyState).visibility = if (empty) View.VISIBLE else View.GONE
+            }
+        }
+        if (intent.getBooleanExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, false)) {
+            intent.removeExtra(PlanningEntryWizard.EXTRA_AUTO_ADD)
+            lifecycleScope.launch {
+                manager.getCategoriesAsync()
+                showReminderDialog(null)
             }
         }
     }
@@ -89,6 +88,10 @@ class RemindersActivity : AppCompatActivity() {
     }
 
     private fun showReminderDialog(existing: PaymentReminder?) {
+        if (existing != null && existing.obligationId > 0) {
+            Toast.makeText(this, R.string.reminder_linked_obligation, Toast.LENGTH_LONG).show()
+            return
+        }
         val leaves = manager.getCategoriesForExpenses()
         if (leaves.isEmpty()) {
             Toast.makeText(this, R.string.error_no_categories, Toast.LENGTH_LONG).show()

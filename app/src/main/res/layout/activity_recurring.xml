@@ -12,14 +12,29 @@
     <include
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
-    <TextView
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/reminders_recurring"
-        style="@style/Text.MyBudget.SectionLabel"/>
+        android:layout_marginBottom="@dimen/space_12"
+        android:paddingVertical="@dimen/space_2">
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/recurringConfirmSwitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/recurring_confirm_switch_short"
+            android:textSize="13sp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="52dp"
+            android:text="@string/recurring_confirm_hint"
+            android:textSize="11sp"
+            style="@style/Text.MyBudget.Subtitle"/>
+    </LinearLayout>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addRecurringButton"
         android:layout_width="match_parent"

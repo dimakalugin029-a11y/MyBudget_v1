@@ -195,6 +195,18 @@ abstract class BudgetDao {
     @Query("SELECT * FROM payment_reminders WHERE id = :id")
     abstract suspend fun getReminderById(id: Int): PaymentReminderEntity?
 
+    @Query("SELECT * FROM payment_reminders WHERE obligationId = :obligationId LIMIT 1")
+    abstract suspend fun getReminderByObligationId(obligationId: Int): PaymentReminderEntity?
+
+    @Query("DELETE FROM payment_reminders WHERE obligationId = :obligationId")
+    abstract suspend fun deleteRemindersByObligationId(obligationId: Int)
+
+    @Query("SELECT * FROM recurring_transactions WHERE obligationId = :obligationId LIMIT 1")
+    abstract suspend fun getRecurringByObligationId(obligationId: Int): RecurringTransactionEntity?
+
+    @Query("DELETE FROM recurring_transactions WHERE obligationId = :obligationId")
+    abstract suspend fun deleteRecurringByObligationId(obligationId: Int)
+
     @Query("SELECT * FROM payment_reminders WHERE isActive = 1 AND dueDate = :today")
     abstract suspend fun getRemindersDueToday(today: String): List<PaymentReminderEntity>
 

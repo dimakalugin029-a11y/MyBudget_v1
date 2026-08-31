@@ -69,7 +69,7 @@ data class BackupData(
     @SerializedName("auditActions") val auditActions: List<AuditActionEntity> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 12
+        const val CURRENT_VERSION = 13
     }
 }
 

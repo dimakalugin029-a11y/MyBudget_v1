@@ -14,6 +14,9 @@ import ru.mybudget.app.data.migration.Migration23To24
 import ru.mybudget.app.data.migration.Migration24To25
 import ru.mybudget.app.data.migration.Migration25To26
 import ru.mybudget.app.data.migration.Migration26To27
+import ru.mybudget.app.data.migration.Migration28To29
+import ru.mybudget.app.data.migration.Migration29To30
+import ru.mybudget.app.data.migration.Migration30To31
 import ru.mybudget.app.data.migration.Migration27To28
 
 @Database(
@@ -38,7 +41,7 @@ import ru.mybudget.app.data.migration.Migration27To28
         UtilityTariffEntity::class,
         UtilityPropertyEntity::class,
     ],
-    version = 28,
+    version = 31,
     exportSchema = false,
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -405,6 +408,9 @@ abstract class BudgetDatabase : RoomDatabase() {
             Migration25To26.MIGRATION,
             Migration26To27.MIGRATION,
             Migration27To28.MIGRATION,
+            Migration28To29.MIGRATION,
+            Migration29To30.MIGRATION,
+            Migration30To31.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {

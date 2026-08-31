@@ -74,7 +74,7 @@ data class TransactionEntity(
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("categoryId")],
+    indices = [Index("categoryId"), Index("obligationId")],
 )
 data class PaymentReminderEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -85,6 +85,7 @@ data class PaymentReminderEntity(
     val repeatType: String,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "NULL") val obligationId: Int? = null,
 ) {
     fun toPaymentReminder(categoryName: String = ""): PaymentReminder {
         val parsedDue = runCatching {
@@ -99,6 +100,7 @@ data class PaymentReminderEntity(
             dueDate = parsedDue,
             repeatType = repeatType,
             isCompleted = !isActive,
+            obligationId = obligationId ?: 0,
         )
     }
 }
@@ -134,7 +136,7 @@ data class SavingsGoalEntity(
             onDelete = ForeignKey.RESTRICT,
         ),
     ],
-    indices = [Index("categoryId")],
+    indices = [Index("categoryId"), Index("obligationId")],
 )
 data class RecurringTransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -146,6 +148,7 @@ data class RecurringTransactionEntity(
     val nextDueDate: String,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "NULL") val obligationId: Int? = null,
 )
 
 @Entity(
@@ -173,6 +176,8 @@ data class PlannedObligationEntity(
     val note: String = "",
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "0") val remindEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val autoPostEnabled: Boolean = false,
 )
 
 @Entity(

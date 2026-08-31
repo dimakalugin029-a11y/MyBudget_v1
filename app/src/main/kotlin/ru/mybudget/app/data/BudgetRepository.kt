@@ -230,6 +230,22 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun deleteReminder(id: Long) = budgetDao.deleteReminder(id.toInt())
 
+    suspend fun insertReminderEntity(entity: PaymentReminderEntity) = budgetDao.insertReminder(entity)
+
+    suspend fun updateReminderEntity(entity: PaymentReminderEntity) = budgetDao.updateReminder(entity)
+
+    suspend fun getReminderByObligationId(obligationId: Int): PaymentReminderEntity? =
+        budgetDao.getReminderByObligationId(obligationId)
+
+    suspend fun deleteReminderByObligationId(obligationId: Int) =
+        budgetDao.deleteRemindersByObligationId(obligationId)
+
+    suspend fun getRecurringByObligationId(obligationId: Int): RecurringTransactionEntity? =
+        budgetDao.getRecurringByObligationId(obligationId)
+
+    suspend fun deleteRecurringByObligationId(obligationId: Int) =
+        budgetDao.deleteRecurringByObligationId(obligationId)
+
     suspend fun getReminderById(id: Int): PaymentReminderEntity? = budgetDao.getReminderById(id)
 
     suspend fun deleteAllCategories() = budgetDao.deleteAllCategories()
@@ -262,6 +278,8 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun insertRecurring(r: RecurringTransactionEntity) = budgetDao.insertRecurring(r)
 
+    suspend fun updateRecurring(r: RecurringTransactionEntity) = budgetDao.updateRecurring(r)
+
     suspend fun updateRecurringNextDate(id: Int, next: String) = budgetDao.updateRecurringNextDate(id, next)
 
     suspend fun deleteRecurring(id: Int) = budgetDao.deleteRecurring(id)
@@ -273,6 +291,9 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
     suspend fun getPlannedObligationsByBudgetOnce(budgetId: Int): List<PlannedObligationEntity> {
         return budgetDao.getPlannedObligationsByBudgetOnce(budgetId)
     }
+
+    suspend fun getAllPlannedObligationsForExport(): List<PlannedObligationEntity> =
+        budgetDao.getAllPlannedObligationsForExport()
 
     suspend fun insertPlannedObligation(obligation: PlannedObligationEntity): Long {
         return budgetDao.insertPlannedObligation(obligation)

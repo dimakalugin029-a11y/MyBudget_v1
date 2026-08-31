@@ -71,6 +71,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_2"
             style="@style/Text.MyBudget.Subtitle"/>
+        <TextView
+            android:textSize="12sp"
+            android:id="@+id/obligationFlagsLine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_4"
+            android:textColor="@color/budget_blue"
+            style="@style/Text.MyBudget.Subtitle"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -51,10 +51,9 @@ class MainActivity : AppCompatActivity() {
         bindRow(R.id.statisticsButton, R.string.main_icon_statistics, R.string.main_menu_statistics, StatisticsActivity::class.java)
         bindRow(R.id.expensePlanButton, R.string.main_icon_expense_plan, R.string.main_menu_expense_plan, ExpensePlanActivity::class.java)
         bindRow(R.id.goalsButton, R.string.main_icon_goals, R.string.main_menu_goals, GoalsActivity::class.java)
-        bindRow(R.id.remindersButton, R.string.main_icon_reminders, R.string.main_menu_reminders, RemindersActivity::class.java)
         bindRow(R.id.paymentCalendarButton, R.string.main_icon_payment_calendar, R.string.main_menu_payment_calendar, PaymentCalendarActivity::class.java)
-        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
         bindRow(R.id.obligationsButton, R.string.main_icon_obligations, R.string.main_menu_obligations, PlannedObligationsActivity::class.java)
+        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
         bindRow(R.id.utilitiesButton, R.string.main_icon_utilities, R.string.main_menu_utilities, UtilitiesActivity::class.java)
         ReminderScheduler.ensureScheduled(this)
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)
@@ -111,6 +110,10 @@ class MainActivity : AppCompatActivity() {
                 totalAllView.visibility = View.GONE
             }
             val summary = withContext(Dispatchers.IO) {
+                ObligationUpgradeHelper.runLinkedSyncOnceIfNeeded(
+                    this@MainActivity,
+                    manager.repository,
+                )
                 MainDashboardHelper.loadSummary(this@MainActivity, manager)
             }
             bindAttentionSection(summary)
@@ -145,12 +148,6 @@ class MainActivity : AppCompatActivity() {
             title = summary.upcomingPaymentsLine,
         ) { startActivity(Intent(this, PaymentCalendarActivity::class.java)) }
         bindAttentionRow(
-            containerId = R.id.mainAttentionReminders,
-            rowId = R.id.mainAttentionRemindersRow,
-            icon = "🔔",
-            title = summary.remindersLine,
-        ) { startActivity(Intent(this, RemindersActivity::class.java)) }
-        bindAttentionRow(
             containerId = R.id.mainAttentionGoals,
             rowId = R.id.mainAttentionGoalsRow,
             icon = "🎯",
@@ -162,21 +159,13 @@ class MainActivity : AppCompatActivity() {
             icon = "🏠",
             title = summary.utilitiesLine,
         ) { startActivity(Intent(this, UtilitiesActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionObligations,
-            rowId = R.id.mainAttentionObligationsRow,
-            icon = "📆",
-            title = summary.obligationsLine,
-        ) { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
 
         val anyVisible = listOf(
             R.id.mainAttentionPending,
             R.id.mainAttentionOverspend,
             R.id.mainAttentionUpcoming,
-            R.id.mainAttentionReminders,
             R.id.mainAttentionGoals,
             R.id.mainAttentionUtilities,
-            R.id.mainAttentionObligations,
         ).any { findViewById<View>(it).visibility == View.VISIBLE }
         findViewById<View>(R.id.mainAttentionSection).visibility =
             if (anyVisible) View.VISIBLE else View.GONE

@@ -39,6 +39,7 @@ object PaymentCalendarHelper {
         val subtitle: String,
         val amount: Double?,
         val kind: EntryKind,
+        val categoryId: Int = 0,
         val sourceRef: SourceRef = SourceRef(),
     )
 
@@ -71,6 +72,7 @@ object PaymentCalendarHelper {
                 subtitle = if (category == null) "" else "Подстатья: $category",
                 amount = reminder.amount,
                 kind = EntryKind.REMINDER,
+                categoryId = reminder.categoryId,
                 sourceRef = SourceRef(reminderId = reminder.id),
             )
         }
@@ -87,6 +89,7 @@ object PaymentCalendarHelper {
                 subtitle = if (category == null) "" else "Подстатья: $category",
                 amount = item.amount,
                 kind = EntryKind.RECURRING,
+                categoryId = item.categoryId,
                 sourceRef = SourceRef(recurringId = item.id),
             )
         }
@@ -125,7 +128,9 @@ object PaymentCalendarHelper {
             }
         }
 
-        return result.sortedWith(compareBy({ it.epochDay }, { it.title }))
+        return dedupeOverlappingEntries(
+            result.sortedWith(compareBy({ it.epochDay }, { it.title })),
+        )
     }
 
     private fun addUtilityPaymentEntries(
@@ -205,9 +210,50 @@ object PaymentCalendarHelper {
             subtitle = sb.toString(),
             amount = ob.amount,
             kind = EntryKind.OBLIGATION,
+            categoryId = ob.categoryId,
             sourceRef = SourceRef(obligationId = ob.id),
         )
     }
+
+    internal data class CalendarDedupeKey(
+        val epochDay: Long,
+        val categoryId: Int,
+        val amount: Double,
+    )
+
+    internal fun dedupeOverlappingEntries(entries: List<Entry>): List<Entry> {
+        val obligationKeys = entries
+            .filter { entry ->
+                entry.kind == EntryKind.OBLIGATION &&
+                    entry.categoryId > 0 &&
+                    entry.amount != null &&
+                    entry.amount > 0.0
+            }
+            .map { calendarDedupeKey(it) }
+            .toSet()
+        if (obligationKeys.isEmpty()) return entries
+        return entries.filter { entry ->
+            when (entry.kind) {
+                EntryKind.REMINDER, EntryKind.RECURRING -> {
+                    if (entry.categoryId <= 0 || entry.amount == null || entry.amount <= 0.0) {
+                        return@filter true
+                    }
+                    calendarDedupeKey(entry) !in obligationKeys
+                }
+                else -> true
+            }
+        }
+    }
+
+    internal fun calendarDedupeKey(entry: Entry): CalendarDedupeKey {
+        return CalendarDedupeKey(
+            epochDay = entry.epochDay,
+            categoryId = entry.categoryId,
+            amount = roundAmount(entry.amount ?: 0.0),
+        )
+    }
+
+    private fun roundAmount(value: Double): Double = kotlin.math.round(value * 100.0) / 100.0
 
     fun parseDateEpochDay(dateStr: String): Long? {
         return runCatching { LocalDate.parse(dateStr, isoFmt).toEpochDay() }.getOrNull()

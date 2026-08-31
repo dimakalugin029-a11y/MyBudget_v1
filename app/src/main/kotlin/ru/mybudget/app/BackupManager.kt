@@ -13,6 +13,7 @@ import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.BudgetCategoryEntity
 import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.BudgetDatabase
+import ru.mybudget.app.data.BudgetRepository
 import ru.mybudget.app.data.BudgetProfileEntity
 import ru.mybudget.app.data.PaymentReminderEntity
 import ru.mybudget.app.data.PlannedObligationEntity
@@ -234,9 +235,24 @@ class BackupManager(context: Context) {
                 dao.insertTransaction(normalizeTransaction(transaction))
             }
         }
+        val obligationIdMap = mutableMapOf<Int, Int>()
+        for (obligation in data.plannedObligations) {
+            val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
+            val sourceId = obligation.id
+            val newId = dao.insertPlannedObligation(obligation.copy(id = 0, budgetId = budgetId)).toInt()
+            if (sourceId > 0) obligationIdMap[sourceId] = newId
+        }
+        fun remapObligationId(sourceId: Int?): Int? {
+            if (sourceId == null || sourceId <= 0) return null
+            return obligationIdMap[sourceId]
+        }
         for (reminder in data.reminders) {
             if (reminder.categoryId in insertedCategoryIds) {
-                dao.insertReminder(normalizeReminder(reminder))
+                dao.insertReminder(
+                    normalizeReminder(reminder).copy(
+                        obligationId = remapObligationId(reminder.obligationId),
+                    ),
+                )
             }
         }
         for (goal in data.savingsGoals) {
@@ -246,12 +262,13 @@ class BackupManager(context: Context) {
         }
         for (recurring in data.recurringTransactions) {
             if (recurring.categoryId in insertedCategoryIds) {
-                dao.insertRecurring(recurring.copy(id = 0))
+                dao.insertRecurring(
+                    recurring.copy(
+                        id = 0,
+                        obligationId = remapObligationId(recurring.obligationId),
+                    ),
+                )
             }
-        }
-        for (obligation in data.plannedObligations) {
-            val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
-            dao.insertPlannedObligation(obligation.copy(id = 0, budgetId = budgetId))
         }
         for (plan in data.monthlyCategoryPlans) {
             if (plan.categoryId in insertedCategoryIds) {
@@ -402,6 +419,11 @@ class BackupManager(context: Context) {
                 utilityDao.upsertTariff(tariff.copy(id = 0, templateLineId = lineId))
             }
         }
+
+        val repository = BudgetRepository(dao)
+        dao.getAllPlannedObligationsForExport()
+            .filter { it.isActive && (it.remindEnabled || it.autoPostEnabled) }
+            .forEach { ObligationLinkedSync.sync(repository, it) }
 
         val preferredOldId = data.budgetProfiles.firstOrNull { it.id > 0 }?.id
         return preferredOldId?.let { profileIdMap[it] } ?: fallbackProfileId

@@ -181,6 +181,148 @@ object Migration27To28 {
     }
 }
 
+object Migration28To29 {
+    val MIGRATION: Migration = object : Migration(28, 29) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE planned_obligations ADD COLUMN remindEnabled INTEGER NOT NULL DEFAULT 0",
+            )
+            database.execSQL(
+                "ALTER TABLE planned_obligations ADD COLUMN autoPostEnabled INTEGER NOT NULL DEFAULT 0",
+            )
+            database.execSQL(
+                "ALTER TABLE payment_reminders ADD COLUMN obligationId INTEGER DEFAULT NULL",
+            )
+            database.execSQL(
+                "ALTER TABLE recurring_transactions ADD COLUMN obligationId INTEGER DEFAULT NULL",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_payment_reminders_obligationId ON payment_reminders (obligationId)",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_recurring_transactions_obligationId ON recurring_transactions (obligationId)",
+            )
+        }
+    }
+}
+
+object Migration29To30 {
+    val MIGRATION: Migration = object : Migration(29, 30) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            recreatePaymentReminders(database)
+            recreateRecurringTransactions(database)
+        }
+
+        private fun recreatePaymentReminders(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS payment_reminders_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    title TEXT NOT NULL,
+                    amount REAL NOT NULL,
+                    categoryId INTEGER NOT NULL,
+                    dueDate TEXT NOT NULL,
+                    repeatType TEXT NOT NULL,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    obligationId INTEGER DEFAULT NULL,
+                    FOREIGN KEY(categoryId) REFERENCES categories(id)
+                        ON UPDATE NO ACTION ON DELETE RESTRICT
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO payment_reminders_new (
+                    id, title, amount, categoryId, dueDate, repeatType, isActive, createdAt, obligationId
+                )
+                SELECT id, title, amount, categoryId, dueDate, repeatType, isActive, createdAt, obligationId
+                FROM payment_reminders
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE payment_reminders")
+            database.execSQL("ALTER TABLE payment_reminders_new RENAME TO payment_reminders")
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_payment_reminders_categoryId ON payment_reminders (categoryId)",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_payment_reminders_obligationId ON payment_reminders (obligationId)",
+            )
+        }
+
+        private fun recreateRecurringTransactions(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS recurring_transactions_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    categoryId INTEGER NOT NULL,
+                    amount REAL NOT NULL,
+                    type TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    repeatType TEXT NOT NULL,
+                    nextDueDate TEXT NOT NULL,
+                    isActive INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    obligationId INTEGER DEFAULT NULL,
+                    FOREIGN KEY(categoryId) REFERENCES categories(id)
+                        ON UPDATE NO ACTION ON DELETE RESTRICT
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO recurring_transactions_new (
+                    id, categoryId, amount, type, description, repeatType, nextDueDate, isActive, createdAt, obligationId
+                )
+                SELECT id, categoryId, amount, type, description, repeatType, nextDueDate, isActive, createdAt, obligationId
+                FROM recurring_transactions
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE recurring_transactions")
+            database.execSQL("ALTER TABLE recurring_transactions_new RENAME TO recurring_transactions")
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_recurring_transactions_categoryId ON recurring_transactions (categoryId)",
+            )
+            database.execSQL(
+                "CREATE INDEX IF NOT EXISTS index_recurring_transactions_obligationId ON recurring_transactions (obligationId)",
+            )
+        }
+    }
+}
+
+object Migration30To31 {
+    val MIGRATION: Migration = object : Migration(30, 31) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                UPDATE planned_obligations
+                SET remindEnabled = 1
+                WHERE isActive = 1 AND categoryId > 0 AND remindEnabled = 0
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                UPDATE payment_reminders
+                SET obligationId = (
+                    SELECT o.id FROM planned_obligations o
+                    WHERE o.isActive = 1
+                      AND o.categoryId = payment_reminders.categoryId
+                      AND ABS(o.amount - payment_reminders.amount) < 0.01
+                      AND (
+                        o.name = payment_reminders.title
+                        OR payment_reminders.title LIKE o.name || '%'
+                      )
+                    ORDER BY o.id
+                    LIMIT 1
+                )
+                WHERE obligationId IS NULL
+                  AND isActive = 1
+                """.trimIndent(),
+            )
+        }
+    }
+}
+
 private const val CREATE_AUDIT_ACTIONS = """
 CREATE TABLE IF NOT EXISTS audit_actions (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
