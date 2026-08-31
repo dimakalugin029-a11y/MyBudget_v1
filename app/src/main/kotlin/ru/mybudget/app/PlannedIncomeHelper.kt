@@ -149,30 +149,39 @@ object PlannedIncomeHelper {
         }
     }
 
-    fun buildDashboardLine(
+    fun buildDashboardAttention(
         context: Context,
         incomeMonthly: Double,
         obligationsMonthly: Double,
-    ): String? {
+    ): AttentionLine? {
         if (incomeMonthly <= 0.0 && obligationsMonthly <= 0.0) return null
         if (incomeMonthly <= 0.0) {
-            return context.getString(
-                R.string.main_income_plan_obligations_only,
-                MoneyFormat.formatRub(obligationsMonthly),
+            return AttentionLine(
+                context.getString(R.string.main_attention_income_plan_title),
+                context.getString(
+                    R.string.main_income_plan_obligations_only,
+                    MoneyFormat.formatRub(obligationsMonthly),
+                ),
             )
         }
         if (obligationsMonthly <= 0.0) {
-            return context.getString(
-                R.string.main_income_plan_income_only,
-                MoneyFormat.formatRub(incomeMonthly),
+            return AttentionLine(
+                context.getString(R.string.main_attention_income_plan_title),
+                context.getString(
+                    R.string.main_income_plan_income_only,
+                    MoneyFormat.formatRub(incomeMonthly),
+                ),
             )
         }
         val free = freeAfterObligations(incomeMonthly, obligationsMonthly)
-        return context.getString(
-            R.string.main_income_plan_summary,
-            MoneyFormat.formatRub(incomeMonthly),
-            MoneyFormat.formatRub(obligationsMonthly),
-            MoneyFormat.formatRub(free),
+        return AttentionLine(
+            context.getString(R.string.main_attention_income_plan_title),
+            context.getString(
+                R.string.main_income_plan_summary_detail,
+                MoneyFormat.formatRub(incomeMonthly),
+                MoneyFormat.formatRub(obligationsMonthly),
+                MoneyFormat.formatRub(free),
+            ),
         )
     }
 }

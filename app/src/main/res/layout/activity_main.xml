@@ -138,7 +138,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionPendingRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -152,7 +152,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionOverspendRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -166,7 +166,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionIncomePlanRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -180,7 +180,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionUpcomingRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -194,7 +194,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionRemindersRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -208,7 +208,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionGoalsRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -222,7 +222,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionUtilitiesRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"
                             android:layout_width="match_parent"
@@ -236,7 +236,7 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionObligationsRow"
-                            layout="@layout/include_main_list_row"/>
+                            layout="@layout/include_main_attention_row"/>
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

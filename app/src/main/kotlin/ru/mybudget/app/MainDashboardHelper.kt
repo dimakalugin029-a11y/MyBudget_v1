@@ -13,13 +13,18 @@ import java.time.LocalDate
 import java.util.Calendar
 import java.util.Locale
 
+data class AttentionLine(
+    val title: String,
+    val subtitle: String? = null,
+)
+
 data class MainDashboardSummary(
-    val overspendLine: String? = null,
-    val utilitiesLine: String? = null,
-    val pendingDistributionLine: String? = null,
-    val incomePlanLine: String? = null,
-    val upcomingPaymentsLine: String? = null,
-    val goalsLine: String? = null,
+    val overspendLine: AttentionLine? = null,
+    val utilitiesLine: AttentionLine? = null,
+    val pendingDistributionLine: AttentionLine? = null,
+    val incomePlanLine: AttentionLine? = null,
+    val upcomingPaymentsLine: AttentionLine? = null,
+    val goalsLine: AttentionLine? = null,
 )
 
 object MainDashboardHelper {
@@ -32,19 +37,24 @@ object MainDashboardHelper {
 
         val overspendCount = countOverspentCategories(context, budgetManager)
         val overspendLine = if (overspendCount > 0) {
-            context.resources.getQuantityString(R.plurals.main_overspend_summary, overspendCount, overspendCount)
+            AttentionLine(
+                context.resources.getQuantityString(R.plurals.main_overspend_summary, overspendCount, overspendCount),
+            )
         } else {
             null
         }
 
-        val utilitiesLine = UtilityAttentionHelper.buildAttentionLine(context, utilityDao)
+        val utilitiesText = UtilityAttentionHelper.buildAttentionLine(context, utilityDao)
+        val utilitiesLine = utilitiesText?.let {
+            AttentionLine(context.getString(R.string.main_attention_utilities_title), it)
+        }
 
         val activeId = budgetManager.getActiveBudgetId()
         val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
         val incomeSources = dao.getPlannedIncomeSourcesByBudgetOnce(activeId)
         val incomeMonthly = PlannedIncomeHelper.monthlyTotal(incomeSources)
         val obligationsMonthly = PlannedObligationHelper.totalMonthly(obligations)
-        val incomePlanLine = PlannedIncomeHelper.buildDashboardLine(
+        val incomePlanLine = PlannedIncomeHelper.buildDashboardAttention(
             context,
             incomeMonthly,
             obligationsMonthly,
@@ -52,7 +62,7 @@ object MainDashboardHelper {
 
         val pending = PendingDistributionPreferences.getPending(context)
         val pendingDistributionLine = if (pending != null && pending.budgetId == activeId && pending.amount > 0.01) {
-            context.getString(R.string.main_pending_distribution, MoneyFormat.formatRub(pending.amount))
+            AttentionLine(context.getString(R.string.main_pending_distribution, MoneyFormat.formatRub(pending.amount)))
         } else {
             null
         }
@@ -80,39 +90,44 @@ object MainDashboardHelper {
         val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
             property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
         }
-        val calendarCount = PaymentCalendarHelper.buildEntries(
+        val calendarEntries = PaymentCalendarHelper.buildEntries(
             reminders = remindersWeek,
             recurring = recurringWeek,
             unpaidUtilityBills = unpaidUtilityBills,
             obligations = obligations,
+            plannedIncome = incomeSources,
             categoryNames = categoryNames,
             todayEpochDay = LocalDate.now().toEpochDay(),
             horizonDays = 7,
             utilityPaymentDays = utilityPaymentDays,
-        ).size
-        val upcomingPaymentsLine = if (calendarCount > 0) {
-            val base = context.resources.getQuantityString(
-                R.plurals.main_upcoming_payments_summary,
-                calendarCount,
-                calendarCount,
+        )
+        val calendarCount = calendarEntries.size
+        val obligationsMonthlyFormatted = MoneyFormat.formatRub(obligationsMonthly)
+        val upcomingPaymentsLine = when {
+            calendarCount > 0 && obligations.isNotEmpty() -> AttentionLine(
+                context.resources.getQuantityString(
+                    R.plurals.main_upcoming_payments_summary,
+                    calendarCount,
+                    calendarCount,
+                ),
+                context.getString(R.string.main_upcoming_obligations_detail, obligationsMonthlyFormatted),
             )
-            if (obligations.isEmpty()) {
-                base
-            } else {
+            calendarCount > 0 -> AttentionLine(
+                context.resources.getQuantityString(
+                    R.plurals.main_upcoming_payments_summary,
+                    calendarCount,
+                    calendarCount,
+                ),
+            )
+            obligations.isNotEmpty() -> AttentionLine(
+                context.getString(R.string.main_attention_obligations_title),
                 context.getString(
-                    R.string.main_upcoming_with_obligations,
-                    base,
-                    MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
-                )
-            }
-        } else if (obligations.isNotEmpty()) {
-            context.getString(
-                R.string.main_obligations_summary,
-                MoneyFormat.formatRub(PlannedObligationHelper.totalMonthly(obligations)),
-                MoneyFormat.formatRub(PlannedObligationHelper.totalPerPaycheck(obligations)),
+                    R.string.main_obligations_detail,
+                    obligationsMonthlyFormatted,
+                    MoneyFormat.formatRub(PlannedObligationHelper.totalPerPaycheck(obligations)),
+                ),
             )
-        } else {
-            null
+            else -> null
         }
 
         return MainDashboardSummary(
@@ -147,7 +162,7 @@ object MainDashboardHelper {
         }
     }
 
-    private suspend fun buildUrgentGoalsLine(context: Context, budgetManager: BudgetManager): String? {
+    private suspend fun buildUrgentGoalsLine(context: Context, budgetManager: BudgetManager): AttentionLine? {
         val goals = budgetManager.repository.getAllSavingsGoals().first().filter { it.isActive }
         val lines = goals.mapNotNull { goal ->
             val progress = GoalProgressHelper.progressPercent(
@@ -163,6 +178,7 @@ object MainDashboardHelper {
             }
             "${goal.name}: $progress% • $deadlineLabel"
         }.take(2)
-        return lines.joinToString("\n").ifBlank { null }
+        val subtitle = lines.joinToString("\n").ifBlank { return null }
+        return AttentionLine(context.getString(R.string.main_attention_goals_title), subtitle)
     }
 }

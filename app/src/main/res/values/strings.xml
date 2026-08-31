@@ -451,6 +451,13 @@
   <string name="main_section_analytics">Аналитика</string>
   <string name="main_utilities_due_soon">ЖКХ: до %1$d-го — время оплатить из бюджета</string>
   <string name="main_section_attention">Требует внимания</string>
+  <string name="main_attention_income_plan_title">План дохода</string>
+  <string name="main_attention_utilities_title">Коммуналка</string>
+  <string name="main_attention_goals_title">Цели</string>
+  <string name="main_attention_obligations_title">Обязательные платежи</string>
+  <string name="main_income_plan_summary_detail">Доход %1$s · обяз. %2$s · свободно %3$s</string>
+  <string name="main_upcoming_obligations_detail">Обязательства %1$s/мес</string>
+  <string name="main_obligations_detail">%1$s/мес · с дохода %2$s</string>
   <string name="main_section_other">Прочее</string>
   <string name="main_section_planning">Планирование</string>
   <string name="main_total_all_budgets">Сумма по всем бюджетам</string>

@@ -126,7 +126,7 @@ class MainActivity : AppCompatActivity() {
             containerId = R.id.mainAttentionPending,
             rowId = R.id.mainAttentionPendingRow,
             icon = "⚖️",
-            title = summary.pendingDistributionLine,
+            line = summary.pendingDistributionLine,
         ) {
             val pending = PendingDistributionPreferences.getPending(this) ?: return@bindAttentionRow
             startActivity(
@@ -140,31 +140,31 @@ class MainActivity : AppCompatActivity() {
             containerId = R.id.mainAttentionOverspend,
             rowId = R.id.mainAttentionOverspendRow,
             icon = "⚠️",
-            title = summary.overspendLine,
+            line = summary.overspendLine,
         ) { startActivity(Intent(this, BudgetActivity::class.java)) }
         bindAttentionRow(
             containerId = R.id.mainAttentionIncomePlan,
             rowId = R.id.mainAttentionIncomePlanRow,
             icon = "💰",
-            title = summary.incomePlanLine,
+            line = summary.incomePlanLine,
         ) { startActivity(Intent(this, PlannedIncomeActivity::class.java)) }
         bindAttentionRow(
             containerId = R.id.mainAttentionUpcoming,
             rowId = R.id.mainAttentionUpcomingRow,
             icon = "📅",
-            title = summary.upcomingPaymentsLine,
+            line = summary.upcomingPaymentsLine,
         ) { startActivity(Intent(this, PaymentCalendarActivity::class.java)) }
         bindAttentionRow(
             containerId = R.id.mainAttentionGoals,
             rowId = R.id.mainAttentionGoalsRow,
             icon = "🎯",
-            title = summary.goalsLine,
+            line = summary.goalsLine,
         ) { startActivity(Intent(this, GoalsActivity::class.java)) }
         bindAttentionRow(
             containerId = R.id.mainAttentionUtilities,
             rowId = R.id.mainAttentionUtilitiesRow,
             icon = "🏠",
-            title = summary.utilitiesLine,
+            line = summary.utilitiesLine,
         ) { startActivity(Intent(this, UtilitiesActivity::class.java)) }
 
         val anyVisible = listOf(
@@ -183,13 +183,19 @@ class MainActivity : AppCompatActivity() {
         containerId: Int,
         rowId: Int,
         icon: String,
-        title: String?,
+        line: AttentionLine?,
         onClick: () -> Unit,
     ) {
-        val visible = !title.isNullOrBlank()
+        val visible = line != null
         findViewById<View>(containerId).visibility = if (visible) View.VISIBLE else View.GONE
-        if (!visible) return
-        MenuRowHelper.bind(findViewById(rowId), icon, title!!, onClick)
+        if (line == null) return
+        MenuRowHelper.bindAttention(
+            findViewById(rowId),
+            icon,
+            line.title,
+            line.subtitle,
+            onClick,
+        )
     }
 
     private fun bindRow(includeId: Int, iconRes: Int, titleRes: Int, target: Class<*>) {
