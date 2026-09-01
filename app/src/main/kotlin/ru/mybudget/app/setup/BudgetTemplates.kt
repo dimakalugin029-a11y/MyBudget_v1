@@ -62,6 +62,7 @@ object BudgetTemplates {
         dao.deleteAllSavingsGoals()
         dao.deleteAllRecurring()
         dao.deleteAllPlannedObligations()
+        dao.deleteAllPlannedIncomeSources()
         dao.deleteAllMonthlyPlans()
         dao.deleteAllAuditActions()
         dao.deleteAllCategories()

@@ -36,6 +36,9 @@ import ru.mybudget.app.setup.BudgetTemplates
 import ru.mybudget.app.setup.MeterReadingReminderPreferences
 import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
+import ru.mybudget.app.backup.WebDavBackupClient
+import ru.mybudget.app.security.WebDavSecrets
+import ru.mybudget.app.setup.WebDavBackupPreferences
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,18 +47,25 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var backupManager: BackupManager
     private var loadingDialog: AlertDialog? = null
     private var pendingExportPassword: String? = null
+    private var pendingExportArchive = false
     private var pendingImportUri: Uri? = null
 
     private val exportLauncher = registerForActivityResult(
-        ActivityResultContracts.CreateDocument("application/json"),
+        ActivityResultContracts.CreateDocument("*/*"),
     ) { uri ->
         if (uri == null) return@registerForActivityResult
         val password = pendingExportPassword
+        val archive = pendingExportArchive
         pendingExportPassword = null
+        pendingExportArchive = false
         showLoadingDialog(getString(R.string.settings_export_loading))
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
-                backupManager.exportToFile(uri, password)
+                if (archive) {
+                    backupManager.exportToArchiveFile(uri, password)
+                } else {
+                    backupManager.exportToFile(uri, password)
+                }
             }
             hideLoadingDialog()
             if (ok) {
@@ -71,6 +81,19 @@ class SettingsActivity : AppCompatActivity() {
     ) { uri ->
         if (uri == null) return@registerForActivityResult
         lifecycleScope.launch {
+            val archive = withContext(Dispatchers.IO) {
+                BackupArchiveHelper.readArchive(this@SettingsActivity, uri)
+            }
+            if (archive != null) {
+                val payload = archive.json
+                if (BackupCrypto.isEncryptedJson(payload)) {
+                    pendingImportUri = uri
+                    showImportPasswordDialog()
+                } else {
+                    chooseImportMode(uri, null)
+                }
+                return@launch
+            }
             val content = withContext(Dispatchers.IO) { backupManager.readFileContent(uri) }
             if (content.isNullOrBlank()) {
                 Toast.makeText(
@@ -84,7 +107,7 @@ class SettingsActivity : AppCompatActivity() {
                 pendingImportUri = uri
                 showImportPasswordDialog()
             } else {
-                confirmImport(uri, null)
+                chooseImportMode(uri, null)
             }
         }
     }
@@ -124,6 +147,7 @@ class SettingsActivity : AppCompatActivity() {
         setupAppLockSettings()
         setupBackupButtons()
         setupAutoBackup()
+        setupWebDavBackup()
         setupOverspendNotifications()
         setupMeterReadingReminder()
         setupParticipants()
@@ -161,7 +185,14 @@ class SettingsActivity : AppCompatActivity() {
                 .split('\n', ',')
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
-            ParticipantPreferences.setNames(this, names)
+            if (!ParticipantPreferences.setNames(this, names)) {
+                Toast.makeText(
+                    this,
+                    getString(R.string.settings_participants_limit, ParticipantPreferences.MAX_PARTICIPANTS),
+                    Toast.LENGTH_LONG,
+                ).show()
+                return@setOnClickListener
+            }
             input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
             Toast.makeText(this, R.string.settings_participants_saved, Toast.LENGTH_SHORT).show()
         }
@@ -412,6 +443,83 @@ class SettingsActivity : AppCompatActivity() {
             .showWithIme(first)
     }
 
+    private fun setupWebDavBackup() {
+        val enableSwitch = findViewById<SwitchCompat>(R.id.webDavBackupSwitch)
+        val urlInput = findViewById<EditText>(R.id.webDavUrlInput)
+        val usernameInput = findViewById<EditText>(R.id.webDavUsernameInput)
+        val pathInput = findViewById<EditText>(R.id.webDavPathInput)
+        urlInput.setText(WebDavBackupPreferences.baseUrl(this))
+        usernameInput.setText(WebDavBackupPreferences.username(this))
+        pathInput.setText(WebDavBackupPreferences.remotePath(this))
+        enableSwitch.isChecked = WebDavBackupPreferences.isEnabled(this)
+        enableSwitch.setOnCheckedChangeListener { _, checked ->
+            WebDavBackupPreferences.setEnabled(this, checked)
+            if (checked) {
+                WebDavBackupPreferences.setBaseUrl(this, urlInput.text.toString())
+                WebDavBackupPreferences.setUsername(this, usernameInput.text.toString())
+                WebDavBackupPreferences.setRemotePath(this, pathInput.text.toString())
+            }
+        }
+        findViewById<Button>(R.id.webDavPasswordButton).setOnClickListener {
+            showWebDavPasswordDialog()
+        }
+        findViewById<Button>(R.id.webDavTestButton).setOnClickListener {
+            testWebDavConnection(urlInput, usernameInput, pathInput)
+        }
+    }
+
+    private fun showWebDavPasswordDialog() {
+        val input = EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.webdav_password_title)
+            .setView(input)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val password = input.text.toString()
+                if (password.isBlank() || !WebDavSecrets.savePassword(this, password)) {
+                    Toast.makeText(this, R.string.webdav_password_failed, Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, R.string.webdav_password_saved, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .showWithIme(input)
+    }
+
+    private fun testWebDavConnection(urlInput: EditText, usernameInput: EditText, pathInput: EditText) {
+        val password = WebDavSecrets.getPassword(this)
+        if (password.isNullOrBlank()) {
+            Toast.makeText(this, R.string.webdav_password_missing, Toast.LENGTH_SHORT).show()
+            return
+        }
+        showLoadingDialog(getString(R.string.webdav_test_loading))
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                WebDavBackupClient.testConnection(
+                    baseUrl = urlInput.text.toString().trim(),
+                    username = usernameInput.text.toString().trim(),
+                    password = password,
+                    remotePath = pathInput.text.toString().trim(),
+                )
+            }
+            hideLoadingDialog()
+            WebDavBackupPreferences.setBaseUrl(this@SettingsActivity, urlInput.text.toString())
+            WebDavBackupPreferences.setUsername(this@SettingsActivity, usernameInput.text.toString())
+            WebDavBackupPreferences.setRemotePath(this@SettingsActivity, pathInput.text.toString())
+            if (result.isSuccess) {
+                Toast.makeText(this@SettingsActivity, R.string.webdav_test_success, Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(
+                    this@SettingsActivity,
+                    getString(R.string.webdav_test_failed, result.exceptionOrNull()?.message.orEmpty()),
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
     private fun refreshAutoBackupFolderLabel() {
         val text = findViewById<TextView>(R.id.autoBackupFolderText)
         val uri = AutoBackupPreferences.folderUri(this)
@@ -432,18 +540,20 @@ class SettingsActivity : AppCompatActivity() {
                 arrayOf(
                     getString(R.string.settings_export_mode_plain),
                     getString(R.string.settings_export_mode_encrypted),
+                    getString(R.string.settings_export_mode_archive),
                 ),
             ) { _, which ->
                 when (which) {
-                    0 -> launchExport(null, encrypted = false)
-                    1 -> showExportPasswordDialog()
+                    0 -> launchExport(null, encrypted = false, archive = false)
+                    1 -> showExportPasswordDialog(archive = false)
+                    2 -> launchExport(null, encrypted = false, archive = true)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
-    private fun showExportPasswordDialog() {
+    private fun showExportPasswordDialog(archive: Boolean = false) {
         val first = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_TEXT or
                 android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
@@ -469,7 +579,7 @@ class SettingsActivity : AppCompatActivity() {
                         if (confirm.text.toString() != password) {
                             Toast.makeText(this, R.string.settings_backup_password_mismatch, Toast.LENGTH_SHORT).show()
                         } else {
-                            launchExport(password, encrypted = true)
+                            launchExport(password, encrypted = true, archive = archive)
                         }
                     }
                     .setNegativeButton(android.R.string.cancel, null)
@@ -479,11 +589,32 @@ class SettingsActivity : AppCompatActivity() {
             .showWithIme(first)
     }
 
-    private fun launchExport(password: String?, encrypted: Boolean) {
+    private fun launchExport(password: String?, encrypted: Boolean, archive: Boolean) {
         pendingExportPassword = password
+        pendingExportArchive = archive
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val suffix = if (encrypted) "_encrypted" else ""
-        exportLauncher.launch("MyBudget_backup_${date}$suffix.json")
+        if (archive) {
+            exportLauncher.launch("MyBudget_backup_${date}$suffix.zip")
+        } else {
+            exportLauncher.launch("MyBudget_backup_${date}$suffix.json")
+        }
+    }
+
+    private fun chooseImportMode(uri: Uri, password: String?) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.settings_import_mode_title)
+            .setItems(
+                arrayOf(
+                    getString(R.string.settings_import_mode_replace),
+                    getString(R.string.settings_import_mode_merge),
+                ),
+            ) { _, which ->
+                val mode = if (which == 1) BackupImportMode.MERGE else BackupImportMode.REPLACE
+                confirmImport(uri, password, mode)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showImportPasswordDialog() {
@@ -503,7 +634,7 @@ class SettingsActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 pendingImportUri = null
-                confirmImport(uri, password)
+                confirmImport(uri, password, BackupImportMode.REPLACE)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
                 pendingImportUri = null
@@ -511,15 +642,20 @@ class SettingsActivity : AppCompatActivity() {
             .showWithIme(input)
     }
 
-    private fun confirmImport(uri: Uri, password: String?) {
+    private fun confirmImport(uri: Uri, password: String?, mode: BackupImportMode) {
+        val message = if (mode == BackupImportMode.MERGE) {
+            R.string.settings_import_confirm_merge
+        } else {
+            R.string.settings_import_confirm
+        }
         AlertDialog.Builder(this)
             .setTitle(R.string.settings_import_title)
-            .setMessage(R.string.settings_import_confirm)
+            .setMessage(message)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 showLoadingDialog(getString(R.string.settings_import_loading))
                 lifecycleScope.launch {
                     val result = withContext(Dispatchers.IO) {
-                        backupManager.importFromFile(uri, password)
+                        backupManager.importFromFile(uri, password, mode)
                     }
                     hideLoadingDialog()
                     if (result.success) {

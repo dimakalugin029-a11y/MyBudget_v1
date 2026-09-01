@@ -53,6 +53,12 @@ class PlannedObligationsActivity : AppCompatActivity() {
             android.R.drawable.ic_input_add,
             R.string.obligations_add,
         ) { showEditDialog(null) }
+        ScreenHintHelper.bind(
+            this,
+            findViewById(R.id.obligationsHint),
+            ScreenHintHelper.Keys.PLANNED_OBLIGATIONS,
+            R.string.hint_planned_obligations,
+        )
         findViewById<TextView>(R.id.obligationsPaychecksButton).setOnClickListener { showPaychecksDialog() }
         findViewById<TextView>(R.id.obligationsSyncDefaultsButton).setOnClickListener {
             syncDefaultAmounts()

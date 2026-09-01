@@ -36,6 +36,8 @@ object ScreenHintHelper {
         const val UTILITY_TARIFFS = "hint_utility_tariffs"
         const val UTILITY_METERS_EXCEL = "hint_utility_meters_excel"
         const val UTILITIES_SETUP = "hint_utilities_setup"
+        const val PLANNED_INCOME = "hint_planned_income"
+        const val PLANNED_OBLIGATIONS = "hint_planned_obligations"
     }
 
     fun bind(

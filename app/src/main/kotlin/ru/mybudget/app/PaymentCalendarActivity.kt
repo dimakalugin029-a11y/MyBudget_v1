@@ -152,10 +152,22 @@ class PaymentCalendarActivity : AppCompatActivity() {
     private fun updateHorizonSelection() {
         horizonWeek.isSelected = currentHorizon == TimeHorizon.WEEK
         horizonAll.isSelected = currentHorizon == TimeHorizon.ALL
-        calendarHint.text = if (currentHorizon == TimeHorizon.WEEK) {
-            getString(R.string.upcoming_payments_horizon_week_hint)
-        } else {
-            getString(R.string.payment_calendar_tap_hint)
+        updateCalendarHint()
+    }
+
+    private fun updateCalendarHint() {
+        calendarHint.text = when (currentHorizon) {
+            TimeHorizon.WEEK -> {
+                val weekEnd = todayEpochDay + 7
+                val weekEntries = allEntries.filter { it.epochDay in todayEpochDay..weekEnd }
+                val total = PaymentCalendarHelper.weekPaymentTotal(weekEntries)
+                if (total > 0.0) {
+                    getString(R.string.payment_calendar_week_total_hint, MoneyFormat.formatRub(total))
+                } else {
+                    getString(R.string.upcoming_payments_horizon_week_hint)
+                }
+            }
+            TimeHorizon.ALL -> getString(R.string.payment_calendar_tap_hint)
         }
     }
 
@@ -437,6 +449,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             }
             withContext(Dispatchers.Main) {
                 allEntries = entries
+                updateCalendarHint()
                 publishFiltered()
             }
         }

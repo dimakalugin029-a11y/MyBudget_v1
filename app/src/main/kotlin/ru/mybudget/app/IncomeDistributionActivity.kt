@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.setup.ObligationPreferences
+import ru.mybudget.app.setup.IncomeDistributionTemplatePreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
 import kotlin.math.abs
 import kotlin.math.max
@@ -88,12 +89,16 @@ class IncomeDistributionActivity : AppCompatActivity() {
         bindActionRow(R.id.incomeDistributionRemainderRow, "⚖️", R.string.income_distribution_remainder) {
             showRemainderDialog()
         }
+        bindActionRow(R.id.incomeDistributionTemplateRow, "🔁", R.string.income_distribution_by_template) {
+            applyLastTemplate()
+        }
         attachActionsSheet()
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             leaves = manager.getCategoriesForExpenses()
             parents = manager.getRootCategories().associate { it.id to it.name }
             applyPrefill()
+            applySavedTemplateIfEmpty()
             if (totalIncome <= 0.0) {
                 Toast.makeText(this@IncomeDistributionActivity, R.string.income_enter_total_amount, Toast.LENGTH_LONG).show()
             }
@@ -111,6 +116,41 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 amounts[id] = MoneyFormat.roundMoney(values[index])
             }
         }
+    }
+
+    private fun applySavedTemplateIfEmpty() {
+        if (selectedIds.isNotEmpty() || amounts.isNotEmpty()) return
+        if (intent.hasExtra(EXTRA_PREFILL_CATEGORY_IDS)) return
+        val budgetId = intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+        val template = IncomeDistributionTemplatePreferences.load(this, budgetId) ?: return
+        applyTemplate(template, showToast = false)
+    }
+
+    private fun applyLastTemplate(showToast: Boolean = true) {
+        val budgetId = intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+        val template = IncomeDistributionTemplatePreferences.load(this, budgetId)
+        if (template == null) {
+            if (showToast) {
+                Toast.makeText(this, R.string.income_distribution_no_template, Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        applyTemplate(template, showToast = showToast)
+    }
+
+    private fun applyTemplate(template: IncomeDistributionTemplatePreferences.Template, showToast: Boolean) {
+        val scaled = IncomeDistributionTemplatePreferences.scaledAmounts(template, totalIncome)
+        if (scaled.isEmpty()) {
+            if (showToast) {
+                Toast.makeText(this, R.string.income_distribution_no_template, Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        selectedIds = scaled.keys.toMutableList()
+        amounts.clear()
+        scaled.forEach { (id, amount) -> amounts[id] = amount }
+        findViewById<TextView>(R.id.distributionModeHint).setText(R.string.income_distribution_mode_template)
+        refreshList()
     }
 
     private fun bindActionRow(includeId: Int, icon: String, titleRes: Int, onClick: () -> Unit) {
@@ -368,6 +408,13 @@ class IncomeDistributionActivity : AppCompatActivity() {
             .ifBlank { getString(R.string.transaction_income_distribution) }
         lifecycleScope.launch {
             manager.applyTransactionGroup(items, "income", note)
+            IncomeDistributionTemplatePreferences.save(
+                this@IncomeDistributionActivity,
+                manager.getActiveBudgetId(),
+                selectedIds,
+                amounts,
+                totalIncome,
+            )
             val leftover = remaining()
             if (leftover > 0.01) {
                 PendingDistributionPreferences.setPending(

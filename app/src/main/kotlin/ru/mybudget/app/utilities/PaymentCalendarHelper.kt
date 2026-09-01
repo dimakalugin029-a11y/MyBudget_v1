@@ -287,6 +287,18 @@ object PaymentCalendarHelper {
 
     private fun roundAmount(value: Double): Double = kotlin.math.round(value * 100.0) / 100.0
 
+    fun weekPaymentTotal(entries: List<Entry>): Double {
+        return ru.mybudget.app.MoneyFormat.roundMoney(
+            entries
+                .filter { entry ->
+                    entry.kind != EntryKind.INCOME &&
+                        entry.amount != null &&
+                        entry.amount > 0.0
+                }
+                .sumOf { it.amount ?: 0.0 },
+        )
+    }
+
     fun parseDateEpochDay(dateStr: String): Long? {
         return runCatching { LocalDate.parse(dateStr, isoFmt).toEpochDay() }.getOrNull()
     }

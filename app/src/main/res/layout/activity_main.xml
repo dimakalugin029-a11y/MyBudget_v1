@@ -70,6 +70,14 @@
                     android:textSize="34sp"
                     android:textStyle="bold" />
                 <TextView
+                    android:id="@+id/mainSafeToSpendText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:textColor="@color/main_hero_text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+                <TextView
                     android:id="@+id/mainTotalAllText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

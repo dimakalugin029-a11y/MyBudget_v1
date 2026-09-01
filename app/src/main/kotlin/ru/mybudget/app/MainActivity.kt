@@ -118,6 +118,34 @@ class MainActivity : AppCompatActivity() {
                 MainDashboardHelper.loadSummary(this@MainActivity, manager)
             }
             bindAttentionSection(summary)
+            val safeToSpend = withContext(Dispatchers.IO) {
+                MainDashboardHelper.loadSafeToSpend(this@MainActivity, manager, balance)
+            }
+            bindSafeToSpend(safeToSpend)
+        }
+    }
+
+    private fun bindSafeToSpend(info: SalaryCycleHelper.SafeToSpendInfo?) {
+        val view = findViewById<TextView>(R.id.mainSafeToSpendText)
+        if (info == null || info.dailyAmount <= 0.0) {
+            view.visibility = View.GONE
+            return
+        }
+        view.visibility = View.VISIBLE
+        view.text = if (info.isPaydayBased) {
+            getString(
+                R.string.main_safe_to_spend_payday,
+                MoneyFormat.format(info.dailyAmount),
+                info.daysUntil,
+                info.paydayDateLabel,
+                info.incomeSourceName,
+            )
+        } else {
+            getString(
+                R.string.budget_safe_to_spend,
+                MoneyFormat.format(info.dailyAmount),
+                info.daysUntil,
+            )
         }
     }
 
@@ -149,6 +177,12 @@ class MainActivity : AppCompatActivity() {
             line = summary.incomePlanLine,
         ) { startActivity(Intent(this, PlannedIncomeActivity::class.java)) }
         bindAttentionRow(
+            containerId = R.id.mainAttentionObligations,
+            rowId = R.id.mainAttentionObligationsRow,
+            icon = "📋",
+            line = summary.planSetupLine,
+        ) { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
+        bindAttentionRow(
             containerId = R.id.mainAttentionUpcoming,
             rowId = R.id.mainAttentionUpcomingRow,
             icon = "📅",
@@ -171,6 +205,7 @@ class MainActivity : AppCompatActivity() {
             R.id.mainAttentionPending,
             R.id.mainAttentionOverspend,
             R.id.mainAttentionIncomePlan,
+            R.id.mainAttentionObligations,
             R.id.mainAttentionUpcoming,
             R.id.mainAttentionGoals,
             R.id.mainAttentionUtilities,

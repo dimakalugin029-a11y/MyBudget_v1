@@ -182,6 +182,45 @@ object PlannedObligationHelper {
         return obligations.count { it.categoryId <= 0 }
     }
 
+    fun unlinkedIncomeCount(obligations: List<PlannedObligationEntity>): Int {
+        return obligations.count { it.isActive && !isLinkedToIncome(it) }
+    }
+
+    fun buildPlanSetupAttention(
+        context: Context,
+        obligations: List<PlannedObligationEntity>,
+        incomeSources: List<ru.mybudget.app.data.PlannedIncomeSourceEntity>,
+    ): AttentionLine? {
+        val active = obligations.filter { it.isActive }
+        if (active.isEmpty()) return null
+
+        val noCategory = unlinkedCount(obligations)
+        if (noCategory > 0) {
+            return AttentionLine(
+                context.getString(R.string.main_attention_plan_setup_title),
+                context.resources.getQuantityString(
+                    R.plurals.main_plan_setup_no_category,
+                    noCategory,
+                    noCategory,
+                ),
+            )
+        }
+
+        val hasIncomePlan = incomeSources.any { it.isActive }
+        if (!hasIncomePlan) return null
+
+        val noIncomeLink = unlinkedIncomeCount(active)
+        if (noIncomeLink <= 0) return null
+        return AttentionLine(
+            context.getString(R.string.main_attention_plan_setup_title),
+            context.resources.getQuantityString(
+                R.plurals.main_plan_setup_no_income_link,
+                noIncomeLink,
+                noIncomeLink,
+            ),
+        )
+    }
+
     fun monthlyPlanByCategory(obligations: List<PlannedObligationEntity>): Map<Int, Double> {
         val map = linkedMapOf<Int, Double>()
         obligations.filter { it.isActive && it.categoryId > 0 }.forEach { item ->

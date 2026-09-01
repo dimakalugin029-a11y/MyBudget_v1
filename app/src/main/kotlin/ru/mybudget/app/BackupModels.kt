@@ -45,6 +45,7 @@ internal data class BackupDataDto(
     @SerializedName("utilityTariffs") val utilityTariffs: List<UtilityTariffEntity>? = null,
     @SerializedName("monthlyCategoryPlans") val monthlyCategoryPlans: List<MonthlyCategoryPlanEntity>? = null,
     @SerializedName("auditActions") val auditActions: List<AuditActionEntity>? = null,
+    @SerializedName("participantNames") val participantNames: List<String>? = null,
 )
 
 data class BackupData(
@@ -70,10 +71,16 @@ data class BackupData(
     @SerializedName("utilityTariffs") val utilityTariffs: List<UtilityTariffEntity> = emptyList(),
     @SerializedName("monthlyCategoryPlans") val monthlyCategoryPlans: List<MonthlyCategoryPlanEntity> = emptyList(),
     @SerializedName("auditActions") val auditActions: List<AuditActionEntity> = emptyList(),
+    @SerializedName("participantNames") val participantNames: List<String> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 16
+        const val CURRENT_VERSION = 17
     }
+}
+
+enum class BackupImportMode {
+    REPLACE,
+    MERGE,
 }
 
 data class BackupImportResult(

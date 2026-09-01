@@ -32,6 +32,8 @@ import ru.mybudget.app.data.UtilityTemplateSectionEntity
 import ru.mybudget.app.security.BackupCrypto
 import ru.mybudget.app.setup.ActiveBudgetPreferences
 import ru.mybudget.app.setup.ActivePropertyPreferences
+import ru.mybudget.app.setup.ParticipantPreferences
+import ru.mybudget.app.utilities.UtilityPhotoStorage
 import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -44,6 +46,22 @@ class BackupManager(context: Context) {
     private val dao = database.budgetDao()
     private val utilityDao = database.utilityDao()
     private val gson: Gson = GsonBuilder().serializeNulls().create()
+
+    suspend fun exportToArchiveFile(uri: Uri, password: String? = null): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val photos = utilityDao.getAllBillPhotosForExport()
+            val archivePhotos = BackupArchiveHelper.rewritePhotosForArchive(photos)
+            val plainJson = buildPlainJson(archivePhotos)
+            val payload = if (password.isNullOrBlank()) {
+                plainJson
+            } else {
+                BackupCrypto.encrypt(plainJson, password)
+            }
+            val archiveBytes = BackupArchiveHelper.exportArchive(appContext, payload, photos)
+            appContext.contentResolver.openOutputStream(uri)?.use { it.write(archiveBytes) }
+                ?: error("cannot open output stream")
+        }.isSuccess
+    }
 
     suspend fun exportToJson(password: String? = null): String = withContext(Dispatchers.IO) {
         val plainJson = buildPlainJson()
@@ -68,7 +86,11 @@ class BackupManager(context: Context) {
         }.getOrNull()
     }
 
-    suspend fun importFromJson(json: String, password: String? = null): BackupImportResult =
+    suspend fun importFromJson(
+        json: String,
+        password: String? = null,
+        mode: BackupImportMode = BackupImportMode.REPLACE,
+    ): BackupImportResult =
         withContext(Dispatchers.IO) {
             val cleanJson = json.trim().removePrefix("\uFEFF")
             if (cleanJson.isBlank()) {
@@ -94,19 +116,60 @@ class BackupManager(context: Context) {
                 }
                 else -> cleanJson
             }
-            importPlainJson(plainJson)
+            importPlainJson(plainJson, mode)
         }
 
-    suspend fun importFromFile(uri: Uri, password: String? = null): BackupImportResult {
+    suspend fun importFromFile(
+        uri: Uri,
+        password: String? = null,
+        mode: BackupImportMode = BackupImportMode.REPLACE,
+    ): BackupImportResult {
+        val archive = readArchiveContent(uri)
+        if (archive != null) {
+            val payload = archive.json.trim().removePrefix("\uFEFF")
+            if (payload.isBlank()) {
+                return BackupImportResult(
+                    success = false,
+                    message = appContext.getString(R.string.backup_import_empty_file),
+                )
+            }
+            validateBackupContent(payload)?.let { return it }
+            val plainJson = when {
+                BackupCrypto.isEncryptedJson(payload) -> {
+                    val pwd = password?.takeIf { it.isNotBlank() }
+                        ?: return BackupImportResult(
+                            success = false,
+                            message = appContext.getString(R.string.backup_import_password_required),
+                        )
+                    BackupCrypto.decrypt(payload, pwd).getOrElse {
+                        return BackupImportResult(
+                            success = false,
+                            message = appContext.getString(R.string.backup_import_wrong_password),
+                        )
+                    }
+                }
+                else -> payload
+            }
+            return importPlainJson(plainJson, mode, archive.photoBytes)
+        }
         val content = readFileContent(uri)
             ?: return BackupImportResult(
                 success = false,
                 message = appContext.getString(R.string.backup_import_cannot_read_file),
             )
-        return importFromJson(content, password)
+        return importFromJson(content, password, mode)
     }
 
-    private suspend fun buildPlainJson(): String {
+    private suspend fun readArchiveContent(uri: Uri): BackupArchiveHelper.ArchiveContent? {
+        return withContext(Dispatchers.IO) {
+            BackupArchiveHelper.readArchive(appContext, uri)
+        }
+    }
+
+    private suspend fun buildPlainJson(
+        photosForArchive: List<UtilityBillPhotoEntity>? = null,
+    ): String {
+        val photos = photosForArchive ?: utilityDao.getAllBillPhotosForExport()
         val data = BackupData(
             version = BackupData.CURRENT_VERSION,
             exportedAt = System.currentTimeMillis(),
@@ -120,7 +183,7 @@ class BackupManager(context: Context) {
             plannedIncomeSources = dao.getAllPlannedIncomeSourcesForExport(),
             utilityProperties = utilityDao.getAllPropertiesForExport(),
             utilityBills = utilityDao.getAllBillsForExport(),
-            utilityBillPhotos = utilityDao.getAllBillPhotosForExport(),
+            utilityBillPhotos = photos,
             utilitySections = utilityDao.getAllSectionsForExport(),
             utilityLineItems = utilityDao.getAllLineItemsForExport(),
             utilityMeterReadings = utilityDao.getAllMeterReadingsForExport(),
@@ -130,11 +193,16 @@ class BackupManager(context: Context) {
             utilityTariffs = utilityDao.getAllTariffsForExport(),
             monthlyCategoryPlans = dao.getAllMonthlyPlansForExport(),
             auditActions = dao.getAllAuditActionsForExport(),
+            participantNames = ParticipantPreferences.getNames(appContext),
         )
         return gson.toJson(data)
     }
 
-    private suspend fun importPlainJson(cleanJson: String): BackupImportResult {
+    private suspend fun importPlainJson(
+        cleanJson: String,
+        mode: BackupImportMode,
+        photoBytes: Map<String, ByteArray> = emptyMap(),
+    ): BackupImportResult {
         return try {
             val dto = gson.fromJson(cleanJson, BackupDataDto::class.java)
                 ?: return BackupImportResult(
@@ -148,7 +216,15 @@ class BackupManager(context: Context) {
                     message = appContext.getString(R.string.backup_import_no_categories),
                 )
             }
-            val activeId = database.withTransaction { importData(data) }
+            val activeId = database.withTransaction {
+                when (mode) {
+                    BackupImportMode.REPLACE -> importData(data, photoBytes)
+                    BackupImportMode.MERGE -> BackupMergeImporter(appContext, dao, utilityDao).import(data, photoBytes)
+                }
+            }
+            if (mode == BackupImportMode.REPLACE && data.participantNames.isNotEmpty()) {
+                ParticipantPreferences.setNames(appContext, data.participantNames)
+            }
             ActiveBudgetPreferences.setActiveBudgetId(appContext, activeId)
             BackupImportResult(
                 success = true,
@@ -177,7 +253,10 @@ class BackupManager(context: Context) {
         }
     }
 
-    private suspend fun importData(data: BackupData): Int {
+    private suspend fun importData(
+        data: BackupData,
+        photoBytes: Map<String, ByteArray> = emptyMap(),
+    ): Int {
         dao.deleteAllTransactions()
         dao.deleteAllReminders()
         dao.deleteAllSavingsGoals()
@@ -365,7 +444,13 @@ class BackupManager(context: Context) {
                 ?: singleBillId
                 ?: photo.billId.takeIf { insertedBillIds.contains(it) }
             if (billId != null && billId > 0) {
-                utilityDao.insertBillPhoto(photo.copy(id = 0, billId = billId))
+                val bill = utilityDao.getBillById(billId)
+                val storedUri = if (bill != null) {
+                    restorePhotoUri(photo, bill, photoBytes) ?: photo.storedUri
+                } else {
+                    photo.storedUri
+                }
+                utilityDao.insertBillPhoto(photo.copy(id = 0, billId = billId, storedUri = storedUri))
             }
         }
 
@@ -446,6 +531,22 @@ class BackupManager(context: Context) {
 
         val preferredOldId = data.budgetProfiles.firstOrNull { it.id > 0 }?.id
         return preferredOldId?.let { profileIdMap[it] } ?: fallbackProfileId
+    }
+
+    private fun restorePhotoUri(
+        photo: UtilityBillPhotoEntity,
+        bill: UtilityBillEntity,
+        photoBytes: Map<String, ByteArray>,
+    ): String? {
+        val archivePath = photo.storedUri.takeIf { it.startsWith(BackupArchiveHelper.PHOTOS_PREFIX) } ?: return null
+        val bytes = photoBytes[archivePath] ?: return null
+        return UtilityPhotoStorage.persistImportedBytes(
+            appContext,
+            bill,
+            photo.photoType,
+            photo.sortOrder,
+            bytes,
+        ) ?: archivePath
     }
 
     private fun remapId(
@@ -543,13 +644,14 @@ class BackupManager(context: Context) {
         utilityTariffs = utilityTariffs.orEmpty(),
         monthlyCategoryPlans = monthlyCategoryPlans.orEmpty(),
         auditActions = auditActions.orEmpty(),
+        participantNames = participantNames.orEmpty(),
     )
 
     private fun validateBackupContent(content: String): BackupImportResult? {
         if (content.startsWith("PK\u0003\u0004") || content.startsWith("PK")) {
             return BackupImportResult(
                 success = false,
-                message = appContext.getString(R.string.backup_import_wrong_format_xlsx),
+                message = appContext.getString(R.string.backup_import_use_archive_flow),
             )
         }
         if (content.length < 50) {

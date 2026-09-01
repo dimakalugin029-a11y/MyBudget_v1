@@ -19,6 +19,8 @@ import ru.mybudget.app.BudgetApplication
 import ru.mybudget.app.R
 import ru.mybudget.app.security.AutoBackupSecrets
 import ru.mybudget.app.setup.AutoBackupPreferences
+import ru.mybudget.app.setup.WebDavBackupPreferences
+import ru.mybudget.app.security.WebDavSecrets
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -54,6 +56,7 @@ class AutoBackupWorker(
             file.delete()
             return fail(applicationContext.getString(R.string.auto_backup_write_failed))
         }
+        uploadToWebDavIfNeeded(displayName, file.uri)
         val now = System.currentTimeMillis()
         AutoBackupPreferences.setLastAutoExportMs(applicationContext, now)
         applicationContext.getSharedPreferences(BudgetApplication.PREFS_NAME, Context.MODE_PRIVATE)
@@ -76,6 +79,20 @@ class AutoBackupWorker(
         if (overflow > 0) {
             existing.take(overflow).forEach { it.delete() }
         }
+    }
+
+    private suspend fun uploadToWebDavIfNeeded(displayName: String, localUri: Uri) {
+        if (!WebDavBackupPreferences.canUpload(applicationContext)) return
+        val bytes = applicationContext.contentResolver.openInputStream(localUri)?.use { it.readBytes() } ?: return
+        val password = WebDavSecrets.getPassword(applicationContext) ?: return
+        WebDavBackupClient.uploadFile(
+            baseUrl = WebDavBackupPreferences.baseUrl(applicationContext),
+            username = WebDavBackupPreferences.username(applicationContext),
+            password = password,
+            remotePath = WebDavBackupPreferences.remotePath(applicationContext),
+            fileName = displayName,
+            body = bytes,
+        )
     }
 
     private fun fail(message: String, retry: Boolean = true): Result {

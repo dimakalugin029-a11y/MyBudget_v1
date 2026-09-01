@@ -33,6 +33,7 @@ import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.AuditActionType
 import ru.mybudget.app.data.TransactionEntity
 import ru.mybudget.app.imports.CsvTransactionImporter
+import ru.mybudget.app.setup.ImportCategoryMappingPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.transactions.TransactionDayNetHelper
 import java.text.SimpleDateFormat
@@ -374,13 +375,14 @@ class TransactionsActivity : AppCompatActivity() {
                     return@launch
                 }
                 val labels = leaf.associate { it.id to CategoryMultiPicker.leafLabel(it, parents) }
-                val needsDefault = parsed.rows.any { CsvTransactionImporter.resolveCategoryId(it.categoryName, labels) == null }
+                val budgetId = manager.getActiveBudgetId()
+                val rules = ImportCategoryMappingPreferences.getRules(this@TransactionsActivity, budgetId)
+                val resolvedCount = parsed.rows.count { row ->
+                    CsvTransactionImporter.resolveCategoryId(row.categoryName, labels, row.description, rules) != null
+                }
+                val needsDefault = resolvedCount < parsed.rows.size
                 withContext(Dispatchers.Main) {
-                    if (needsDefault) {
-                        pickDefaultCategoryAndImport(parsed.rows, leaf, labels, parents)
-                    } else {
-                        importRows(parsed.rows, labels, null)
-                    }
+                    confirmImport(parsed, labels, rules, leaf, parents, needsDefault, budgetId)
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
@@ -390,17 +392,53 @@ class TransactionsActivity : AppCompatActivity() {
         }
     }
 
+    private fun confirmImport(
+        parsed: CsvTransactionImporter.ParseResult,
+        labels: Map<Int, String>,
+        rules: List<ImportCategoryMappingPreferences.Rule>,
+        leaf: List<BudgetCategory>,
+        parents: Map<Int, String>,
+        needsDefault: Boolean,
+        budgetId: Int,
+    ) {
+        val message = buildString {
+            append(getString(R.string.transactions_import_preview, parsed.rows.size))
+            if (parsed.skipped > 0) {
+                append("\n")
+                append(getString(R.string.transactions_import_preview_skipped, parsed.skipped))
+            }
+            if (needsDefault) {
+                append("\n")
+                append(getString(R.string.transactions_import_preview_need_category))
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.transactions_import_csv)
+            .setMessage(message)
+            .setPositiveButton(R.string.transactions_import_confirm) { _, _ ->
+                if (needsDefault) {
+                    pickDefaultCategoryAndImport(parsed.rows, leaf, labels, parents, rules, budgetId)
+                } else {
+                    importRows(parsed.rows, labels, rules, null, budgetId)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun pickDefaultCategoryAndImport(
         rows: List<CsvTransactionImporter.ParsedRow>,
         leaf: List<BudgetCategory>,
         labels: Map<Int, String>,
         parents: Map<Int, String>,
+        rules: List<ImportCategoryMappingPreferences.Rule>,
+        budgetId: Int,
     ) {
         val options = leaf.map { CategoryMultiPicker.leafLabel(it, parents) }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(R.string.transactions_import_pick_category)
             .setItems(options) { _, which ->
-                importRows(rows, labels, leaf[which].id)
+                importRows(rows, labels, rules, leaf[which].id, budgetId)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -409,15 +447,21 @@ class TransactionsActivity : AppCompatActivity() {
     private fun importRows(
         rows: List<CsvTransactionImporter.ParsedRow>,
         labels: Map<Int, String>,
+        rules: List<ImportCategoryMappingPreferences.Rule>,
         defaultCategoryId: Int?,
+        budgetId: Int,
     ) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 var imported = 0
+                val activeRules = rules.toMutableList()
                 for (row in rows) {
-                    val categoryId = CsvTransactionImporter.resolveCategoryId(row.categoryName, labels)
-                        ?: defaultCategoryId
-                        ?: continue
+                    val categoryId = CsvTransactionImporter.resolveCategoryId(
+                        row.categoryName,
+                        labels,
+                        row.description,
+                        activeRules,
+                    ) ?: defaultCategoryId ?: continue
                     val description = row.description.ifBlank { row.categoryName }
                     manager.repository.recordTransaction(
                         categoryId = categoryId,
@@ -426,6 +470,21 @@ class TransactionsActivity : AppCompatActivity() {
                         description = description,
                         date = row.dateMillis,
                     )
+                    if (
+                        defaultCategoryId != null &&
+                        categoryId == defaultCategoryId &&
+                        row.description.isNotBlank() &&
+                        CsvTransactionImporter.resolveCategoryId(row.categoryName, labels, row.description, rules) == null
+                    ) {
+                        ImportCategoryMappingPreferences.remember(
+                            this@TransactionsActivity,
+                            budgetId,
+                            row.description,
+                            categoryId,
+                        )
+                        ImportCategoryMappingPreferences.ruleFor(row.description, categoryId)
+                            ?.let { activeRules.add(0, it) }
+                    }
                     imported++
                 }
                 manager.reloadCategoriesFromDatabase()

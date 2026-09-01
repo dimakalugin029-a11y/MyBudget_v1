@@ -51,6 +51,17 @@ class PlannedObligationHelperTest {
         assertEquals(30_000.0, PlannedObligationHelper.monthlyLoadForSource(1, obligations), 0.01)
     }
 
+    @Test
+    fun unlinkedIncomeCount_countsActiveWithoutLinkedSource() {
+        val obligations = listOf(
+            obligation(name = "Кредит", categoryId = 10, amount = 20_000.0, paychecks = 1, linkedIncomeSourceId = 1),
+            obligation(name = "Интернет", categoryId = 10, amount = 600.0, paychecks = 2),
+            obligation(name = "Старый", categoryId = 10, amount = 100.0, paychecks = 1, isActive = false),
+        )
+
+        assertEquals(1, PlannedObligationHelper.unlinkedIncomeCount(obligations))
+    }
+
     private fun obligation(
         name: String,
         categoryId: Int,

@@ -47,6 +47,54 @@ object UtilityPhotoStorage {
     fun typeDirName(photoType: String): String =
         if (photoType == UtilityBillPhotoEntity.TYPE_METER) METER_DIR else RECEIPT_DIR
 
+    fun persistImportedBytes(
+        context: Context,
+        bill: UtilityBillEntity,
+        photoType: String,
+        sortOrder: Int,
+        bytes: ByteArray,
+    ): String? {
+        if (bytes.isEmpty()) return null
+        val appContext = context.applicationContext
+        val folderUri = UtilityPhotoPreferences.folderUri(appContext) ?: return null
+        return writeBytesToMonthFolder(appContext, folderUri, bill, photoType, sortOrder, bytes)
+    }
+
+    private fun writeBytesToMonthFolder(
+        context: Context,
+        folderUri: Uri,
+        bill: UtilityBillEntity,
+        photoType: String,
+        sortOrder: Int,
+        bytes: ByteArray,
+    ): String? {
+        val tree = DocumentFile.fromTreeUri(context, folderUri) ?: return null
+        if (!tree.canWrite()) return null
+        val monthDir = findOrCreateDir(tree, ROOT_DIR)
+            ?.let { findOrCreateDir(it, monthFolderLabel(bill.year, bill.month)) }
+            ?.let { findOrCreateDir(it, typeDirName(photoType)) }
+            ?: return null
+        val prefix = if (photoType == UtilityBillPhotoEntity.TYPE_METER) "meter" else "receipt"
+        val fileName = "${prefix}_${sortOrder + 1}_import_${System.currentTimeMillis()}.jpg"
+        val dest = monthDir.createFile("image/jpeg", fileName) ?: return null
+        val copied = runCatching {
+            context.contentResolver.openOutputStream(dest.uri)?.use { output ->
+                output.write(bytes)
+            } ?: error("no output")
+        }.isSuccess
+        if (!copied) {
+            dest.delete()
+            return null
+        }
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                dest.uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
+        return dest.uri.toString()
+    }
+
     private fun copyToMonthFolder(
         context: Context,
         sourceUri: Uri,

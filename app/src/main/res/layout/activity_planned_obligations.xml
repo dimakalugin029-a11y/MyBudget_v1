@@ -14,6 +14,12 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
+    <include
+        android:id="@+id/obligationsHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        layout="@layout/include_dismissible_hint"/>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

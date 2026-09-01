@@ -596,6 +596,69 @@
                     android:text="@string/auto_backup_choose_folder"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"
+            style="@style/Card.MyBudget.Surface">
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="@dimen/space_16"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/webdav_backup_title"
+                    style="@style/Text.MyBudget.Section"/>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:layout_marginBottom="@dimen/space_8"
+                    android:text="@string/webdav_backup_hint"
+                    style="@style/Text.MyBudget.Subtitle"/>
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/webDavBackupSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/webdav_backup_enable"/>
+                <EditText
+                    android:id="@+id/webDavUrlInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:hint="@string/webdav_url_hint"
+                    android:inputType="textUri"/>
+                <EditText
+                    android:id="@+id/webDavUsernameInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:hint="@string/webdav_username_hint"
+                    android:inputType="text"/>
+                <EditText
+                    android:id="@+id/webDavPathInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:hint="@string/webdav_path_hint"
+                    android:inputType="text"/>
+                <Button
+                    android:id="@+id/webDavPasswordButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:text="@string/webdav_password_button"/>
+                <Button
+                    android:id="@+id/webDavTestButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:text="@string/webdav_test_button"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

@@ -91,4 +91,66 @@ class PaymentCalendarHelperTest {
         assertTrue(result.any { it.kind == EntryKind.INCOME && it.title == "Аванс" })
         assertEquals(45_000.0, result.first { it.kind == EntryKind.INCOME }.amount ?: 0.0, 0.01)
     }
+
+    @Test
+    fun weekPaymentTotal_excludesIncomeEntries() {
+        val entries = listOf(
+            PaymentCalendarHelper.Entry(
+                epochDay = 100L,
+                dateLabel = "01.09.2026",
+                title = "Кредит",
+                subtitle = "",
+                amount = 10_000.0,
+                kind = EntryKind.OBLIGATION,
+            ),
+            PaymentCalendarHelper.Entry(
+                epochDay = 101L,
+                dateLabel = "02.09.2026",
+                title = "Зарплата",
+                subtitle = "",
+                amount = 80_000.0,
+                kind = EntryKind.INCOME,
+            ),
+            PaymentCalendarHelper.Entry(
+                epochDay = 102L,
+                dateLabel = "03.09.2026",
+                title = "Интернет",
+                subtitle = "",
+                amount = 500.0,
+                kind = EntryKind.REMINDER,
+            ),
+        )
+
+        assertEquals(10_500.0, PaymentCalendarHelper.weekPaymentTotal(entries), 0.01)
+    }
+
+    @Test
+    fun buildEntries_includesYearlyObligationWithinHorizon() {
+        val today = LocalDate.of(2026, 8, 31)
+        val todayEpoch = today.toEpochDay()
+        val yearly = ru.mybudget.app.data.PlannedObligationEntity(
+            budgetId = 1,
+            name = "ОСАГО",
+            amount = 12_000.0,
+            periodType = ru.mybudget.app.PlannedObligationHelper.PERIOD_YEARLY,
+            categoryId = 5,
+            paychecksPerMonth = 1,
+            dueMonth = 9,
+            dueDay = 15,
+        )
+
+        val result = PaymentCalendarHelper.buildEntries(
+            reminders = emptyList(),
+            recurring = emptyList(),
+            unpaidUtilityBills = emptyList(),
+            obligations = listOf(yearly),
+            plannedIncome = emptyList(),
+            categoryNames = mapOf(5 to "Авто"),
+            todayEpochDay = todayEpoch,
+            horizonDays = 30,
+        )
+
+        assertTrue(result.any { it.kind == EntryKind.OBLIGATION && it.title.startsWith("ОСАГО") })
+        assertEquals(12_000.0, result.first { it.kind == EntryKind.OBLIGATION }.amount ?: 0.0, 0.01)
+    }
 }

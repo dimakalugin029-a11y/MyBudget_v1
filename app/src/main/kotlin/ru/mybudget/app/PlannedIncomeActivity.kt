@@ -43,6 +43,12 @@ class PlannedIncomeActivity : AppCompatActivity() {
             android.R.drawable.ic_input_add,
             R.string.income_plan_add,
         ) { showEditDialog(null) }
+        ScreenHintHelper.bind(
+            this,
+            findViewById(R.id.incomePlanHint),
+            ScreenHintHelper.Keys.PLANNED_INCOME,
+            R.string.hint_planned_income,
+        )
         findViewById<TextView>(R.id.incomePlanObligationsButton).setOnClickListener {
             startActivity(Intent(this, PlannedObligationsActivity::class.java))
         }
