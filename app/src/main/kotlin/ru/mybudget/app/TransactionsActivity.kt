@@ -70,11 +70,14 @@ class TransactionsActivity : AppCompatActivity() {
         ActivityResultContracts.OpenDocument(),
     ) { uri -> if (uri != null) readCsv(uri) }
 
+    private var pendingOpenImport = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_transactions)
         manager = BudgetManager.getInstance(this)
         filterCategoryIds = intent.getIntArrayExtra(EXTRA_CATEGORY_IDS)
+        pendingOpenImport = intent.getBooleanExtra(EXTRA_OPEN_IMPORT, false)
         val title = intent.getStringExtra(EXTRA_CATEGORY_TITLE)?.let {
             getString(R.string.budget_category_history, it)
         } ?: getString(R.string.transactions_title)
@@ -183,6 +186,10 @@ class TransactionsActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadAuditActions()
+        if (pendingOpenImport) {
+            pendingOpenImport = false
+            importCsvLauncher.launch(arrayOf("text/*", "text/csv", "application/vnd.ms-excel", "*/*"))
+        }
     }
 
     private fun showPeriodPicker() {
@@ -972,6 +979,7 @@ class TransactionsActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_CATEGORY_IDS = "filter_category_ids"
         const val EXTRA_CATEGORY_TITLE = "filter_category_title"
+        const val EXTRA_OPEN_IMPORT = "open_import"
         private const val TYPE_TRANSACTION = 0
         private const val TYPE_HEADER = 1
         private const val TYPE_GROUP = 2

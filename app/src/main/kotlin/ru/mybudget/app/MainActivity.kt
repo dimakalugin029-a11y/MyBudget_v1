@@ -1,8 +1,10 @@
 package ru.mybudget.app
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -11,12 +13,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.setup.AutoBackupPreferences
+import ru.mybudget.app.setup.ExpenseShortcut
+import ru.mybudget.app.setup.ExpenseShortcutPreferences
 import ru.mybudget.app.setup.MigrationPreferences
 import ru.mybudget.app.setup.MonthStartPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
+import ru.mybudget.app.setup.QuickExpensePreferences
 import ru.mybudget.app.setup.RolloverPreferences
+import ru.mybudget.app.setup.SetupChecklistHelper
+import ru.mybudget.app.setup.SetupChecklistPreferences
 
 class MainActivity : AppCompatActivity() {
     private var monthStartLaunched = false
@@ -41,7 +50,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, IncomeActivity::class.java))
         }
         findViewById<View>(R.id.expenseButton).setOnClickListener {
-            startActivity(Intent(this, ExpenseActivity::class.java))
+            startActivity(Intent(this, QuickExpenseActivity::class.java))
         }
         findViewById<View>(R.id.budgetButton).setOnClickListener {
             startActivity(Intent(this, BudgetActivity::class.java))
@@ -122,6 +131,167 @@ class MainActivity : AppCompatActivity() {
                 MainDashboardHelper.loadSafeToSpend(this@MainActivity, manager, balance)
             }
             bindSafeToSpend(safeToSpend)
+            bindExpenseShortcuts()
+            bindSetupChecklist(manager)
+        }
+    }
+
+    private suspend fun bindSetupChecklist(manager: BudgetManager) {
+        val transactions = manager.repository.getAllTransactions().first()
+        val hasIncomePlan = manager.repository
+            .getPlannedIncomeSourcesByBudgetOnce(manager.getActiveBudgetId())
+            .any { it.isActive }
+        val progress = SetupChecklistHelper.buildProgress(
+            transactions = transactions,
+            autoBackupEnabled = AutoBackupPreferences.isEnabled(this),
+            hasIncomePlan = hasIncomePlan,
+            checklistDismissed = SetupChecklistPreferences.isDismissed(this),
+        )
+        val section = findViewById<View>(R.id.mainSetupChecklistSection)
+        if (!progress.shouldShow) {
+            section.visibility = View.GONE
+            return
+        }
+        section.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.mainChecklistProgress).text = getString(
+            R.string.main_checklist_progress,
+            progress.completedCount,
+            progress.totalCount,
+        )
+        val stepsContainer = findViewById<LinearLayout>(R.id.mainChecklistSteps)
+        stepsContainer.removeAllViews()
+        val padding = resources.getDimensionPixelSize(R.dimen.space_6)
+        for (step in progress.steps) {
+            val row = TextView(this).apply {
+                textSize = 14f
+                setPadding(0, padding, 0, padding)
+                text = if (step.done) {
+                    getString(R.string.main_checklist_step_done, step.title)
+                } else {
+                    getString(R.string.main_checklist_step_todo, step.title)
+                }
+                setTextColor(
+                    ContextCompat.getColor(
+                        this@MainActivity,
+                        if (step.done) R.color.income_green else R.color.text_primary,
+                    ),
+                )
+                if (!step.done) {
+                    isClickable = true
+                    isFocusable = true
+                    setOnClickListener { onChecklistStep(step.id) }
+                }
+            }
+            stepsContainer.addView(row)
+        }
+        findViewById<TextView>(R.id.mainChecklistDismiss).setOnClickListener {
+            SetupChecklistPreferences.dismiss(this)
+            section.visibility = View.GONE
+        }
+    }
+
+    private fun onChecklistStep(stepId: SetupChecklistHelper.StepId) {
+        val target = when (stepId) {
+            SetupChecklistHelper.StepId.FIRST_EXPENSE -> QuickExpenseActivity::class.java
+            SetupChecklistHelper.StepId.FIRST_INCOME -> IncomeActivity::class.java
+            SetupChecklistHelper.StepId.AUTO_BACKUP -> SettingsActivity::class.java
+            SetupChecklistHelper.StepId.INCOME_PLAN -> PlannedIncomeActivity::class.java
+        }
+        startActivity(Intent(this, target))
+    }
+
+    private fun bindExpenseShortcuts() {
+        val shortcuts = ExpenseShortcutPreferences.load(this)
+        val container = findViewById<LinearLayout>(R.id.mainShortcutsContainer)
+        container.removeAllViews()
+        val margin = resources.getDimensionPixelSize(R.dimen.space_8)
+
+        if (QuickExpensePreferences.hasRepeatableExpense(this)) {
+            container.addView(
+                createShortcutChip(getString(R.string.main_shortcut_repeat)) {
+                    confirmRepeatLastExpense()
+                },
+                chipLayoutParams(margin),
+            )
+        }
+        for (shortcut in shortcuts) {
+            container.addView(
+                createShortcutChip(formatShortcutLabel(shortcut)) {
+                    openQuickExpense(shortcut)
+                },
+                chipLayoutParams(margin),
+            )
+        }
+        container.addView(
+            createShortcutChip(getString(R.string.main_shortcut_add)) {
+                startActivity(Intent(this, QuickExpenseActivity::class.java))
+            },
+            chipLayoutParams(margin),
+        )
+        findViewById<View>(R.id.mainShortcutsScroll).visibility = View.VISIBLE
+        findViewById<View>(R.id.mainShortcutsLabel).visibility = View.VISIBLE
+    }
+
+    private fun formatShortcutLabel(shortcut: ExpenseShortcut): String {
+        return "${shortcut.label} ${MoneyFormat.format(shortcut.amount)}"
+    }
+
+    private fun openQuickExpense(shortcut: ExpenseShortcut) {
+        startActivity(
+            Intent(this, QuickExpenseActivity::class.java)
+                .putExtra(QuickExpenseActivity.EXTRA_CATEGORY_ID, shortcut.categoryId)
+                .putExtra(QuickExpenseActivity.EXTRA_AMOUNT, shortcut.amount)
+                .putExtra(QuickExpenseActivity.EXTRA_LABEL, shortcut.label),
+        )
+    }
+
+    private fun createShortcutChip(text: String, onClick: () -> Unit): TextView {
+        return TextView(this, null, 0, R.style.Chip_MyBudget_Filter).apply {
+            this.text = text
+            isClickable = true
+            isFocusable = true
+            setTypeface(null, Typeface.BOLD)
+            setOnClickListener { onClick() }
+        }
+    }
+
+    private fun chipLayoutParams(marginEnd: Int): LinearLayout.LayoutParams {
+        return LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { this.marginEnd = marginEnd }
+    }
+
+    private fun confirmRepeatLastExpense() {
+        val amount = QuickExpensePreferences.getLastAmount(this) ?: return
+        val categoryId = QuickExpensePreferences.getLastCategoryId(this)
+        if (categoryId <= 0) return
+        val description = QuickExpensePreferences.getLastDescription(this).orEmpty()
+        lifecycleScope.launch {
+            val manager = BudgetManager.getInstance(this@MainActivity)
+            val category = manager.getCategoryById(categoryId)
+            val label = category?.name ?: getString(R.string.transaction_expense)
+            val summary = if (description.isBlank()) label else "$label · $description"
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle(R.string.main_repeat_confirm_title)
+                .setMessage(getString(R.string.main_repeat_confirm_message, MoneyFormat.formatRub(amount), summary))
+                .setPositiveButton(android.R.string.ok) { _, _ ->
+                    lifecycleScope.launch {
+                        manager.recordTransaction(
+                            categoryId,
+                            amount,
+                            "expense",
+                            description.ifBlank { getString(R.string.transaction_expense) },
+                        )
+                        Toast.makeText(this@MainActivity, R.string.main_repeat_done, Toast.LENGTH_SHORT).show()
+                        refreshHeader()
+                    }
+                }
+                .setNeutralButton(R.string.quick_expense_full_form) { _, _ ->
+                    startActivity(Intent(this@MainActivity, QuickExpenseActivity::class.java))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
     }
 

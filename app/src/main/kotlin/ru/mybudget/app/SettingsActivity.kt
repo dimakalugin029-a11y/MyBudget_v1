@@ -292,6 +292,23 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.importButton).setOnClickListener {
             importLauncher.launch(arrayOf("application/json", "*/*"))
         }
+        findViewById<MaterialButton>(R.id.bankImportHelpButton).setOnClickListener {
+            showBankImportHelp()
+        }
+    }
+
+    private fun showBankImportHelp() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.bank_import_title)
+            .setMessage(R.string.bank_import_message)
+            .setPositiveButton(R.string.bank_import_open_history) { _, _ ->
+                startActivity(
+                    Intent(this, TransactionsActivity::class.java)
+                        .putExtra(TransactionsActivity.EXTRA_OPEN_IMPORT, true),
+                )
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun setupAutoBackup() {
@@ -682,12 +699,14 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun showTemplatesDialog() {
         val labels = arrayOf(
+            getString(R.string.template_simple),
             getString(R.string.template_minimal),
             getString(R.string.template_extended),
             getString(R.string.template_full),
             getString(R.string.template_custom),
         )
         val ids = arrayOf(
+            BudgetTemplateId.SIMPLE,
             BudgetTemplateId.MINIMAL,
             BudgetTemplateId.EXTENDED,
             BudgetTemplateId.FULL,

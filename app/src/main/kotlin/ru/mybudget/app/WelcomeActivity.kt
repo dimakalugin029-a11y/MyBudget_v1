@@ -102,12 +102,17 @@ class WelcomeActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val item = items[position]
-            holder.title.text = item.title
-            holder.description.text = item.description
-            holder.stats.text = if (item.id == BudgetTemplateId.CUSTOM) {
-                holder.itemView.context.getString(R.string.welcome_template_custom_stats)
+            val context = holder.itemView.context
+            holder.title.text = if (item.id == BudgetTemplateId.SIMPLE) {
+                "${item.title} · ${context.getString(R.string.welcome_template_recommended)}"
             } else {
-                holder.itemView.context.getString(
+                item.title
+            }
+            holder.description.text = item.description
+            holder.stats.text = when {
+                item.id == BudgetTemplateId.CUSTOM -> context.getString(R.string.welcome_template_custom_stats)
+                item.id == BudgetTemplateId.SIMPLE -> context.getString(R.string.welcome_template_stats_simple, item.articleCount)
+                else -> context.getString(
                     R.string.welcome_template_stats,
                     item.articleCount,
                     item.subcategoryCount,

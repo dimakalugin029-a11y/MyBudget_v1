@@ -520,6 +520,14 @@
                         android:layout_marginStart="@dimen/space_6"
                         style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
                 </LinearLayout>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bankImportHelpButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/settings_bank_import_help"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
                 <View
                     android:background="@color/border_light"
                     android:layout_width="match_parent"

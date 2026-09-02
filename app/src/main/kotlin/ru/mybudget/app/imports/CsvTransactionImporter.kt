@@ -26,7 +26,12 @@ object CsvTransactionImporter {
         val amountCol: Int,
         val descCol: Int,
         val delimiter: Char,
-    )
+        val expenseCol: Int = -1,
+        val incomeCol: Int = -1,
+        val categoryCol: Int = -1,
+    ) {
+        val usesSplitAmounts: Boolean get() = expenseCol >= 0 && incomeCol >= 0
+    }
 
     fun parse(text: String): ParseResult {
         val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
@@ -100,7 +105,6 @@ object CsvTransactionImporter {
     private fun parseBankHeader(headerLine: String): BankColumnMap? {
         val lower = headerLine.lowercase(Locale.getDefault())
         if (!lower.contains("дата") && !lower.contains("date")) return null
-        if (!lower.contains("сумма") && !lower.contains("amount")) return null
 
         val delimiter = detectDelimiter(headerLine)
         val parts = splitCsv(headerLine, delimiter).map { it.lowercase(Locale.getDefault()).trim() }
@@ -110,26 +114,67 @@ object CsvTransactionImporter {
         }.takeIf { it >= 0 } ?: parts.indexOfFirst { it.contains("дата") || it == "date" }
         if (dateCol < 0) return null
 
+        val expenseCol = parts.indexOfFirst { col ->
+            col.contains("расход") || col.contains("списан") || col.contains("debit")
+        }
+        val incomeCol = parts.indexOfFirst { col ->
+            col.contains("приход") || col.contains("зачисл") || col.contains("credit")
+        }
+        val hasSplit = expenseCol >= 0 && incomeCol >= 0
+        val hasAmountColumn = lower.contains("сумма") || lower.contains("amount")
+        if (!hasAmountColumn && !hasSplit) return null
+
         val amountCol = parts.indexOfFirst { col ->
             col.contains("сумма") && (col.contains("операц") || col.contains("валют") || col.contains("счёта") || col.contains("счета"))
         }.takeIf { it >= 0 } ?: parts.indexOfFirst { it.contains("сумма") || it == "amount" }
-        if (amountCol < 0) return null
+        if (amountCol < 0 && !hasSplit) return null
 
         val descCol = parts.indexOfFirst { col ->
             col.contains("описан") || col.contains("назначен") || col.contains("merchant") || col == "description"
         }
         if (descCol < 0) return null
 
-        return BankColumnMap(dateCol, amountCol, descCol, delimiter)
+        val categoryCol = parts.indexOfFirst { col ->
+            col.contains("категор") || col.contains("category")
+        }
+
+        return BankColumnMap(
+            dateCol = dateCol,
+            amountCol = amountCol.coerceAtLeast(expenseCol.coerceAtLeast(0)),
+            descCol = descCol,
+            delimiter = delimiter,
+            expenseCol = expenseCol,
+            incomeCol = incomeCol,
+            categoryCol = categoryCol,
+        )
     }
 
     private fun parseBankRow(parts: List<String>, map: BankColumnMap): ParsedRow? {
-        if (parts.size <= maxOf(map.dateCol, map.amountCol, map.descCol)) return null
+        if (parts.size <= maxOf(map.dateCol, map.descCol)) return null
         val dateRaw = parts[map.dateCol].trim()
         val date = parseRuDate(dateRaw) ?: parseIsoDate(dateRaw) ?: return null
+        val descBase = parts.getOrNull(map.descCol)?.trim().orEmpty()
+        val category = if (map.categoryCol >= 0) parts.getOrNull(map.categoryCol)?.trim().orEmpty() else ""
+        val desc = when {
+            descBase.isNotBlank() && category.isNotBlank() -> "$category · $descBase"
+            descBase.isNotBlank() -> descBase
+            category.isNotBlank() -> category
+            else -> ""
+        }
+
+        if (map.usesSplitAmounts) {
+            val expense = parseAmount(parts.getOrElse(map.expenseCol) { "" }) ?: 0.0
+            val income = parseAmount(parts.getOrElse(map.incomeCol) { "" }) ?: 0.0
+            return when {
+                expense > 0.0 && income <= 0.0 -> ParsedRow(date, "", "expense", expense, desc)
+                income > 0.0 && expense <= 0.0 -> ParsedRow(date, "", "income", income, desc)
+                else -> null
+            }
+        }
+
+        if (parts.size <= maxOf(map.dateCol, map.amountCol, map.descCol)) return null
         val signed = parseAmount(parts[map.amountCol]) ?: return null
         if (signed == 0.0) return null
-        val desc = parts[map.descCol].trim()
         return ParsedRow(
             dateMillis = date,
             categoryName = "",

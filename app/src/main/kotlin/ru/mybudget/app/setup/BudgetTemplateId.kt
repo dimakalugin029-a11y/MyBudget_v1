@@ -1,6 +1,7 @@
 package ru.mybudget.app.setup
 
 enum class BudgetTemplateId {
+    SIMPLE,
     MINIMAL,
     EXTENDED,
     FULL,

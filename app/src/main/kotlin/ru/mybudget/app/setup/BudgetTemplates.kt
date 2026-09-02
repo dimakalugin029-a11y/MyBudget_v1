@@ -22,6 +22,13 @@ data class BudgetTemplateInfo(
 object BudgetTemplates {
     val all: List<BudgetTemplateInfo> = listOf(
         BudgetTemplateInfo(
+            BudgetTemplateId.SIMPLE,
+            "Быстрый старт",
+            "Три статьи — Продукты, Транспорт и Прочее. Идеально для первого знакомства.",
+            3,
+            0,
+        ),
+        BudgetTemplateInfo(
             BudgetTemplateId.MINIMAL,
             "Минимальный",
             "Резерв, ЖКХ, быт и прочее — базовая структура для быстрого старта.",
@@ -88,6 +95,7 @@ object BudgetTemplates {
 
     private fun buildCategories(templateId: BudgetTemplateId): List<BudgetCategory> {
         return when (templateId) {
+            BudgetTemplateId.SIMPLE -> simpleCategories()
             BudgetTemplateId.MINIMAL -> minimalCategories()
             BudgetTemplateId.EXTENDED -> extendedCategories()
             BudgetTemplateId.FULL -> fullCategories()
@@ -118,6 +126,12 @@ object BudgetTemplates {
     private fun build(block: CategoryBuilder.() -> Unit): List<BudgetCategory> {
         return CategoryBuilder().apply(block).build()
     }
+
+    private fun simpleCategories(): List<BudgetCategory> = listOf(
+        BudgetCategory(id = 1, name = "Продукты", parentId = 0),
+        BudgetCategory(id = 2, name = "Транспорт", parentId = 0),
+        BudgetCategory(id = 3, name = "Прочее", parentId = 0),
+    )
 
     private fun minimalCategories(): List<BudgetCategory> = build {
         article("Резерв")

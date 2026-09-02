@@ -79,6 +79,20 @@
             android:paddingBottom="@dimen/space_4" />
     </HorizontalScrollView>
 
+    <EditText
+        android:id="@+id/quickExpenseDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:hint="@string/quick_expense_description_hint"
+        android:inputType="textCapSentences"
+        android:maxLines="1"
+        android:padding="@dimen/space_12"
+        android:background="@drawable/transaction_hero_amount_field"
+        android:textColor="@color/transaction_hero_text_primary"
+        android:textColorHint="@color/transaction_hero_text_hint"
+        android:textSize="14sp"/>
+
     <com.google.android.material.button.MaterialButton
         android:id="@+id/quickExpenseRepeatButton"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -90,6 +104,15 @@
         android:visibility="gone"
         app:cornerRadius="@dimen/radius_10"
         app:strokeColor="@color/expense_red" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/quickExpenseSaveShortcutButton"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        android:text="@string/quick_expense_save_shortcut"
+        android:textColor="@color/expense_red"/>
 
     <TextView
         android:id="@+id/quickExpenseFullFormLink"

@@ -9,20 +9,25 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import ru.mybudget.app.setup.ExpenseShortcut
+import ru.mybudget.app.setup.ExpenseShortcutPreferences
 import ru.mybudget.app.setup.QuickExpensePreferences
 
 class QuickExpenseActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
     private lateinit var amountInput: EditText
+    private lateinit var descriptionInput: EditText
     private lateinit var categoryContainer: LinearLayout
     private lateinit var repeatButton: MaterialButton
     private var categoryOptions: List<QuickCategoryOption> = emptyList()
     private var selectedCategoryId: Int = -1
+    private var prefilledApplied = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,6 +39,7 @@ class QuickExpenseActivity : AppCompatActivity() {
             getString(R.string.main_icon_expense),
         )
         amountInput = findViewById(R.id.quickExpenseAmount)
+        descriptionInput = findViewById(R.id.quickExpenseDescription)
         categoryContainer = findViewById(R.id.quickExpenseCategoryContainer)
         repeatButton = findViewById(R.id.quickExpenseRepeatButton)
         findViewById<View>(R.id.quickExpenseFullFormLink).setOnClickListener {
@@ -41,6 +47,7 @@ class QuickExpenseActivity : AppCompatActivity() {
             finish()
         }
         findViewById<MaterialButton>(R.id.quickExpenseSaveButton).setOnClickListener { save() }
+        findViewById<MaterialButton>(R.id.quickExpenseSaveShortcutButton).setOnClickListener { saveShortcut() }
         repeatButton.setOnClickListener { applyRepeatLast() }
         amountInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -87,6 +94,23 @@ class QuickExpenseActivity : AppCompatActivity() {
             }
             selectedCategoryId = categoryOptions.firstOrNull()?.category?.id ?: -1
             renderCategoryChips()
+            applyPrefillIfNeeded()
+        }
+    }
+
+    private fun applyPrefillIfNeeded() {
+        if (prefilledApplied) return
+        prefilledApplied = true
+        val categoryId = intent.getIntExtra(EXTRA_CATEGORY_ID, -1)
+        if (categoryId > 0) {
+            selectedCategoryId = categoryId
+            renderCategoryChips()
+        }
+        intent.getDoubleExtra(EXTRA_AMOUNT, -1.0).takeIf { it > 0.0 }?.let { amount ->
+            amountInput.setText(MoneyFormat.format(amount))
+        }
+        intent.getStringExtra(EXTRA_LABEL)?.takeIf { it.isNotBlank() }?.let { label ->
+            descriptionInput.setText(label)
         }
     }
 
@@ -148,31 +172,42 @@ class QuickExpenseActivity : AppCompatActivity() {
         val amount = QuickExpensePreferences.getLastAmount(this) ?: return
         val categoryId = QuickExpensePreferences.getLastCategoryId(this)
         amountInput.setText(MoneyFormat.format(amount))
+        QuickExpensePreferences.getLastDescription(this)?.let { descriptionInput.setText(it) }
         if (categoryId > 0) {
             selectedCategoryId = categoryId
             renderCategoryChips()
         }
     }
 
+    private fun saveShortcut() {
+        val amount = parseAmount() ?: return
+        val categoryId = selectedCategoryId.takeIf { it > 0 }
+            ?: categoryOptions.firstOrNull()?.category?.id
+            ?: run {
+                Toast.makeText(this, R.string.error_select_leaf_category, Toast.LENGTH_SHORT).show()
+                return
+            }
+        val label = descriptionInput.text.toString().trim().ifBlank {
+            categoryOptions.firstOrNull { it.category.id == categoryId }?.label ?: getString(R.string.transaction_expense)
+        }
+        ExpenseShortcutPreferences.upsert(
+            this,
+            ExpenseShortcut(label = label, categoryId = categoryId, amount = amount),
+        )
+        Toast.makeText(this, R.string.quick_expense_shortcut_saved, Toast.LENGTH_SHORT).show()
+    }
+
     private fun save() {
-        val amountText = amountInput.text.toString()
-        if (amountText.isBlank()) {
-            Toast.makeText(this, R.string.expense_enter_amount, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val amount = MoneyFormat.parse(amountText)
-        if (amount == null || amount <= 0.0) {
-            Toast.makeText(this, R.string.error_invalid_amount, Toast.LENGTH_SHORT).show()
-            return
-        }
+        val amount = parseAmount() ?: return
         val categoryId = selectedCategoryId.takeIf { it > 0 }
             ?: categoryOptions.firstOrNull()?.category?.id
         if (categoryId == null) {
             Toast.makeText(this, R.string.error_select_leaf_category, Toast.LENGTH_SHORT).show()
             return
         }
-        val description = QuickExpensePreferences.getLastDescription(this)
-            ?: getString(R.string.transaction_expense)
+        val description = descriptionInput.text.toString().trim().ifBlank {
+            getString(R.string.transaction_expense)
+        }
         lifecycleScope.launch {
             manager.recordTransaction(categoryId, amount, "expense", description)
             QuickExpensePreferences.saveLastExpense(this@QuickExpenseActivity, categoryId, amount, description)
@@ -187,5 +222,25 @@ class QuickExpenseActivity : AppCompatActivity() {
         }
     }
 
+    private fun parseAmount(): Double? {
+        val amountText = amountInput.text.toString()
+        if (amountText.isBlank()) {
+            Toast.makeText(this, R.string.expense_enter_amount, Toast.LENGTH_SHORT).show()
+            return null
+        }
+        val amount = MoneyFormat.parse(amountText)
+        if (amount == null || amount <= 0.0) {
+            Toast.makeText(this, R.string.error_invalid_amount, Toast.LENGTH_SHORT).show()
+            return null
+        }
+        return amount
+    }
+
     private data class QuickCategoryOption(val category: BudgetCategory, val label: String)
+
+    companion object {
+        const val EXTRA_CATEGORY_ID = "category_id"
+        const val EXTRA_AMOUNT = "amount"
+        const val EXTRA_LABEL = "label"
+    }
 }
