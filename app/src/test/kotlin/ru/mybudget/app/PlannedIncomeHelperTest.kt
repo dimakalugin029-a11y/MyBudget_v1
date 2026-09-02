@@ -97,6 +97,82 @@ class PlannedIncomeHelperTest {
         assertEquals(50_000.0, balances[0].freeAmount, 0.01)
     }
 
+    @Test
+    fun monthlyTotal_amortizesQuarterlyAndYearlyBonus() {
+        val sources = listOf(
+            PlannedIncomeSourceEntity(
+                budgetId = 1,
+                name = "Зарплата",
+                amount = 80_000.0,
+                sourceType = PlannedIncomeHelper.TYPE_SALARY,
+            ),
+            PlannedIncomeSourceEntity(
+                budgetId = 1,
+                name = "Квартальная премия",
+                amount = 30_000.0,
+                sourceType = PlannedIncomeHelper.TYPE_BONUS,
+                periodType = PlannedIncomeHelper.PERIOD_QUARTERLY,
+                dueMonth = 3,
+                dayOfMonth = 15,
+            ),
+            PlannedIncomeSourceEntity(
+                budgetId = 1,
+                name = "13-я",
+                amount = 120_000.0,
+                sourceType = PlannedIncomeHelper.TYPE_BONUS,
+                periodType = PlannedIncomeHelper.PERIOD_YEARLY,
+                dueMonth = 12,
+                dayOfMonth = 20,
+            ),
+        )
+
+        assertEquals(100_000.0, PlannedIncomeHelper.monthlyTotal(sources), 0.01)
+    }
+
+    @Test
+    fun occurrencesInHorizon_includesQuarterlyBonusMonths() {
+        val today = java.time.LocalDate.of(2026, 1, 10).toEpochDay()
+        val bonus = PlannedIncomeSourceEntity(
+            budgetId = 1,
+            name = "Премия",
+            amount = 30_000.0,
+            sourceType = PlannedIncomeHelper.TYPE_BONUS,
+            periodType = PlannedIncomeHelper.PERIOD_QUARTERLY,
+            dueMonth = 3,
+            dayOfMonth = 15,
+        )
+
+        val occurrences = PlannedIncomeHelper.occurrencesInHorizon(listOf(bonus), today, horizonDays = 365)
+
+        assertEquals(listOf(3, 6, 9, 12), occurrences.map { it.dueDate.monthValue }.distinct().sorted())
+    }
+
+    @Test
+    fun occurrencesInHorizon_includesYearlyBonusOnce() {
+        val today = java.time.LocalDate.of(2026, 8, 1).toEpochDay()
+        val bonus = PlannedIncomeSourceEntity(
+            budgetId = 1,
+            name = "Годовая премия",
+            amount = 120_000.0,
+            sourceType = PlannedIncomeHelper.TYPE_BONUS,
+            periodType = PlannedIncomeHelper.PERIOD_YEARLY,
+            dueMonth = 12,
+            dayOfMonth = 20,
+        )
+
+        val occurrences = PlannedIncomeHelper.occurrencesInHorizon(listOf(bonus), today, horizonDays = 180)
+
+        assertEquals(1, occurrences.size)
+        assertEquals(2026, occurrences.first().dueDate.year)
+        assertEquals(12, occurrences.first().dueDate.monthValue)
+    }
+
+    @Test
+    fun quarterlyMonths_rotatesFromStartMonth() {
+        assertEquals(setOf(3, 6, 9, 12), PlannedIncomeHelper.quarterlyMonths(3))
+        assertEquals(setOf(1, 4, 7, 10), PlannedIncomeHelper.quarterlyMonths(1))
+    }
+
     private fun source(name: String, amount: Double, dayOfMonth: Int) = PlannedIncomeSourceEntity(
         budgetId = 1,
         name = name,

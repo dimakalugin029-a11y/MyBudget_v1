@@ -189,7 +189,6 @@ object PlannedObligationHelper {
     fun buildPlanSetupAttention(
         context: Context,
         obligations: List<PlannedObligationEntity>,
-        incomeSources: List<ru.mybudget.app.data.PlannedIncomeSourceEntity>,
     ): AttentionLine? {
         val active = obligations.filter { it.isActive }
         if (active.isEmpty()) return null
@@ -206,19 +205,9 @@ object PlannedObligationHelper {
             )
         }
 
-        val hasIncomePlan = incomeSources.any { it.isActive }
-        if (!hasIncomePlan) return null
-
-        val noIncomeLink = unlinkedIncomeCount(active)
-        if (noIncomeLink <= 0) return null
-        return AttentionLine(
-            context.getString(R.string.main_attention_plan_setup_title),
-            context.resources.getQuantityString(
-                R.plurals.main_plan_setup_no_income_link,
-                noIncomeLink,
-                noIncomeLink,
-            ),
-        )
+        // «Делить между доходами» хранится как linkedIncomeSourceId = null — это осознанный выбор,
+        // а не пропущенная настройка; предупреждать имеет смысл только о платежах без подстатьи.
+        return null
     }
 
     fun monthlyPlanByCategory(obligations: List<PlannedObligationEntity>): Map<Int, Double> {

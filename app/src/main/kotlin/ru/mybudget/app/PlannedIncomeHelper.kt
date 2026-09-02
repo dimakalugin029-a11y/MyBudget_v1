@@ -2,14 +2,21 @@ package ru.mybudget.app
 
 import android.content.Context
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
+import java.text.DateFormatSymbols
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 object PlannedIncomeHelper {
     const val TYPE_SALARY = "salary"
     const val TYPE_ADVANCE = "advance"
+    const val TYPE_BONUS = "bonus"
     const val TYPE_OTHER = "other"
+
+    const val PERIOD_MONTHLY = "monthly"
+    const val PERIOD_QUARTERLY = "quarterly"
+    const val PERIOD_YEARLY = "yearly"
 
     private val displayFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
@@ -19,9 +26,31 @@ object PlannedIncomeHelper {
         val epochDay: Long,
     )
 
+    fun normalizePeriod(periodType: String?): String {
+        return when (periodType) {
+            PERIOD_QUARTERLY, PERIOD_YEARLY -> periodType
+            else -> PERIOD_MONTHLY
+        }
+    }
+
+    fun isBonus(source: PlannedIncomeSourceEntity): Boolean = source.sourceType == TYPE_BONUS
+
+    fun effectivePeriod(source: PlannedIncomeSourceEntity): String {
+        return if (isBonus(source)) normalizePeriod(source.periodType) else PERIOD_MONTHLY
+    }
+
+    fun monthlyEquivalent(source: PlannedIncomeSourceEntity): Double {
+        if (!isBonus(source)) return source.amount
+        return when (effectivePeriod(source)) {
+            PERIOD_QUARTERLY -> MoneyFormat.roundMoney(source.amount / 3.0)
+            PERIOD_YEARLY -> MoneyFormat.roundMoney(source.amount / 12.0)
+            else -> source.amount
+        }
+    }
+
     fun monthlyTotal(sources: List<PlannedIncomeSourceEntity>): Double {
         return MoneyFormat.roundMoney(
-            sources.filter { it.isActive }.sumOf { it.amount },
+            sources.filter { it.isActive }.sumOf { monthlyEquivalent(it) },
         )
     }
 
@@ -33,6 +62,7 @@ object PlannedIncomeHelper {
         return when (sourceType) {
             TYPE_SALARY -> context.getString(R.string.income_plan_type_salary)
             TYPE_ADVANCE -> context.getString(R.string.income_plan_type_advance)
+            TYPE_BONUS -> context.getString(R.string.income_plan_type_bonus)
             else -> context.getString(R.string.income_plan_type_other)
         }
     }
@@ -41,6 +71,7 @@ object PlannedIncomeHelper {
         return when (position) {
             0 -> TYPE_SALARY
             1 -> TYPE_ADVANCE
+            2 -> TYPE_BONUS
             else -> TYPE_OTHER
         }
     }
@@ -49,7 +80,32 @@ object PlannedIncomeHelper {
         return when (sourceType) {
             TYPE_SALARY -> 0
             TYPE_ADVANCE -> 1
-            else -> 2
+            TYPE_BONUS -> 2
+            else -> 3
+        }
+    }
+
+    fun periodLabel(context: Context, periodType: String): String {
+        return when (normalizePeriod(periodType)) {
+            PERIOD_QUARTERLY -> context.getString(R.string.income_plan_period_quarterly)
+            PERIOD_YEARLY -> context.getString(R.string.income_plan_period_yearly)
+            else -> context.getString(R.string.income_plan_period_monthly)
+        }
+    }
+
+    fun periodFromSpinnerPosition(position: Int): String {
+        return when (position) {
+            1 -> PERIOD_QUARTERLY
+            2 -> PERIOD_YEARLY
+            else -> PERIOD_MONTHLY
+        }
+    }
+
+    fun periodSpinnerPosition(periodType: String): Int {
+        return when (normalizePeriod(periodType)) {
+            PERIOD_QUARTERLY -> 1
+            PERIOD_YEARLY -> 2
+            else -> 0
         }
     }
 
@@ -58,6 +114,43 @@ object PlannedIncomeHelper {
             context.getString(R.string.income_plan_day_flexible)
         } else {
             PlannedObligationHelper.dueDayLabel(context, dayOfMonth)
+        }
+    }
+
+    fun monthName(context: Context, month: Int): String {
+        val names = DateFormatSymbols(Locale("ru")).months
+        return names[(month - 1).coerceIn(0, 11)].replaceFirstChar { ch ->
+            if (ch.isLowerCase()) ch.titlecase(Locale("ru")) else ch.toString()
+        }
+    }
+
+    fun scheduleLabel(context: Context, source: PlannedIncomeSourceEntity): String {
+        if (source.dayOfMonth <= 0) return dayLabel(context, source.dayOfMonth)
+        val day = PlannedObligationHelper.dueDayLabel(context, source.dayOfMonth)
+        return when (effectivePeriod(source)) {
+            PERIOD_QUARTERLY -> context.getString(
+                R.string.income_plan_schedule_quarterly,
+                day,
+                monthName(context, source.dueMonth),
+            )
+            PERIOD_YEARLY -> context.getString(
+                R.string.income_plan_schedule_yearly,
+                day,
+                monthName(context, source.dueMonth),
+            )
+            else -> context.getString(R.string.income_plan_schedule_monthly, day)
+        }
+    }
+
+    fun amountLine(context: Context, source: PlannedIncomeSourceEntity): String {
+        val amount = MoneyFormat.formatRub(source.amount)
+        val monthly = MoneyFormat.formatRub(monthlyEquivalent(source))
+        return when {
+            isBonus(source) && effectivePeriod(source) == PERIOD_QUARTERLY ->
+                context.getString(R.string.income_plan_item_amount_quarterly, amount, monthly)
+            isBonus(source) && effectivePeriod(source) == PERIOD_YEARLY ->
+                context.getString(R.string.income_plan_item_amount_yearly, amount, monthly)
+            else -> context.getString(R.string.income_plan_item_amount, amount)
         }
     }
 
@@ -76,30 +169,96 @@ object PlannedIncomeHelper {
         val result = mutableListOf<Occurrence>()
 
         for (source in sources.filter { it.isActive && it.dayOfMonth > 0 }) {
-            var ym = YearMonth.from(today)
-            val endYm = YearMonth.from(horizonEnd)
-            while (!ym.isAfter(endYm)) {
-                val dueDate = PlannedObligationHelper.dueLocalDate(ym, source.dayOfMonth)
-                val epoch = dueDate.toEpochDay()
-                if (epoch in todayEpochDay..maxDay) {
-                    result += Occurrence(source, dueDate, epoch)
-                }
-                ym = ym.plusMonths(1)
+            when (effectivePeriod(source)) {
+                PERIOD_QUARTERLY -> addQuarterlyOccurrences(result, source, today, todayEpochDay, maxDay, horizonEnd)
+                PERIOD_YEARLY -> addYearlyOccurrences(result, source, today, todayEpochDay, maxDay, horizonEnd)
+                else -> addMonthlyOccurrences(result, source, today, todayEpochDay, maxDay, horizonEnd)
             }
         }
         return result.sortedBy { it.epochDay }
     }
 
+    private fun addMonthlyOccurrences(
+        result: MutableList<Occurrence>,
+        source: PlannedIncomeSourceEntity,
+        today: LocalDate,
+        todayEpochDay: Long,
+        maxDay: Long,
+        horizonEnd: LocalDate,
+    ) {
+        var ym = YearMonth.from(today)
+        val endYm = YearMonth.from(horizonEnd)
+        while (!ym.isAfter(endYm)) {
+            addOccurrenceIfInRange(result, source, ym, todayEpochDay, maxDay)
+            ym = ym.plusMonths(1)
+        }
+    }
+
+    private fun addQuarterlyOccurrences(
+        result: MutableList<Occurrence>,
+        source: PlannedIncomeSourceEntity,
+        today: LocalDate,
+        todayEpochDay: Long,
+        maxDay: Long,
+        horizonEnd: LocalDate,
+    ) {
+        val months = quarterlyMonths(source.dueMonth)
+        var ym = YearMonth.from(today)
+        val endYm = YearMonth.from(horizonEnd)
+        while (!ym.isAfter(endYm)) {
+            if (ym.monthValue in months) {
+                addOccurrenceIfInRange(result, source, ym, todayEpochDay, maxDay)
+            }
+            ym = ym.plusMonths(1)
+        }
+    }
+
+    private fun addYearlyOccurrences(
+        result: MutableList<Occurrence>,
+        source: PlannedIncomeSourceEntity,
+        today: LocalDate,
+        todayEpochDay: Long,
+        maxDay: Long,
+        horizonEnd: LocalDate,
+    ) {
+        val month = source.dueMonth.coerceIn(1, 12)
+        for (year in today.year..horizonEnd.year) {
+            addOccurrenceIfInRange(
+                result,
+                source,
+                YearMonth.of(year, month),
+                todayEpochDay,
+                maxDay,
+            )
+        }
+    }
+
+    private fun addOccurrenceIfInRange(
+        result: MutableList<Occurrence>,
+        source: PlannedIncomeSourceEntity,
+        ym: YearMonth,
+        todayEpochDay: Long,
+        maxDay: Long,
+    ) {
+        val dueDate = PlannedObligationHelper.dueLocalDate(ym, source.dayOfMonth)
+        val epoch = dueDate.toEpochDay()
+        if (epoch in todayEpochDay..maxDay) {
+            result += Occurrence(source, dueDate, epoch)
+        }
+    }
+
+    internal fun quarterlyMonths(startMonth: Int): Set<Int> {
+        val start = startMonth.coerceIn(1, 12)
+        return (0 until 4).map { ((start - 1 + it * 3) % 12) + 1 }.toSet()
+    }
+
     fun daysUntilOccurrence(source: PlannedIncomeSourceEntity, today: LocalDate = LocalDate.now()): Int? {
         if (!source.isActive || source.dayOfMonth <= 0) return null
-        val thisMonthDate = PlannedObligationHelper.dueLocalDate(YearMonth.from(today), source.dayOfMonth)
-        val thisDiff = (thisMonthDate.toEpochDay() - today.toEpochDay()).toInt()
-        val nextMonthDate = PlannedObligationHelper.dueLocalDate(
-            YearMonth.from(today).plusMonths(1),
-            source.dayOfMonth,
-        )
-        val nextDiff = (nextMonthDate.toEpochDay() - today.toEpochDay()).toInt()
-        return if (kotlin.math.abs(thisDiff) <= kotlin.math.abs(nextDiff)) thisDiff else nextDiff
+        val todayEpoch = today.toEpochDay()
+        val startEpoch = todayEpoch - 30
+        val horizon = occurrencesInHorizon(listOf(source), startEpoch, horizonDays = 400)
+        val closest = horizon.minByOrNull { kotlin.math.abs(it.epochDay - todayEpoch) } ?: return null
+        return (closest.epochDay - todayEpoch).toInt()
     }
 
     fun suggestionsForIncomeEntry(
@@ -118,7 +277,11 @@ object PlannedIncomeHelper {
 
     fun calendarSubtitle(context: Context, source: PlannedIncomeSourceEntity): String {
         val type = typeLabel(context, source.sourceType)
-        return context.getString(R.string.payment_calendar_income_subtitle, type)
+        if (!isBonus(source) || effectivePeriod(source) == PERIOD_MONTHLY) {
+            return context.getString(R.string.payment_calendar_income_subtitle, type)
+        }
+        val period = periodLabel(context, source.periodType)
+        return context.getString(R.string.payment_calendar_income_bonus_subtitle, type, period)
     }
 
     fun calendarTitle(source: PlannedIncomeSourceEntity): String {
@@ -144,7 +307,7 @@ object PlannedIncomeHelper {
             SourceBalance(
                 source = source,
                 linkedObligationsMonthly = load,
-                freeAmount = freeAfterObligations(source.amount, load),
+                freeAmount = freeAfterObligations(monthlyEquivalent(source), load),
             )
         }
     }

@@ -1,5 +1,6 @@
 package ru.mybudget.app.utilities
 
+import ru.mybudget.app.ObligationPaymentHelper
 import ru.mybudget.app.PlannedIncomeHelper
 import ru.mybudget.app.PlannedObligationHelper
 import ru.mybudget.app.data.PaymentReminderEntity
@@ -60,6 +61,7 @@ object PaymentCalendarHelper {
         todayEpochDay: Long,
         horizonDays: Int = 60,
         utilityPaymentDays: Map<Int, Int> = emptyMap(),
+        paidObligationPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet(),
     ): List<Entry> {
         val maxDay = todayEpochDay + horizonDays
         val today = LocalDate.ofEpochDay(todayEpochDay)
@@ -116,7 +118,10 @@ object PaymentCalendarHelper {
                     val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
                     val epoch = dueDate.toEpochDay()
                     if (epoch in todayEpochDay..maxDay) {
-                        addObligationEntry(result, ob, dueDate, categoryNames)
+                        val key = ObligationPaymentHelper.periodKey(ob.id, dueDate)
+                        if (!paidObligationPeriods.contains(key)) {
+                            addObligationEntry(result, ob, dueDate, categoryNames)
+                        }
                     }
                 }
             } else {
@@ -126,7 +131,10 @@ object PaymentCalendarHelper {
                     val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
                     val epoch = dueDate.toEpochDay()
                     if (epoch in todayEpochDay..maxDay) {
-                        addObligationEntry(result, ob, dueDate, categoryNames)
+                        val key = ObligationPaymentHelper.periodKey(ob.id, dueDate)
+                        if (!paidObligationPeriods.contains(key)) {
+                            addObligationEntry(result, ob, dueDate, categoryNames)
+                        }
                     }
                     ym = ym.plusMonths(1)
                 }

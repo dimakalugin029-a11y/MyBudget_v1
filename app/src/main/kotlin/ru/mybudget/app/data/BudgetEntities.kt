@@ -183,6 +183,54 @@ data class PlannedObligationEntity(
 )
 
 @Entity(
+    tableName = "obligation_payments",
+    foreignKeys = [
+        ForeignKey(
+            entity = PlannedObligationEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["obligationId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index("obligationId"),
+        Index(value = ["obligationId", "periodYear", "periodMonth"], unique = true),
+    ],
+)
+data class ObligationPaymentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val obligationId: Int,
+    val periodYear: Int,
+    val periodMonth: Int,
+    val amount: Double,
+    val paidAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
+    tableName = "balance_snapshots",
+    foreignKeys = [
+        ForeignKey(
+            entity = BudgetProfileEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["budgetId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [
+        Index("budgetId"),
+        Index("dayKey"),
+        Index(value = ["budgetId", "dayKey"], unique = true),
+    ],
+)
+data class BalanceSnapshotEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val budgetId: Int,
+    val dayKey: Long,
+    val totalBalance: Double,
+    val recordedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(
     tableName = "planned_income_sources",
     foreignKeys = [
         ForeignKey(
@@ -201,6 +249,8 @@ data class PlannedIncomeSourceEntity(
     val amount: Double,
     val sourceType: String,
     @ColumnInfo(defaultValue = "0") val dayOfMonth: Int = 0,
+    @ColumnInfo(defaultValue = "'monthly'") val periodType: String = "monthly",
+    @ColumnInfo(defaultValue = "1") val dueMonth: Int = 1,
     @ColumnInfo(defaultValue = "0") val sortOrder: Int = 0,
     val isActive: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),

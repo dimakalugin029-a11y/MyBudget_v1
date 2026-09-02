@@ -18,6 +18,7 @@ object ObligationLinkedSync {
         if (obligationId <= 0) return
         repository.deleteReminderByObligationId(obligationId)
         repository.deleteRecurringByObligationId(obligationId)
+        repository.deleteObligationPaymentsByObligation(obligationId)
     }
 
     private suspend fun syncReminder(repository: BudgetRepository, obligation: PlannedObligationEntity) {

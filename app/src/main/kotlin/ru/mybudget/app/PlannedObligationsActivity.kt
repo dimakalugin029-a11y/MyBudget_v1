@@ -32,6 +32,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
     private lateinit var adapter: ObligationAdapter
     private var budgetId = 1
     private var currentList: List<PlannedObligationEntity> = emptyList()
+    private var paidPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet()
     private var incomeSources: List<PlannedIncomeSourceEntity> = emptyList()
     private var currentKindFilter = PlannedObligationHelper.KIND_FILTER_ALL
     private lateinit var kindFilterViews: Map<String, TextView>
@@ -77,8 +78,10 @@ class PlannedObligationsActivity : AppCompatActivity() {
             monthNames = monthNames,
             categoryName = { id -> categoryLabel(id) },
             incomeSourceName = { id -> incomeSources.firstOrNull { it.id == id }?.name },
+            paidPeriods = { paidPeriods },
             onEdit = { showEditDialog(it) },
             onDelete = { showDeleteDialog(it) },
+            onPay = { payObligation(it) },
         )
         findViewById<RecyclerView>(R.id.obligationsRecycler).apply {
             layoutManager = LinearLayoutManager(this@PlannedObligationsActivity)
@@ -106,6 +109,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
             refreshLeaves()
             val list = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
             incomeSources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
+            paidPeriods = ObligationPaymentHelper.paidKeys(manager.repository.getObligationPaymentsByBudget(budgetId))
             currentList = list
             updateSummary(list)
             applyKindFilter(currentKindFilter)
@@ -214,6 +218,36 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 onComplete?.invoke()
             }
         }
+    }
+
+    private fun payObligation(item: PlannedObligationEntity) {
+        val dueDate = ObligationPaymentHelper.activePeriodDueDate(item) ?: return
+        AlertDialog.Builder(this)
+            .setTitle(R.string.reminder_mark_paid_title)
+            .setMessage(
+                getString(
+                    R.string.reminder_mark_paid_msg,
+                    item.name,
+                    MoneyFormat.format(item.amount),
+                ),
+            )
+            .setPositiveButton(R.string.reminder_mark_paid) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val ok = ObligationPaymentHelper.payObligation(
+                        manager,
+                        item.id,
+                        dueDate.toEpochDay(),
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (ok) {
+                            Toast.makeText(this@PlannedObligationsActivity, R.string.payment_calendar_paid_done, Toast.LENGTH_SHORT).show()
+                            reload()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showDeleteDialog(item: PlannedObligationEntity) {
@@ -497,8 +531,10 @@ class PlannedObligationsActivity : AppCompatActivity() {
         private val monthNames: Array<String>,
         private val categoryName: (Int) -> String,
         private val incomeSourceName: (Int?) -> String?,
+        private val paidPeriods: () -> Set<ObligationPaymentHelper.PeriodKey>,
         private val onEdit: (PlannedObligationEntity) -> Unit,
         private val onDelete: (PlannedObligationEntity) -> Unit,
+        private val onPay: (PlannedObligationEntity) -> Unit,
     ) : RecyclerView.Adapter<ObligationAdapter.Holder>() {
         private var items: List<PlannedObligationEntity> = emptyList()
 
@@ -516,6 +552,9 @@ class PlannedObligationsActivity : AppCompatActivity() {
             val categoryLine: TextView = v.findViewById(R.id.obligationCategoryLine)
             val dueLine: TextView = v.findViewById(R.id.obligationDueLine)
             val flagsLine: TextView = v.findViewById(R.id.obligationFlagsLine)
+            val paidLine: TextView = v.findViewById(R.id.obligationPaidLine)
+            val payButton: com.google.android.material.button.MaterialButton =
+                v.findViewById(R.id.obligationPayButton)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
@@ -571,6 +610,15 @@ class PlannedObligationsActivity : AppCompatActivity() {
                 holder.flagsLine.visibility = View.VISIBLE
                 holder.flagsLine.text = flags.joinToString(" · ")
             }
+            val paid = paidPeriods()
+            val canPay = ObligationPaymentHelper.canPayNow(item, paid)
+            val isPaid = ObligationPaymentHelper.isPaidForActivePeriod(item, paid)
+            holder.payButton.visibility = if (canPay) View.VISIBLE else View.GONE
+            holder.paidLine.visibility = if (isPaid) View.VISIBLE else View.GONE
+            if (isPaid) {
+                holder.paidLine.text = ctx.getString(R.string.obligations_paid_period)
+            }
+            holder.payButton.setOnClickListener { onPay(item) }
             holder.itemView.setOnClickListener { onEdit(item) }
             holder.itemView.setOnLongClickListener {
                 AlertDialog.Builder(ctx)

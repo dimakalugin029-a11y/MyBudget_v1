@@ -125,6 +125,18 @@ internal class BackupMergeImporter(
             if (sourceId == null || sourceId <= 0) return null
             return obligationIdMap[sourceId]
         }
+        for (payment in data.obligationPayments) {
+            val obligationId = remapObligationId(payment.obligationId) ?: continue
+            runCatching {
+                dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId))
+            }
+        }
+        for (snapshot in data.balanceSnapshots) {
+            val budgetId = profileIdMap[snapshot.budgetId] ?: snapshot.budgetId
+            runCatching {
+                dao.upsertBalanceSnapshot(snapshot.copy(id = 0, budgetId = budgetId))
+            }
+        }
         for (reminder in data.reminders) {
             val categoryId = categoryIdMap[reminder.categoryId] ?: reminder.categoryId
             if (categoryId in insertedCategoryIds) {

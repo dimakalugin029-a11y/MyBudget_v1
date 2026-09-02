@@ -20,6 +20,10 @@ import ru.mybudget.app.data.migration.Migration30To31
 import ru.mybudget.app.data.migration.Migration31To32
 import ru.mybudget.app.data.migration.Migration32To33
 import ru.mybudget.app.data.migration.Migration33To34
+import ru.mybudget.app.data.migration.Migration34To35
+import ru.mybudget.app.data.migration.Migration35To36
+import ru.mybudget.app.data.migration.Migration36To37
+import ru.mybudget.app.data.migration.Migration37To38
 import ru.mybudget.app.data.migration.Migration27To28
 
 @Database(
@@ -31,6 +35,8 @@ import ru.mybudget.app.data.migration.Migration27To28
         SavingsGoalEntity::class,
         RecurringTransactionEntity::class,
         PlannedObligationEntity::class,
+        ObligationPaymentEntity::class,
+        BalanceSnapshotEntity::class,
         PlannedIncomeSourceEntity::class,
         MonthlyCategoryPlanEntity::class,
         AuditActionEntity::class,
@@ -45,7 +51,7 @@ import ru.mybudget.app.data.migration.Migration27To28
         UtilityTariffEntity::class,
         UtilityPropertyEntity::class,
     ],
-    version = 34,
+    version = 38,
     exportSchema = false,
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -418,6 +424,10 @@ abstract class BudgetDatabase : RoomDatabase() {
             Migration31To32.MIGRATION,
             Migration32To33.MIGRATION,
             Migration33To34.MIGRATION,
+            Migration34To35.MIGRATION,
+            Migration35To36.MIGRATION,
+            Migration36To37.MIGRATION,
+            Migration37To38.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {

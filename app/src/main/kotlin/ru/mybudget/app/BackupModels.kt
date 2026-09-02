@@ -2,10 +2,12 @@ package ru.mybudget.app
 
 import com.google.gson.annotations.SerializedName
 import ru.mybudget.app.data.AuditActionEntity
+import ru.mybudget.app.data.BalanceSnapshotEntity
 import ru.mybudget.app.data.BudgetCategoryEntity
 import ru.mybudget.app.data.BudgetProfileEntity
 import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.PaymentReminderEntity
+import ru.mybudget.app.data.ObligationPaymentEntity
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.RecurringTransactionEntity
@@ -32,6 +34,8 @@ internal data class BackupDataDto(
     @SerializedName("savingsGoals") val savingsGoals: List<SavingsGoalEntity>? = null,
     @SerializedName("recurringTransactions") val recurringTransactions: List<RecurringTransactionEntity>? = null,
     @SerializedName("plannedObligations") val plannedObligations: List<PlannedObligationEntity>? = null,
+    @SerializedName("obligationPayments") val obligationPayments: List<ObligationPaymentEntity>? = null,
+    @SerializedName("balanceSnapshots") val balanceSnapshots: List<BalanceSnapshotEntity>? = null,
     @SerializedName("plannedIncomeSources") val plannedIncomeSources: List<PlannedIncomeSourceEntity>? = null,
     @SerializedName("utilityProperties") val utilityProperties: List<UtilityPropertyEntity>? = null,
     @SerializedName("utilityBills") val utilityBills: List<UtilityBillEntity>? = null,
@@ -58,6 +62,8 @@ data class BackupData(
     @SerializedName("savingsGoals") val savingsGoals: List<SavingsGoalEntity> = emptyList(),
     @SerializedName("recurringTransactions") val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
     @SerializedName("plannedObligations") val plannedObligations: List<PlannedObligationEntity> = emptyList(),
+    @SerializedName("obligationPayments") val obligationPayments: List<ObligationPaymentEntity> = emptyList(),
+    @SerializedName("balanceSnapshots") val balanceSnapshots: List<BalanceSnapshotEntity> = emptyList(),
     @SerializedName("plannedIncomeSources") val plannedIncomeSources: List<PlannedIncomeSourceEntity> = emptyList(),
     @SerializedName("utilityProperties") val utilityProperties: List<UtilityPropertyEntity> = emptyList(),
     @SerializedName("utilityBills") val utilityBills: List<UtilityBillEntity> = emptyList(),
@@ -74,7 +80,7 @@ data class BackupData(
     @SerializedName("participantNames") val participantNames: List<String> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 17
+        const val CURRENT_VERSION = 19
     }
 }
 

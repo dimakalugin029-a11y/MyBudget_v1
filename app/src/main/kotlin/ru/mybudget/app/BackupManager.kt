@@ -15,6 +15,7 @@ import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.data.BudgetRepository
 import ru.mybudget.app.data.BudgetProfileEntity
+import ru.mybudget.app.data.ObligationPaymentEntity
 import ru.mybudget.app.data.PaymentReminderEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.RecurringTransactionEntity
@@ -180,6 +181,8 @@ class BackupManager(context: Context) {
             savingsGoals = dao.getAllSavingsGoalsForExport(),
             recurringTransactions = dao.getAllRecurringForExport(),
             plannedObligations = dao.getAllPlannedObligationsForExport(),
+            obligationPayments = dao.getAllObligationPaymentsForExport(),
+            balanceSnapshots = dao.getAllBalanceSnapshotsForExport(),
             plannedIncomeSources = dao.getAllPlannedIncomeSourcesForExport(),
             utilityProperties = utilityDao.getAllPropertiesForExport(),
             utilityBills = utilityDao.getAllBillsForExport(),
@@ -261,6 +264,8 @@ class BackupManager(context: Context) {
         dao.deleteAllReminders()
         dao.deleteAllSavingsGoals()
         dao.deleteAllRecurring()
+        dao.deleteAllObligationPayments()
+        dao.deleteAllBalanceSnapshots()
         dao.deleteAllPlannedObligations()
         dao.deleteAllPlannedIncomeSources()
         dao.deleteAllCategories()
@@ -343,6 +348,14 @@ class BackupManager(context: Context) {
         fun remapObligationId(sourceId: Int?): Int? {
             if (sourceId == null || sourceId <= 0) return null
             return obligationIdMap[sourceId]
+        }
+        for (payment in data.obligationPayments) {
+            val obligationId = remapObligationId(payment.obligationId) ?: continue
+            dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId))
+        }
+        for (snapshot in data.balanceSnapshots) {
+            val budgetId = remapId(snapshot.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
+            dao.upsertBalanceSnapshot(snapshot.copy(id = 0, budgetId = budgetId))
         }
         for (reminder in data.reminders) {
             if (reminder.categoryId in insertedCategoryIds) {
@@ -631,6 +644,8 @@ class BackupManager(context: Context) {
         savingsGoals = savingsGoals.orEmpty(),
         recurringTransactions = recurringTransactions.orEmpty(),
         plannedObligations = plannedObligations.orEmpty(),
+        obligationPayments = obligationPayments.orEmpty(),
+        balanceSnapshots = balanceSnapshots.orEmpty(),
         plannedIncomeSources = plannedIncomeSources.orEmpty(),
         utilityProperties = utilityProperties.orEmpty(),
         utilityBills = utilityBills.orEmpty(),

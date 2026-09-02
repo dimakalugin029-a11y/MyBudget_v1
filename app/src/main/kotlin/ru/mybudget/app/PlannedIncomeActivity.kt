@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Spinner
@@ -19,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
+import java.util.Locale
 
 class PlannedIncomeActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
@@ -131,7 +133,12 @@ class PlannedIncomeActivity : AppCompatActivity() {
         val inflate = layoutInflater.inflate(R.layout.dialog_add_planned_income, null)
         val nameInput = inflate.findViewById<EditText>(R.id.incomeSourceNameInput)
         val amountInput = inflate.findViewById<EditText>(R.id.incomeSourceAmountInput)
+        val amountLabel = inflate.findViewById<TextView>(R.id.incomeSourceAmountLabel)
         val typeSpinner = inflate.findViewById<Spinner>(R.id.incomeSourceTypeSpinner)
+        val periodLabel = inflate.findViewById<TextView>(R.id.incomeSourcePeriodLabel)
+        val periodSpinner = inflate.findViewById<Spinner>(R.id.incomeSourcePeriodSpinner)
+        val monthLabel = inflate.findViewById<TextView>(R.id.incomeSourceMonthLabel)
+        val monthSpinner = inflate.findViewById<Spinner>(R.id.incomeSourceMonthSpinner)
         val daySpinner = inflate.findViewById<Spinner>(R.id.incomeSourceDaySpinner)
         typeSpinner.adapter = ArrayAdapter(
             this,
@@ -139,8 +146,26 @@ class PlannedIncomeActivity : AppCompatActivity() {
             listOf(
                 getString(R.string.income_plan_type_salary),
                 getString(R.string.income_plan_type_advance),
+                getString(R.string.income_plan_type_bonus),
                 getString(R.string.income_plan_type_other),
             ),
+        )
+        periodSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            listOf(
+                getString(R.string.income_plan_period_monthly),
+                getString(R.string.income_plan_period_quarterly),
+                getString(R.string.income_plan_period_yearly),
+            ),
+        )
+        val monthNames = java.text.DateFormatSymbols(Locale("ru")).months
+            .take(12)
+            .map { it.replaceFirstChar { ch -> ch.titlecase(Locale("ru")) } }
+        monthSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_dropdown_item,
+            monthNames,
         )
         val dayLabels = (1..31).map { getString(R.string.obligations_due_day_number, it) } +
             getString(R.string.income_plan_day_flexible)
@@ -149,15 +174,51 @@ class PlannedIncomeActivity : AppCompatActivity() {
             android.R.layout.simple_spinner_dropdown_item,
             dayLabels,
         )
+
+        fun updateBonusFields() {
+            val isBonus = typeSpinner.selectedItemPosition == 2
+            val periodVisible = if (isBonus) View.VISIBLE else View.GONE
+            periodLabel.visibility = periodVisible
+            periodSpinner.visibility = periodVisible
+            val period = PlannedIncomeHelper.periodFromSpinnerPosition(periodSpinner.selectedItemPosition)
+            val monthVisible = if (isBonus && period != PlannedIncomeHelper.PERIOD_MONTHLY) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+            monthLabel.visibility = monthVisible
+            monthSpinner.visibility = monthVisible
+            amountLabel.text = when {
+                !isBonus -> getString(R.string.income_plan_field_amount)
+                period == PlannedIncomeHelper.PERIOD_YEARLY -> getString(R.string.income_plan_field_amount_yearly)
+                period == PlannedIncomeHelper.PERIOD_QUARTERLY -> getString(R.string.income_plan_field_amount_quarterly)
+                else -> getString(R.string.income_plan_field_amount)
+            }
+            monthLabel.text = if (period == PlannedIncomeHelper.PERIOD_QUARTERLY) {
+                getString(R.string.income_plan_field_quarter_start_month)
+            } else {
+                getString(R.string.income_plan_field_month)
+            }
+        }
+
+        typeSpinner.onItemSelectedListener = simpleItemSelected { updateBonusFields() }
+        periodSpinner.onItemSelectedListener = simpleItemSelected { updateBonusFields() }
+
         if (existing != null) {
             nameInput.setText(existing.name)
             amountInput.setText(MoneyFormat.format(existing.amount))
             typeSpinner.setSelection(PlannedIncomeHelper.typeSpinnerPosition(existing.sourceType))
+            periodSpinner.setSelection(PlannedIncomeHelper.periodSpinnerPosition(existing.periodType))
+            monthSpinner.setSelection((existing.dueMonth - 1).coerceIn(0, 11))
             daySpinner.setSelection(PlannedIncomeHelper.daySpinnerPosition(existing.dayOfMonth))
         } else {
             typeSpinner.setSelection(0)
+            periodSpinner.setSelection(0)
+            monthSpinner.setSelection(2)
             daySpinner.setSelection(PlannedIncomeHelper.daySpinnerPosition(10))
         }
+        updateBonusFields()
+
         AlertDialog.Builder(this)
             .setTitle(if (existing == null) R.string.income_plan_add else R.string.income_plan_edit)
             .setView(inflate)
@@ -168,13 +229,21 @@ class PlannedIncomeActivity : AppCompatActivity() {
                     Toast.makeText(this, R.string.income_plan_validation, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
+                val sourceType = PlannedIncomeHelper.typeFromSpinnerPosition(typeSpinner.selectedItemPosition)
+                val periodType = if (sourceType == PlannedIncomeHelper.TYPE_BONUS) {
+                    PlannedIncomeHelper.periodFromSpinnerPosition(periodSpinner.selectedItemPosition)
+                } else {
+                    PlannedIncomeHelper.PERIOD_MONTHLY
+                }
                 val entity = PlannedIncomeSourceEntity(
                     id = existing?.id ?: 0,
                     budgetId = budgetId,
                     name = name,
                     amount = amount,
-                    sourceType = PlannedIncomeHelper.typeFromSpinnerPosition(typeSpinner.selectedItemPosition),
+                    sourceType = sourceType,
                     dayOfMonth = PlannedIncomeHelper.dayFromSpinnerPosition(daySpinner.selectedItemPosition),
+                    periodType = periodType,
+                    dueMonth = monthSpinner.selectedItemPosition + 1,
                     sortOrder = existing?.sortOrder ?: currentList.size,
                     createdAt = existing?.createdAt ?: System.currentTimeMillis(),
                 )
@@ -189,6 +258,13 @@ class PlannedIncomeActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun simpleItemSelected(onChange: () -> Unit) = object : AdapterView.OnItemSelectedListener {
+        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            onChange()
+        }
+        override fun onNothingSelected(parent: AdapterView<*>?) = Unit
     }
 
     private class IncomeSourceAdapter(
@@ -216,11 +292,8 @@ class PlannedIncomeActivity : AppCompatActivity() {
             val ctx = holder.itemView.context
             holder.name.text = item.name
             holder.typeBadge.text = PlannedIncomeHelper.typeLabel(ctx, item.sourceType)
-            holder.amountLine.text = ctx.getString(
-                R.string.income_plan_item_amount,
-                MoneyFormat.formatRub(item.amount),
-            )
-            holder.dayLine.text = PlannedIncomeHelper.dayLabel(ctx, item.dayOfMonth)
+            holder.amountLine.text = PlannedIncomeHelper.amountLine(ctx, item)
+            holder.dayLine.text = PlannedIncomeHelper.scheduleLabel(ctx, item)
             val balance = balanceFor(item.id)
             if (balance != null && balance.linkedObligationsMonthly > 0.0) {
                 holder.obligationsLine.visibility = View.VISIBLE

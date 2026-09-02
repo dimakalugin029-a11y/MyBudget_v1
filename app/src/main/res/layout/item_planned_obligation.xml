@@ -89,6 +89,27 @@
             android:layout_marginTop="@dimen/space_4"
             android:textColor="@color/budget_blue"
             style="@style/Text.MyBudget.Subtitle"/>
+        <TextView
+            android:textSize="12sp"
+            android:textColor="@color/primary_green"
+            android:id="@+id/obligationPaidLine"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_6"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <com.google.android.material.button.MaterialButton
+            android:textSize="12sp"
+            android:id="@+id/obligationPayButton"
+            android:visibility="gone"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:layout_marginTop="@dimen/space_8"
+            android:text="@string/reminder_mark_paid"
+            app:cornerRadius="@dimen/radius_10"
+            app:strokeColor="@color/income_green"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

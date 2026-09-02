@@ -65,7 +65,10 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun insertCategory(category: BudgetCategory) = budgetDao.insertCategory(category.toEntity())
 
-    suspend fun updateCategory(category: BudgetCategory) = budgetDao.updateCategory(category.toEntity())
+    suspend fun updateCategory(category: BudgetCategory) {
+        budgetDao.updateCategory(category.toEntity())
+        budgetDao.recordBalanceSnapshotForBudget(category.budgetId)
+    }
 
     suspend fun deleteCategory(categoryId: Int) = budgetDao.deleteCategory(categoryId)
 
@@ -309,6 +312,21 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         return budgetDao.getPlannedObligationById(id)
     }
 
+    suspend fun getObligationPaymentsByBudget(budgetId: Int): List<ObligationPaymentEntity> =
+        budgetDao.getObligationPaymentsByBudget(budgetId)
+
+    suspend fun getAllObligationPaymentsForExport(): List<ObligationPaymentEntity> =
+        budgetDao.getAllObligationPaymentsForExport()
+
+    suspend fun isObligationPeriodPaid(obligationId: Int, year: Int, month: Int): Boolean =
+        budgetDao.isObligationPeriodPaid(obligationId, year, month)
+
+    suspend fun insertObligationPayment(payment: ObligationPaymentEntity): Long =
+        budgetDao.insertObligationPayment(payment)
+
+    suspend fun deleteObligationPaymentsByObligation(obligationId: Int) =
+        budgetDao.deleteObligationPaymentsByObligation(obligationId)
+
     suspend fun getPlannedIncomeSourcesByBudgetOnce(budgetId: Int): List<PlannedIncomeSourceEntity> =
         budgetDao.getPlannedIncomeSourcesByBudgetOnce(budgetId)
 
@@ -343,4 +361,16 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
     }
 
     suspend fun restoreCategory(categoryId: Int) = budgetDao.restoreCategory(categoryId)
+
+    suspend fun getBalanceSnapshotsForBudget(
+        budgetId: Int,
+        fromDay: Long,
+        toDay: Long,
+    ): List<BalanceSnapshotEntity> = budgetDao.getBalanceSnapshotsForBudget(budgetId, fromDay, toDay)
+
+    suspend fun getAllBalanceSnapshotsInRange(fromDay: Long, toDay: Long): List<BalanceSnapshotEntity> =
+        budgetDao.getAllBalanceSnapshotsInRange(fromDay, toDay)
+
+    suspend fun getAllBalanceSnapshotsForExport(): List<BalanceSnapshotEntity> =
+        budgetDao.getAllBalanceSnapshotsForExport()
 }

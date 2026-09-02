@@ -11,6 +11,12 @@ object ReminderPaymentHelper {
     suspend fun payReminder(manager: BudgetManager, reminderId: Int): Boolean {
         val entity = manager.repository.getReminderById(reminderId) ?: return false
         manager.recordTransaction(entity.categoryId, entity.amount, "expense", entity.title)
+        ObligationPaymentHelper.markPeriodPaidFromDueDate(
+            manager,
+            entity.obligationId,
+            entity.dueDate,
+            entity.amount,
+        )
         advanceOrClose(manager, entity)
         return true
     }

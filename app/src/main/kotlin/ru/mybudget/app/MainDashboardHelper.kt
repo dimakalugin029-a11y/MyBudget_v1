@@ -63,7 +63,6 @@ object MainDashboardHelper {
         val planSetupLine = PlannedObligationHelper.buildPlanSetupAttention(
             context,
             obligations,
-            incomeSources,
         )
 
         val pending = PendingDistributionPreferences.getPending(context)
@@ -96,6 +95,7 @@ object MainDashboardHelper {
         val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
             property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
         }
+        val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
         val calendarEntries = PaymentCalendarHelper.buildEntries(
             reminders = remindersWeek,
             recurring = recurringWeek,
@@ -106,6 +106,7 @@ object MainDashboardHelper {
             todayEpochDay = LocalDate.now().toEpochDay(),
             horizonDays = 7,
             utilityPaymentDays = utilityPaymentDays,
+            paidObligationPeriods = paidObligationPeriods,
         )
         val calendarCount = calendarEntries.size
         val weekTotal = PaymentCalendarHelper.weekPaymentTotal(calendarEntries)
@@ -184,6 +185,7 @@ object MainDashboardHelper {
         val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
             property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
         }
+        val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
         val entries = PaymentCalendarHelper.buildEntries(
             reminders = dao.getRemindersInRange(todayStr, endStr),
             recurring = dao.getRecurringInRange(todayStr, endStr),
@@ -194,6 +196,7 @@ object MainDashboardHelper {
             todayEpochDay = todayEpoch,
             horizonDays = horizonDays,
             utilityPaymentDays = utilityPaymentDays,
+            paidObligationPeriods = paidObligationPeriods,
         )
         return SalaryCycleHelper.compute(totalBalance, incomeSources, entries, today)
             ?: SalaryCycleHelper.computeMonthFallback(totalBalance)

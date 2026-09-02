@@ -18,6 +18,22 @@ object MoneyFormat {
 
     fun formatRub(value: Double): String = "${format(value)} ₽"
 
+    /** Compact label for chart Y-axis (e.g. 50 тыс, 1,2 млн). */
+    fun formatChartAxis(value: Double): String {
+        val abs = kotlin.math.abs(value)
+        return when {
+            abs >= 1_000_000 -> {
+                val millions = value / 1_000_000.0
+                String.format(Locale("ru", "RU"), "%.1f млн", millions)
+            }
+            abs >= 10_000 -> {
+                val thousands = value / 1_000.0
+                String.format(Locale("ru", "RU"), "%.0f тыс", thousands)
+            }
+            else -> format(value)
+        }
+    }
+
     fun formatQuantity(value: Double): String = quantityFormatter.format(roundQuantity(value))
 
     fun roundMoney(value: Double): Double = Math.rint(value * 100.0) / 100.0

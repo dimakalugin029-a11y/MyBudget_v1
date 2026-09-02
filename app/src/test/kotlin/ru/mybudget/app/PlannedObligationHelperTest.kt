@@ -62,6 +62,17 @@ class PlannedObligationHelperTest {
         assertEquals(1, PlannedObligationHelper.unlinkedIncomeCount(obligations))
     }
 
+    @Test
+    fun buildPlanSetupAttention_nullWhenAllObligationsHaveCategory() {
+        val obligations = listOf(
+            obligation(name = "Интернет", categoryId = 10, amount = 600.0, paychecks = 2),
+            obligation(name = "Кредит", categoryId = 20, amount = 10_000.0, paychecks = 1, linkedIncomeSourceId = 1),
+        )
+
+        assertEquals(0, PlannedObligationHelper.unlinkedCount(obligations))
+        assertEquals(1, PlannedObligationHelper.unlinkedIncomeCount(obligations))
+    }
+
     private fun obligation(
         name: String,
         categoryId: Int,

@@ -20,6 +20,7 @@
             android:hint="@string/income_plan_field_name_hint"
             android:inputType="textCapSentences"/>
         <TextView
+            android:id="@+id/incomeSourceAmountLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_amount"
@@ -42,6 +43,33 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"/>
         <TextView
+            android:id="@+id/incomeSourcePeriodLabel"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/income_plan_field_period"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <Spinner
+            android:id="@+id/incomeSourcePeriodSpinner"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"/>
+        <TextView
+            android:id="@+id/incomeSourceMonthLabel"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/income_plan_field_month"
+            style="@style/Text.MyBudget.Subtitle"/>
+        <Spinner
+            android:id="@+id/incomeSourceMonthSpinner"
+            android:visibility="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_12"/>
+        <TextView
+            android:id="@+id/incomeSourceDayLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_day"

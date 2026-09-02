@@ -18,9 +18,14 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.charts.BarLineChartBase
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -28,6 +33,7 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.formatter.PercentFormatter
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.utils.ColorTemplate
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +55,7 @@ class StatisticsActivity : AppCompatActivity() {
 
     private lateinit var manager: BudgetManager
     private lateinit var lineChart: LineChart
+    private lateinit var flowBarChart: BarChart
     private lateinit var pieChart: PieChart
     private lateinit var adapter: CategoryAdapter
 
@@ -60,7 +67,9 @@ class StatisticsActivity : AppCompatActivity() {
     private var customTo = 0L
     private var pieSlices: List<CategorySlice> = emptyList()
     private var lastSnapshot: StatsSnapshot? = null
+    private var compareEnabled = false
     private val dateBtnFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    private val compareDateFormat = SimpleDateFormat("d.MM.yyyy", Locale("ru"))
 
     private val createDocLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
@@ -97,6 +106,7 @@ class StatisticsActivity : AppCompatActivity() {
             }
         }
         lineChart = findViewById(R.id.balanceLineChart)
+        flowBarChart = findViewById(R.id.flowBarChart)
         pieChart = findViewById(R.id.pieChart)
         setupCharts()
         adapter = CategoryAdapter { slice ->
@@ -115,6 +125,7 @@ class StatisticsActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.statsBudgetChip).setOnClickListener { pickBudget() }
         bindPeriodChips()
+        bindCompareChip()
         bindChartModeChips()
         bindPieGroupChips()
         loadStats()
@@ -126,18 +137,24 @@ class StatisticsActivity : AppCompatActivity() {
     }
 
     private fun setupCharts() {
-        lineChart.description.isEnabled = false
-        lineChart.legend.isEnabled = false
-        lineChart.axisRight.isEnabled = false
-        lineChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
-        lineChart.xAxis.setDrawGridLines(false)
-        lineChart.xAxis.setDrawLabels(false)
-        lineChart.setTouchEnabled(false)
+        setupLineStyleChart(lineChart)
+        setupLineStyleChart(flowBarChart)
         pieChart.description.isEnabled = false
         pieChart.setUsePercentValues(true)
         pieChart.setDrawEntryLabels(false)
         pieChart.legend.isEnabled = false
         pieChart.setHoleColor(Color.TRANSPARENT)
+    }
+
+    private fun setupLineStyleChart(chart: BarLineChartBase<*>) {
+        chart.description.isEnabled = false
+        chart.legend.isEnabled = false
+        chart.axisRight.isEnabled = false
+        chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+        chart.xAxis.setDrawGridLines(false)
+        chart.setTouchEnabled(false)
+        chart.axisLeft.textColor = ContextCompat.getColor(this, R.color.text_secondary)
+        chart.xAxis.textColor = ContextCompat.getColor(this, R.color.text_secondary)
     }
 
     private fun bindPeriodChips() {
@@ -161,6 +178,19 @@ class StatisticsActivity : AppCompatActivity() {
                     loadStats()
                 }
             }
+        }
+        refresh()
+    }
+
+    private fun bindCompareChip() {
+        val chip = findViewById<TextView>(R.id.statsCompareChip)
+        fun refresh() {
+            chip.isSelected = compareEnabled
+        }
+        chip.setOnClickListener {
+            compareEnabled = !compareEnabled
+            refresh()
+            loadStats()
         }
         refresh()
     }
@@ -271,7 +301,8 @@ class StatisticsActivity : AppCompatActivity() {
             val snapshot = computeSnapshot()
             lastSnapshot = snapshot
             bindKpis(snapshot)
-            bindLineChart(snapshot)
+            bindComparison(snapshot)
+            bindChart(snapshot)
             bindPie(snapshot)
             findViewById<TextView>(R.id.summaryText).apply {
                 visibility = View.VISIBLE
@@ -280,8 +311,9 @@ class StatisticsActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun computeSnapshot(): StatsSnapshot = withContext(Dispatchers.IO) {
-        val (from, to) = rangeMillis()
+    private suspend fun computeSnapshot(range: Pair<Long, Long>? = null): StatsSnapshot = withContext(Dispatchers.IO) {
+        val (from, to) = range ?: rangeMillis()
+        val dayMs = TimeUnit.DAYS.toMillis(1)
         manager.getCategoriesAsync()
         val allTx = manager.repository.getAllTransactions().first()
         val categories = manager.getCategories()
@@ -292,7 +324,22 @@ class StatisticsActivity : AppCompatActivity() {
         }
         val inBudget = allTx.filter { it.categoryId in allowedIds }
         val inPeriod = inBudget.filter { it.date in from..to }
-        StatsSnapshot(inBudget, inPeriod, categories, from)
+        val currentBalance = if (selectedBudgetId == null) {
+            manager.getTotalBalanceAll()
+        } else {
+            manager.getTotalBalance(selectedBudgetId!!)
+        }
+        val fromDay = from / dayMs
+        val toDay = to / dayMs
+        val snapshotsByDay = if (selectedBudgetId == null) {
+            manager.repository.getAllBalanceSnapshotsInRange(fromDay, toDay)
+                .groupBy { it.dayKey }
+                .mapValues { (_, list) -> list.sumOf { it.totalBalance } }
+        } else {
+            manager.repository.getBalanceSnapshotsForBudget(selectedBudgetId!!, fromDay, toDay)
+                .associate { it.dayKey to it.totalBalance }
+        }
+        StatsSnapshot(inBudget, inPeriod, categories, from, to, currentBalance, snapshotsByDay)
     }
 
     private fun launchCsvExport() {
@@ -346,6 +393,8 @@ class StatisticsActivity : AppCompatActivity() {
                 val snapshot = lastSnapshot ?: computeSnapshot()
                 val income = snapshot.inPeriod.filter { it.type == "income" }.sumOf { it.amount }
                 val expense = snapshot.inPeriod.filter { it.type == "expense" }.sumOf { it.amount }
+                val chartExport = buildChartExport(snapshot)
+                val comparison = buildComparisonBlock(snapshot)
                 val data = MonthReportPdfExporter.ReportData(
                     periodLabel = label,
                     budgetName = budgetName,
@@ -353,6 +402,12 @@ class StatisticsActivity : AppCompatActivity() {
                     totalExpense = expense,
                     expensesByCategory = slices,
                     transactionCount = snapshot.inPeriod.size,
+                    currentBalance = snapshot.currentBalance,
+                    balanceStart = chartExport.balanceStart,
+                    balanceEnd = chartExport.balanceEnd,
+                    chartMode = chartExport.mode,
+                    chartValues = chartExport.values,
+                    comparison = comparison,
                 )
                 contentResolver.openOutputStream(uri)?.use { stream ->
                     MonthReportPdfExporter.write(this@StatisticsActivity, data, stream)
@@ -366,6 +421,121 @@ class StatisticsActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private data class ChartExportData(
+        val mode: MonthReportPdfExporter.ChartMode,
+        val values: List<Double>,
+        val balanceStart: Double?,
+        val balanceEnd: Double?,
+    )
+
+    private fun buildChartExport(snapshot: StatsSnapshot): ChartExportData {
+        return if (chartMode == ChartMode.BALANCE) {
+            val series = StatisticsChartHelper.buildBalanceSeries(
+                transactions = snapshot.allInBudget,
+                fromMs = snapshot.from,
+                toMs = snapshot.to,
+                currentBalance = snapshot.currentBalance,
+                snapshotsByDay = snapshot.snapshotsByDay,
+            )
+            ChartExportData(
+                mode = MonthReportPdfExporter.ChartMode.BALANCE,
+                values = series.points.map { it.value },
+                balanceStart = series.startBalance,
+                balanceEnd = series.endBalance,
+            )
+        } else {
+            val series = StatisticsChartHelper.buildDailyFlowSeries(
+                transactions = snapshot.allInBudget,
+                fromMs = snapshot.from,
+                toMs = snapshot.to,
+            )
+            ChartExportData(
+                mode = MonthReportPdfExporter.ChartMode.FLOW,
+                values = series.points.map { it.value },
+                balanceStart = null,
+                balanceEnd = null,
+            )
+        }
+    }
+
+    private fun buildComparisonBlock(snapshot: StatsSnapshot): MonthReportPdfExporter.ComparisonBlock? {
+        val (prevFrom, prevTo) = StatisticsPeriodComparisonHelper.previousRange(snapshot.from, snapshot.to)
+        val previousTx = snapshot.allInBudget.filter { it.date in prevFrom..prevTo }
+        val label = getString(
+            R.string.stats_compare_period,
+            compareDateFormat.format(Date(prevFrom)),
+            compareDateFormat.format(Date(prevTo)),
+        )
+        return MonthReportPdfExporter.ComparisonBlock(
+            previousPeriodLabel = label,
+            comparison = StatisticsPeriodComparisonHelper.buildComparison(
+                currentTransactions = snapshot.inPeriod,
+                previousTransactions = previousTx,
+                previousPeriodLabel = label,
+            ),
+        )
+    }
+
+    private fun bindComparison(snapshot: StatsSnapshot) {
+        val card = findViewById<View>(R.id.statsComparisonCard)
+        if (!compareEnabled) {
+            card.visibility = View.GONE
+            return
+        }
+        val (prevFrom, prevTo) = StatisticsPeriodComparisonHelper.previousRange(snapshot.from, snapshot.to)
+        val previousTx = snapshot.allInBudget.filter { it.date in prevFrom..prevTo }
+        val label = getString(
+            R.string.stats_compare_period,
+            compareDateFormat.format(Date(prevFrom)),
+            compareDateFormat.format(Date(prevTo)),
+        )
+        val comparison = StatisticsPeriodComparisonHelper.buildComparison(
+            currentTransactions = snapshot.inPeriod,
+            previousTransactions = previousTx,
+            previousPeriodLabel = label,
+        )
+        card.visibility = View.VISIBLE
+        findViewById<TextView>(R.id.statsComparePeriodLabel).text = label
+        findViewById<TextView>(R.id.statsCompareIncome).text =
+            formatCompareLine(R.string.stats_kpi_income, comparison, useSaldo = false, isExpense = false)
+        findViewById<TextView>(R.id.statsCompareExpense).text =
+            formatCompareLine(R.string.stats_kpi_expense, comparison, useSaldo = false, isExpense = true)
+        findViewById<TextView>(R.id.statsCompareSaldo).text =
+            formatCompareLine(R.string.stats_kpi_balance, comparison, useSaldo = true, isExpense = false)
+    }
+
+    private fun formatCompareLine(
+        labelRes: Int,
+        comparison: StatisticsPeriodComparisonHelper.Comparison,
+        useSaldo: Boolean,
+        isExpense: Boolean,
+    ): String {
+        val current = when {
+            useSaldo -> comparison.current.saldo
+            isExpense -> comparison.current.expense
+            else -> comparison.current.income
+        }
+        val previous = when {
+            useSaldo -> comparison.previous.saldo
+            isExpense -> comparison.previous.expense
+            else -> comparison.previous.income
+        }
+        val delta = when {
+            useSaldo -> comparison.saldoDelta
+            isExpense -> comparison.expenseDelta
+            else -> comparison.incomeDelta
+        }
+        val deltaText = StatisticsPeriodComparisonHelper.formatDeltaAmount(delta)
+        val pctText = StatisticsPeriodComparisonHelper.formatDeltaPercent(delta, previous)?.let { " ($it)" }.orEmpty()
+        return getString(
+            R.string.stats_compare_row,
+            getString(labelRes),
+            MoneyFormat.formatRub(current),
+            MoneyFormat.formatRub(previous),
+            deltaText + pctText,
+        )
     }
 
     private fun buildExportCsv(snapshot: StatsSnapshot): String {
@@ -389,6 +559,7 @@ class StatisticsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.statsKpiIncome).text = MoneyFormat.formatRub(income)
         findViewById<TextView>(R.id.statsKpiExpense).text = MoneyFormat.formatRub(expense)
         findViewById<TextView>(R.id.statsKpiBalance).text = MoneyFormat.formatRub(diff)
+        findViewById<TextView>(R.id.statsCurrentBalance).text = MoneyFormat.formatRub(snapshot.currentBalance)
         val color = when {
             diff < -0.005 -> R.color.expense_red
             diff > 0.005 -> R.color.income_green
@@ -397,40 +568,40 @@ class StatisticsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.statsKpiBalance).setTextColor(ContextCompat.getColor(this, color))
     }
 
-    private fun bindLineChart(snapshot: StatsSnapshot) {
+    private fun bindChart(snapshot: StatsSnapshot) {
         val empty = findViewById<TextView>(R.id.statisticsEmptyText)
-        if (snapshot.inPeriod.isEmpty()) {
-            lineChart.visibility = View.GONE
-            empty.visibility = View.VISIBLE
-            lineChart.clear()
-            return
-        }
         empty.visibility = View.GONE
-        lineChart.visibility = View.VISIBLE
-        val dayMs = TimeUnit.DAYS.toMillis(1)
-        val fromDay = snapshot.from / dayMs
-        val toDay = System.currentTimeMillis() / dayMs
-        val byDay = snapshot.inPeriod.groupBy { it.date / dayMs }
-        var running = if (chartMode == ChartMode.BALANCE) {
-            snapshot.allInBudget.filter { it.date < snapshot.from }.sumOf { signed(it) }
+        if (chartMode == ChartMode.BALANCE) {
+            lineChart.visibility = View.VISIBLE
+            flowBarChart.visibility = View.GONE
+            bindBalanceChart(snapshot)
         } else {
-            0.0
+            lineChart.visibility = View.GONE
+            flowBarChart.visibility = View.VISIBLE
+            bindFlowChart(snapshot)
         }
-        findViewById<TextView>(R.id.statsBalanceChartSubtitle).text = if (chartMode == ChartMode.BALANCE) {
-            getString(R.string.stats_chart_balance_subtitle, MoneyFormat.formatRub(running))
-        } else {
-            getString(R.string.stats_chart_flow_subtitle)
+    }
+
+    private fun bindBalanceChart(snapshot: StatsSnapshot) {
+        val series = StatisticsChartHelper.buildBalanceSeries(
+            transactions = snapshot.allInBudget,
+            fromMs = snapshot.from,
+            toMs = snapshot.to,
+            currentBalance = snapshot.currentBalance,
+            snapshotsByDay = snapshot.snapshotsByDay,
+        )
+        findViewById<TextView>(R.id.statsBalanceChartSubtitle).text = getString(
+            R.string.stats_chart_balance_subtitle,
+            MoneyFormat.formatRub(series.startBalance),
+            MoneyFormat.formatRub(series.endBalance),
+        )
+        val dayKeys = series.points.map { it.dayKey }
+        val entries = series.points.mapIndexed { index, point ->
+            Entry(index.toFloat(), point.value.toFloat())
         }
-        val entries = mutableListOf<Entry>()
-        var x = 0f
-        var day = fromDay
-        while (day <= toDay) {
-            val dayTx = byDay[day].orEmpty()
-            running += dayTx.sumOf { signed(it) }
-            entries += Entry(x, running.toFloat())
-            x += 1f
-            day++
-        }
+        val values = series.points.map { it.value }
+        configureMoneyAxis(lineChart, values)
+        configureDayAxis(lineChart, dayKeys)
         val set = LineDataSet(entries, "").apply {
             color = ContextCompat.getColor(this@StatisticsActivity, R.color.budget_blue)
             setDrawCircles(false)
@@ -438,10 +609,68 @@ class StatisticsActivity : AppCompatActivity() {
             lineWidth = 2f
             setDrawFilled(true)
             fillColor = ContextCompat.getColor(this@StatisticsActivity, R.color.primary_green_light)
-            mode = LineDataSet.Mode.CUBIC_BEZIER
+            mode = LineDataSet.Mode.LINEAR
         }
         lineChart.data = LineData(set)
         lineChart.invalidate()
+    }
+
+    private fun bindFlowChart(snapshot: StatsSnapshot) {
+        findViewById<TextView>(R.id.statsBalanceChartSubtitle).text =
+            getString(R.string.stats_chart_flow_subtitle)
+        val series = StatisticsChartHelper.buildDailyFlowSeries(
+            transactions = snapshot.allInBudget,
+            fromMs = snapshot.from,
+            toMs = snapshot.to,
+        )
+        val dayKeys = series.points.map { it.dayKey }
+        val incomeColor = ContextCompat.getColor(this, R.color.income_green)
+        val expenseColor = ContextCompat.getColor(this, R.color.expense_red)
+        val entries = series.points.mapIndexed { index, point ->
+            BarEntry(index.toFloat(), point.value.toFloat())
+        }
+        val barColors = series.points.map { point ->
+            if (point.value >= 0.0) incomeColor else expenseColor
+        }
+        val values = series.points.map { it.value }
+        configureMoneyAxis(flowBarChart, values, includeZero = true)
+        configureDayAxis(flowBarChart, dayKeys)
+        val set = BarDataSet(entries, "").apply {
+            colors = barColors
+            setDrawValues(false)
+        }
+        flowBarChart.data = BarData(set).apply { barWidth = 0.65f }
+        flowBarChart.invalidate()
+    }
+
+    private fun configureMoneyAxis(
+        chart: BarLineChartBase<*>,
+        values: List<Double>,
+        includeZero: Boolean = false,
+    ) {
+        val axisValues = if (includeZero) values + listOf(0.0) else values
+        val (yMin, yMax) = StatisticsChartHelper.yAxisBounds(axisValues)
+        chart.axisLeft.apply {
+            setDrawGridLines(true)
+            gridColor = ContextCompat.getColor(this@StatisticsActivity, R.color.chart_grid)
+            valueFormatter = MoneyAxisFormatter()
+            axisMinimum = yMin
+            axisMaximum = yMax
+            setDrawLabels(true)
+        }
+    }
+
+    private fun configureDayAxis(chart: BarLineChartBase<*>, dayKeys: List<Long>) {
+        if (dayKeys.isEmpty()) {
+            chart.xAxis.setDrawLabels(false)
+            return
+        }
+        chart.xAxis.apply {
+            granularity = 1f
+            setLabelCount(StatisticsChartHelper.xLabelCount(dayKeys.size), false)
+            valueFormatter = DayAxisFormatter(dayKeys, dateBtnFormat)
+            setDrawLabels(dayKeys.size <= 90)
+        }
     }
 
     private fun bindPie(snapshot: StatsSnapshot) {
@@ -484,9 +713,6 @@ class StatisticsActivity : AppCompatActivity() {
         pieChart.invalidate()
     }
 
-    private fun signed(tx: TransactionEntity): Double =
-        if (tx.type == "income") tx.amount else -tx.amount
-
     private fun parseColor(hex: String, index: Int): Int {
         if (hex.isNotBlank()) {
             runCatching { return Color.parseColor(hex) }
@@ -495,11 +721,30 @@ class StatisticsActivity : AppCompatActivity() {
         return palette[index % palette.size]
     }
 
+    private class MoneyAxisFormatter : ValueFormatter() {
+        override fun getFormattedValue(value: Float): String =
+            MoneyFormat.formatChartAxis(value.toDouble())
+    }
+
+    private class DayAxisFormatter(
+        private val dayKeys: List<Long>,
+        private val format: SimpleDateFormat,
+    ) : ValueFormatter() {
+        override fun getFormattedValue(value: Float): String {
+            if (dayKeys.isEmpty()) return ""
+            val index = value.toInt().coerceIn(0, dayKeys.lastIndex)
+            return format.format(Date(StatisticsChartHelper.dayKeyToMillis(dayKeys[index])))
+        }
+    }
+
     private data class StatsSnapshot(
         val allInBudget: List<TransactionEntity>,
         val inPeriod: List<TransactionEntity>,
         val categories: List<BudgetCategory>,
         val from: Long,
+        val to: Long,
+        val currentBalance: Double,
+        val snapshotsByDay: Map<Long, Double>,
     )
 
     private data class CategorySlice(

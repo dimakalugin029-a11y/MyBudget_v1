@@ -96,7 +96,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
         monthGrid = findViewById(R.id.paymentMonthGrid)
         listRecycler = findViewById(R.id.paymentCalendarRecycler)
         emptyView = findViewById(R.id.paymentCalendarEmpty)
-        adapter = CalendarAdapter { showEntryActions(it) }
+        adapter = CalendarAdapter(
+            onClick = { showEntryActions(it) },
+            onPay = { confirmPayEntry(it) },
+        )
         monthAdapter = MonthDayAdapter { onMonthDayClicked(it) }
         listRecycler.layoutManager = LinearLayoutManager(this)
         listRecycler.adapter = adapter
@@ -364,17 +367,49 @@ class PaymentCalendarActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun payObligation(entry: PaymentCalendarHelper.Entry) {
+    private fun confirmPayEntry(entry: PaymentCalendarHelper.Entry) {
+        when (entry.kind) {
+            PaymentCalendarHelper.EntryKind.REMINDER -> payReminder(entry)
+            PaymentCalendarHelper.EntryKind.OBLIGATION -> confirmPayObligation(entry)
+            PaymentCalendarHelper.EntryKind.UTILITY -> openUtilityBill(entry, true)
+            else -> Unit
+        }
+    }
+
+    private fun confirmPayObligation(entry: PaymentCalendarHelper.Entry) {
         val id = entry.sourceRef.obligationId ?: return
         val amount = entry.amount ?: return
-        lifecycleScope.launch(Dispatchers.IO) {
-            val ob = budgetManager.repository.getPlannedObligationById(id) ?: return@launch
-            budgetManager.recordTransaction(ob.categoryId, amount, "expense", ob.name)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@PaymentCalendarActivity, R.string.payment_calendar_paid_done, Toast.LENGTH_SHORT).show()
-                loadEntries()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.reminder_mark_paid_title)
+            .setMessage(
+                getString(
+                    R.string.reminder_mark_paid_msg,
+                    entry.title,
+                    MoneyFormat.format(amount),
+                ),
+            )
+            .setPositiveButton(R.string.reminder_mark_paid) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val ok = ObligationPaymentHelper.payObligation(
+                        budgetManager,
+                        id,
+                        entry.epochDay,
+                        amount,
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (ok) {
+                            Toast.makeText(this@PaymentCalendarActivity, R.string.payment_calendar_paid_done, Toast.LENGTH_SHORT).show()
+                            loadEntries()
+                        }
+                    }
+                }
             }
-        }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun payObligation(entry: PaymentCalendarHelper.Entry) {
+        confirmPayObligation(entry)
     }
 
     private fun openUtilityBill(entry: PaymentCalendarHelper.Entry, openPay: Boolean) {
@@ -421,6 +456,9 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 }
             }
             val obligations = dao.getPlannedObligationsByBudgetOnce(budgetManager.getActiveBudgetId())
+            val paidObligationPeriods = ObligationPaymentHelper.paidKeys(
+                dao.getObligationPaymentsByBudget(budgetManager.getActiveBudgetId()),
+            )
             val plannedIncome = dao.getPlannedIncomeSourcesByBudgetOnce(budgetManager.getActiveBudgetId())
             val incomeById = plannedIncome.associateBy { it.id }
             val utilityPaymentDays = db.utilityDao().getAllProperties().associate { property ->
@@ -435,6 +473,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 categoryNames,
                 today.toEpochDay(),
                 utilityPaymentDays = utilityPaymentDays,
+                paidObligationPeriods = paidObligationPeriods,
             ).map { entry ->
                 if (entry.kind != PaymentCalendarHelper.EntryKind.INCOME || entry.subtitle.isNotBlank()) {
                     entry
@@ -457,16 +496,20 @@ class PaymentCalendarActivity : AppCompatActivity() {
 
     private class CalendarAdapter(
         private val onClick: (PaymentCalendarHelper.Entry) -> Unit,
+        private val onPay: (PaymentCalendarHelper.Entry) -> Unit,
     ) : RecyclerView.Adapter<CalendarAdapter.Holder>() {
         private var items: List<PaymentCalendarHelper.Entry> = emptyList()
         private var todayEpochDay: Long = LocalDate.now().toEpochDay()
 
         class Holder(v: View) : RecyclerView.ViewHolder(v) {
             val accent: View = v.findViewById(R.id.paymentCalendarAccent)
+            val content: View = v.findViewById(R.id.paymentCalendarContent)
             val date: TextView = v.findViewById(R.id.paymentCalendarDate)
             val title: TextView = v.findViewById(R.id.paymentCalendarTitle)
             val subtitle: TextView = v.findViewById(R.id.paymentCalendarSubtitle)
             val amount: TextView = v.findViewById(R.id.paymentCalendarAmount)
+            val payButton: com.google.android.material.button.MaterialButton =
+                v.findViewById(R.id.paymentCalendarPayButton)
         }
 
         fun submit(list: List<PaymentCalendarHelper.Entry>, today: Long) {
@@ -502,7 +545,20 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 accentDrawable.setColor(urgencyColor)
             }
             holder.accent.background = accentDrawable
-            holder.itemView.setOnClickListener { onClick(item) }
+            val showPay = supportsInlinePay(item)
+            holder.payButton.visibility = if (showPay) View.VISIBLE else View.GONE
+            holder.content.setOnClickListener { onClick(item) }
+            holder.payButton.setOnClickListener { onPay(item) }
+        }
+
+        private fun supportsInlinePay(entry: PaymentCalendarHelper.Entry): Boolean {
+            return when (entry.kind) {
+                PaymentCalendarHelper.EntryKind.REMINDER,
+                PaymentCalendarHelper.EntryKind.OBLIGATION,
+                -> true
+                PaymentCalendarHelper.EntryKind.UTILITY -> entry.sourceRef.billId != null
+                else -> false
+            }
         }
 
         override fun getItemCount(): Int = items.size

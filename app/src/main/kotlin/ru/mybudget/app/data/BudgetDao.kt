@@ -38,6 +38,12 @@ abstract class BudgetDao {
     abstract suspend fun insertPlannedObligation(obligation: PlannedObligationEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
+    abstract suspend fun insertObligationPayment(payment: ObligationPaymentEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertBalanceSnapshot(snapshot: BalanceSnapshotEntity)
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract suspend fun insertPlannedIncomeSource(source: PlannedIncomeSourceEntity): Long
 
     @Update
@@ -258,6 +264,34 @@ abstract class BudgetDao {
     @Query("SELECT * FROM planned_obligations WHERE id = :id LIMIT 1")
     abstract suspend fun getPlannedObligationById(id: Int): PlannedObligationEntity?
 
+    @Query(
+        """
+        SELECT op.* FROM obligation_payments op
+        INNER JOIN planned_obligations po ON po.id = op.obligationId
+        WHERE po.budgetId = :budgetId
+        """,
+    )
+    abstract suspend fun getObligationPaymentsByBudget(budgetId: Int): List<ObligationPaymentEntity>
+
+    @Query("SELECT * FROM obligation_payments ORDER BY id")
+    abstract suspend fun getAllObligationPaymentsForExport(): List<ObligationPaymentEntity>
+
+    @Query(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM obligation_payments
+            WHERE obligationId = :obligationId AND periodYear = :year AND periodMonth = :month
+        )
+        """,
+    )
+    abstract suspend fun isObligationPeriodPaid(obligationId: Int, year: Int, month: Int): Boolean
+
+    @Query("DELETE FROM obligation_payments WHERE obligationId = :obligationId")
+    abstract suspend fun deleteObligationPaymentsByObligation(obligationId: Int)
+
+    @Query("DELETE FROM obligation_payments")
+    abstract suspend fun deleteAllObligationPayments()
+
     @Query("SELECT * FROM planned_income_sources WHERE isActive = 1 AND budgetId = :budgetId ORDER BY sortOrder, id")
     abstract suspend fun getPlannedIncomeSourcesByBudgetOnce(budgetId: Int): List<PlannedIncomeSourceEntity>
 
@@ -359,6 +393,63 @@ abstract class BudgetDao {
     @Query("DELETE FROM audit_actions")
     abstract suspend fun deleteAllAuditActions()
 
+    @Query(
+        """
+        SELECT COALESCE(SUM(currentBalance), 0) FROM categories
+        WHERE budgetId = :budgetId AND parentId = 0 AND isActive = 1
+        """,
+    )
+    abstract suspend fun getRootBalanceSumForBudget(budgetId: Int): Double
+
+    @Query(
+        """
+        SELECT * FROM balance_snapshots
+        WHERE budgetId = :budgetId AND dayKey >= :fromDay AND dayKey <= :toDay
+        ORDER BY dayKey
+        """,
+    )
+    abstract suspend fun getBalanceSnapshotsForBudget(
+        budgetId: Int,
+        fromDay: Long,
+        toDay: Long,
+    ): List<BalanceSnapshotEntity>
+
+    @Query(
+        """
+        SELECT * FROM balance_snapshots
+        WHERE dayKey >= :fromDay AND dayKey <= :toDay
+        ORDER BY dayKey, budgetId
+        """,
+    )
+    abstract suspend fun getAllBalanceSnapshotsInRange(fromDay: Long, toDay: Long): List<BalanceSnapshotEntity>
+
+    @Query("SELECT * FROM balance_snapshots ORDER BY dayKey, budgetId")
+    abstract suspend fun getAllBalanceSnapshotsForExport(): List<BalanceSnapshotEntity>
+
+    @Query("DELETE FROM balance_snapshots")
+    abstract suspend fun deleteAllBalanceSnapshots()
+
+    @Transaction
+    open suspend fun recordBalanceSnapshotForBudget(budgetId: Int) {
+        val total = getRootBalanceSumForBudget(budgetId)
+        val dayKey = System.currentTimeMillis() / 86_400_000L
+        upsertBalanceSnapshot(
+            BalanceSnapshotEntity(
+                budgetId = budgetId,
+                dayKey = dayKey,
+                totalBalance = total,
+            ),
+        )
+    }
+
+    @Transaction
+    open suspend fun recordBalanceSnapshotForCategory(categoryId: Int) {
+        val category = getCategoryById(categoryId)
+            ?: getCategoryByIdAny(categoryId)
+            ?: return
+        recordBalanceSnapshotForBudget(category.budgetId)
+    }
+
     @Transaction
     open suspend fun applyAmountToCategoryAndUpdateParent(categoryId: Int, amount: Double) {
         recordTransaction(
@@ -375,9 +466,11 @@ abstract class BudgetDao {
     open suspend fun applyBalanceDelta(categoryId: Int, amount: Double) {
         val category = getCategoryById(categoryId) ?: return
         updateCategory(category.copy(currentBalance = category.currentBalance + amount))
-        if (category.parentId == 0) return
-        val parent = getCategoryById(category.parentId) ?: return
-        updateCategory(parent.copy(currentBalance = parent.currentBalance + amount))
+        if (category.parentId != 0) {
+            val parent = getCategoryById(category.parentId) ?: return
+            updateCategory(parent.copy(currentBalance = parent.currentBalance + amount))
+        }
+        recordBalanceSnapshotForCategory(categoryId)
     }
 
     @Transaction

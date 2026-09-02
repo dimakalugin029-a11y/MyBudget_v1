@@ -3,6 +3,7 @@ package ru.mybudget.app.utilities
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import ru.mybudget.app.ObligationPaymentHelper
 import ru.mybudget.app.PlannedIncomeHelper
 import java.time.LocalDate
 import ru.mybudget.app.utilities.PaymentCalendarHelper.EntryKind
@@ -122,6 +123,36 @@ class PaymentCalendarHelperTest {
         )
 
         assertEquals(10_500.0, PaymentCalendarHelper.weekPaymentTotal(entries), 0.01)
+    }
+
+    @Test
+    fun buildEntries_hidesPaidObligationForCurrentPeriod() {
+        val today = LocalDate.of(2026, 9, 2)
+        val todayEpoch = today.toEpochDay()
+        val obligation = ru.mybudget.app.data.PlannedObligationEntity(
+            budgetId = 1,
+            name = "Интернет",
+            amount = 500.0,
+            periodType = ru.mybudget.app.PlannedObligationHelper.PERIOD_MONTHLY,
+            categoryId = 3,
+            paychecksPerMonth = 1,
+            dueMonth = 1,
+            dueDay = 2,
+        ).copy(id = 10)
+        val paid = setOf(ObligationPaymentHelper.PeriodKey(10, 2026, 9))
+
+        val result = PaymentCalendarHelper.buildEntries(
+            reminders = emptyList(),
+            recurring = emptyList(),
+            unpaidUtilityBills = emptyList(),
+            obligations = listOf(obligation),
+            categoryNames = mapOf(3 to "Связь"),
+            todayEpochDay = todayEpoch,
+            horizonDays = 7,
+            paidObligationPeriods = paid,
+        )
+
+        assertTrue(result.none { it.kind == EntryKind.OBLIGATION && it.epochDay == todayEpoch })
     }
 
     @Test
