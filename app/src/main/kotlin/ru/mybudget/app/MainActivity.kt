@@ -16,12 +16,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.mybudget.app.setup.CompactUiPreferences
 import ru.mybudget.app.setup.AutoBackupPreferences
 import ru.mybudget.app.setup.ExpenseShortcut
 import ru.mybudget.app.setup.ExpenseShortcutPreferences
 import ru.mybudget.app.setup.MigrationPreferences
 import ru.mybudget.app.setup.MonthStartPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
+import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.setup.QuickExpensePreferences
 import ru.mybudget.app.setup.RolloverPreferences
 import ru.mybudget.app.setup.SetupChecklistHelper
@@ -36,6 +38,9 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.mainSettingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        findViewById<View>(R.id.mainSearchButton).setOnClickListener {
+            startActivity(Intent(this, SearchActivity::class.java))
         }
         findViewById<View>(R.id.mainProfilePicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = { refreshHeader() })
@@ -66,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
         bindRow(R.id.utilitiesButton, R.string.main_icon_utilities, R.string.main_menu_utilities, UtilitiesActivity::class.java)
         ReminderScheduler.ensureScheduled(this)
+        WeeklySummaryScheduler.ensureScheduled(this)
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)
         AppNotificationsHelper.maybeRequestNotificationPermissionOnLaunch(this)
         AppNotificationsHelper.maybeShowExportReminder(this, prefs)
@@ -131,12 +137,22 @@ class MainActivity : AppCompatActivity() {
                 MainDashboardHelper.loadSafeToSpend(this@MainActivity, manager, balance)
             }
             bindSafeToSpend(safeToSpend)
+            val forecast = withContext(Dispatchers.IO) {
+                MainDashboardHelper.loadMonthForecast(manager, balance)
+            }
+            bindMonthForecast(forecast)
+            applyCompactMode()
             bindExpenseShortcuts()
             bindSetupChecklist(manager)
         }
     }
 
     private suspend fun bindSetupChecklist(manager: BudgetManager) {
+        val section = findViewById<View>(R.id.mainSetupChecklistSection)
+        if (CompactUiPreferences.shouldHideChecklist(this)) {
+            section.visibility = View.GONE
+            return
+        }
         val transactions = manager.repository.getAllTransactions().first()
         val hasIncomePlan = manager.repository
             .getPlannedIncomeSourcesByBudgetOnce(manager.getActiveBudgetId())
@@ -147,7 +163,6 @@ class MainActivity : AppCompatActivity() {
             hasIncomePlan = hasIncomePlan,
             checklistDismissed = SetupChecklistPreferences.isDismissed(this),
         )
-        val section = findViewById<View>(R.id.mainSetupChecklistSection)
         if (!progress.shouldShow) {
             section.visibility = View.GONE
             return
@@ -319,6 +334,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindMonthForecast(forecast: MonthForecastHelper.MonthForecast?) {
+        val view = findViewById<TextView>(R.id.mainMonthForecastText)
+        if (forecast == null) {
+            view.visibility = View.GONE
+            return
+        }
+        view.visibility = View.VISIBLE
+        view.text = getString(
+            R.string.main_month_forecast,
+            MoneyFormat.format(forecast.projectedEndBalance),
+            forecast.endDateLabel,
+        )
+    }
+
+    private fun applyCompactMode() {
+        val compact = CompactUiPreferences.isEnabled(this)
+        val padding = resources.getDimensionPixelSize(
+            if (compact) R.dimen.space_12 else R.dimen.space_16,
+        )
+        findViewById<LinearLayout>(R.id.mainContentRoot).setPadding(padding, padding, padding, padding)
+    }
+
     private fun bindAttentionSection(summary: MainDashboardSummary) {
         bindAttentionRow(
             containerId = R.id.mainAttentionPending,
@@ -365,6 +402,24 @@ class MainActivity : AppCompatActivity() {
             line = summary.goalsLine,
         ) { startActivity(Intent(this, GoalsActivity::class.java)) }
         bindAttentionRow(
+            containerId = R.id.mainAttentionFamily,
+            rowId = R.id.mainAttentionFamilyRow,
+            icon = "👤",
+            line = summary.familyLine,
+        ) {
+            val name = ParticipantPreferences.getDefaultParticipant(this)
+            if (name.isNotBlank()) {
+                startActivity(
+                    Intent(this, TransactionsActivity::class.java)
+                        .putExtra(TransactionsActivity.EXTRA_PARTICIPANT_FILTER, name)
+                        .putExtra(
+                            TransactionsActivity.EXTRA_CATEGORY_TITLE,
+                            getString(R.string.transactions_participant_filter_title, name),
+                        ),
+                )
+            }
+        }
+        bindAttentionRow(
             containerId = R.id.mainAttentionUtilities,
             rowId = R.id.mainAttentionUtilitiesRow,
             icon = "🏠",
@@ -378,6 +433,7 @@ class MainActivity : AppCompatActivity() {
             R.id.mainAttentionObligations,
             R.id.mainAttentionUpcoming,
             R.id.mainAttentionGoals,
+            R.id.mainAttentionFamily,
             R.id.mainAttentionUtilities,
         ).any { findViewById<View>(it).visibility == View.VISIBLE }
         findViewById<View>(R.id.mainAttentionSection).visibility =

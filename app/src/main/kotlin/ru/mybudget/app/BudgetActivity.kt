@@ -336,6 +336,7 @@ class BudgetActivity : AppCompatActivity() {
                 }
             } else {
                 menu.add(0, 5, 0, R.string.budget_transfer_subcategory)
+                menu.add(0, 9, 0, R.string.budget_distribute_to_subcategories)
             }
             menu.add(0, 4, 0, R.string.budget_rename)
             menu.add(0, 6, 0, R.string.budget_profiles_delete)
@@ -344,6 +345,7 @@ class BudgetActivity : AppCompatActivity() {
                     1 -> openHistory(category, isParent)
                     4 -> BudgetDialogs.showEditCategory(this@BudgetActivity, manager, category) { reload() }
                     5 -> showSubcategoryTransferDialog(category)
+                    9 -> openSubcategoryDistribution(category)
                     6 -> BudgetDialogs.confirmDeleteCategory(
                         this@BudgetActivity,
                         manager,
@@ -398,6 +400,19 @@ class BudgetActivity : AppCompatActivity() {
 
     private fun showSubcategoryTransferDialog(from: BudgetCategory) {
         BudgetTransferDialog.show(this, manager, from.id) { reload() }
+    }
+
+    private fun openSubcategoryDistribution(category: BudgetCategory) {
+        if (category.currentBalance <= 0.01) {
+            Toast.makeText(this, R.string.budget_no_funds_to_distribute, Toast.LENGTH_SHORT).show()
+            return
+        }
+        startActivity(
+            Intent(this, SubcategoryDistributionActivity::class.java)
+                .putExtra(SubcategoryDistributionActivity.EXTRA_SOURCE_CATEGORY_ID, category.id)
+                .putExtra(SubcategoryDistributionActivity.EXTRA_SOURCE_CATEGORY_NAME, category.name)
+                .putExtra(SubcategoryDistributionActivity.EXTRA_AVAILABLE_AMOUNT, category.currentBalance),
+        )
     }
 
     private fun openRemainder(category: BudgetCategory, available: Double) {

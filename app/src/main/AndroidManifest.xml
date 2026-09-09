@@ -57,6 +57,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".RemainderDistributionActivity" android:exported="false" />
+        <activity android:name=".SubcategoryDistributionActivity" android:exported="false" />
         <activity
             android:name=".QuickExpenseActivity"
             android:exported="false"
@@ -68,6 +69,11 @@
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".TransactionsActivity" android:exported="false" />
         <activity android:name=".StatisticsActivity" android:exported="false" />
+        <activity android:name=".SearchActivity" android:exported="false" />
+        <activity android:name=".MonthComparisonActivity" android:exported="false" />
+        <activity android:name=".WhatIfActivity" android:exported="false" />
+        <activity android:name=".YearOverviewActivity" android:exported="false" />
+        <activity android:name=".FamilySyncWizardActivity" android:exported="false" />
         <activity android:name=".RemindersActivity" android:exported="false" />
         <activity android:name=".GoalsActivity" android:exported="false" />
         <activity android:name=".PlannedObligationsActivity" android:exported="false" />

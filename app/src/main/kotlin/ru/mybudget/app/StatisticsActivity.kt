@@ -90,12 +90,16 @@ class StatisticsActivity : AppCompatActivity() {
         ScreenHeaderHelper.bindAction(this, android.R.drawable.ic_menu_more, R.string.stats_more_menu) {
             PopupMenu(this, findViewById(R.id.screenHeaderAction)).apply {
                 menu.add(0, 1, 0, getString(R.string.plan_fact_open))
-                menu.add(0, 4, 1, getString(R.string.participants_report_title))
-                menu.add(0, 2, 2, getString(R.string.stats_export_csv))
-                menu.add(0, 3, 3, getString(R.string.stats_export_pdf))
+                menu.add(0, 6, 1, getString(R.string.stats_year_overview))
+                menu.add(0, 5, 2, getString(R.string.stats_month_comparison))
+                menu.add(0, 4, 3, getString(R.string.participants_report_title))
+                menu.add(0, 2, 4, getString(R.string.stats_export_csv))
+                menu.add(0, 3, 5, getString(R.string.stats_export_pdf))
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         1 -> startActivity(Intent(this@StatisticsActivity, PlanFactActivity::class.java))
+                        6 -> startActivity(Intent(this@StatisticsActivity, YearOverviewActivity::class.java))
+                        5 -> startActivity(Intent(this@StatisticsActivity, MonthComparisonActivity::class.java))
                         4 -> startActivity(Intent(this@StatisticsActivity, ParticipantsReportActivity::class.java))
                         2 -> launchCsvExport()
                         3 -> launchPdfExport()
@@ -123,6 +127,8 @@ class StatisticsActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.statsPlanFactButton).setOnClickListener {
             startActivity(Intent(this, PlanFactActivity::class.java))
         }
+        findViewById<View>(R.id.statsKpiIncomeCard).setOnClickListener { openKpiTransactions("income") }
+        findViewById<View>(R.id.statsKpiExpenseCard).setOnClickListener { openKpiTransactions("expense") }
         findViewById<MaterialButton>(R.id.statsBudgetChip).setOnClickListener { pickBudget() }
         bindPeriodChips()
         bindCompareChip()
@@ -550,6 +556,24 @@ class StatisticsActivity : AppCompatActivity() {
             sb.append("$date,$category,${tx.type},$amount,$desc\n")
         }
         return sb.toString()
+    }
+
+    private fun openKpiTransactions(type: String) {
+        val snapshot = lastSnapshot ?: return
+        val allowedIds = if (selectedBudgetId == null) {
+            snapshot.categories.map { it.id }
+        } else {
+            manager.getCategoryIdsForBudget(selectedBudgetId!!)
+        }
+        val label = getString(if (type == "income") R.string.stats_kpi_income else R.string.stats_kpi_expense)
+        startActivity(
+            Intent(this, TransactionsActivity::class.java)
+                .putExtra(TransactionsActivity.EXTRA_CATEGORY_IDS, allowedIds.toIntArray())
+                .putExtra(TransactionsActivity.EXTRA_CATEGORY_TITLE, "$label · ${periodLabel()}")
+                .putExtra(TransactionsActivity.EXTRA_TYPE_FILTER, type)
+                .putExtra(TransactionsActivity.EXTRA_DATE_FROM_MS, snapshot.from)
+                .putExtra(TransactionsActivity.EXTRA_DATE_TO_MS, snapshot.to),
+        )
     }
 
     private fun bindKpis(snapshot: StatsSnapshot) {

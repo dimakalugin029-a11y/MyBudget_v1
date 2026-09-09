@@ -56,8 +56,10 @@ class TransactionsActivity : AppCompatActivity() {
     private lateinit var adapter: TransactionsAdapter
     private var typeFilter = TypeFilter.ALL
     private var timeFilter = TimeFilter.MONTH
+    private var filterDateRange: Pair<Long, Long>? = null
     private var searchQuery = ""
     private var filterCategoryIds: IntArray? = null
+    private var filterParticipantLabel: String? = null
     private var allTransactions: List<TransactionEntity> = emptyList()
     private var filteredTransactions: List<TransactionEntity> = emptyList()
     private var auditActions: List<AuditActionEntity> = emptyList()
@@ -77,7 +79,14 @@ class TransactionsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_transactions)
         manager = BudgetManager.getInstance(this)
         filterCategoryIds = intent.getIntArrayExtra(EXTRA_CATEGORY_IDS)
+        filterParticipantLabel = intent.getStringExtra(EXTRA_PARTICIPANT_FILTER)?.takeIf { it.isNotBlank() }
         pendingOpenImport = intent.getBooleanExtra(EXTRA_OPEN_IMPORT, false)
+        val rangeFrom = intent.getLongExtra(EXTRA_DATE_FROM_MS, 0L)
+        val rangeTo = intent.getLongExtra(EXTRA_DATE_TO_MS, 0L)
+        if (rangeFrom > 0L && rangeTo > rangeFrom) {
+            filterDateRange = rangeFrom to rangeTo
+        }
+        val requestedType = intent.getStringExtra(EXTRA_TYPE_FILTER)
         val title = intent.getStringExtra(EXTRA_CATEGORY_TITLE)?.let {
             getString(R.string.budget_category_history, it)
         } ?: getString(R.string.transactions_title)
@@ -137,6 +146,12 @@ class TransactionsActivity : AppCompatActivity() {
         tabs.addTab(tabs.newTab().setText(R.string.transactions_tab_all))
         tabs.addTab(tabs.newTab().setText(R.string.transactions_tab_income))
         tabs.addTab(tabs.newTab().setText(R.string.transactions_tab_expense))
+        val initialTab = when (requestedType) {
+            "income" -> 1
+            "expense" -> 2
+            else -> 0
+        }
+        tabs.getTabAt(initialTab)?.select()
         tabs.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab) {
                 typeFilter = when (tab.position) {
@@ -201,6 +216,7 @@ class TransactionsActivity : AppCompatActivity() {
         )
         AlertDialog.Builder(this)
             .setItems(labels) { _, which ->
+                filterDateRange = null
                 timeFilter = TimeFilter.entries[which]
                 updatePeriodChip()
                 render()
@@ -209,6 +225,12 @@ class TransactionsActivity : AppCompatActivity() {
     }
 
     private fun updatePeriodChip() {
+        val range = filterDateRange
+        if (range != null) {
+            val fmt = SimpleDateFormat("dd.MM.yy", Locale.getDefault())
+            periodChip.text = "${fmt.format(Date(range.first))} – ${fmt.format(Date(range.second))}"
+            return
+        }
         periodChip.setText(
             when (timeFilter) {
                 TimeFilter.MONTH -> R.string.transactions_filter_month
@@ -237,6 +259,8 @@ class TransactionsActivity : AppCompatActivity() {
                 val haystack = "${tx.description} ${names[tx.categoryId].orEmpty()}"
                 if (!haystack.contains(searchQuery, ignoreCase = true)) return@filter false
             }
+            val participant = filterParticipantLabel
+            if (participant != null && tx.participantLabel != participant) return@filter false
             true
         }
         filteredTransactions = filtered
@@ -294,6 +318,7 @@ class TransactionsActivity : AppCompatActivity() {
     }
 
     private fun matchesPeriod(date: Long): Boolean {
+        filterDateRange?.let { (from, to) -> return date in from..to }
         if (timeFilter == TimeFilter.ALL) return true
         val start = Calendar.getInstance().apply {
             when (timeFilter) {
@@ -979,7 +1004,11 @@ class TransactionsActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_CATEGORY_IDS = "filter_category_ids"
         const val EXTRA_CATEGORY_TITLE = "filter_category_title"
+        const val EXTRA_PARTICIPANT_FILTER = "filter_participant_label"
         const val EXTRA_OPEN_IMPORT = "open_import"
+        const val EXTRA_TYPE_FILTER = "filter_type"
+        const val EXTRA_DATE_FROM_MS = "filter_date_from"
+        const val EXTRA_DATE_TO_MS = "filter_date_to"
         private const val TYPE_TRANSACTION = 0
         private const val TYPE_HEADER = 1
         private const val TYPE_GROUP = 2

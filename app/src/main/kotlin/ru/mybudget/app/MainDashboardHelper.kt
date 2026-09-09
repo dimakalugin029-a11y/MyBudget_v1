@@ -4,10 +4,12 @@ import android.content.Context
 import kotlinx.coroutines.flow.first
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.setup.OverspendPreferences
+import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
 import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
 import ru.mybudget.app.utilities.UtilityAttentionHelper
+import ru.mybudget.app.utilities.UtilityCalendarForecastHelper
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Calendar
@@ -26,6 +28,7 @@ data class MainDashboardSummary(
     val planSetupLine: AttentionLine? = null,
     val upcomingPaymentsLine: AttentionLine? = null,
     val goalsLine: AttentionLine? = null,
+    val familyLine: AttentionLine? = null,
 )
 
 object MainDashboardHelper {
@@ -96,6 +99,13 @@ object MainDashboardHelper {
             property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
         }
         val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
+        val todayEpochDay = LocalDate.now().toEpochDay()
+        val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
+            context,
+            utilityDao,
+            LocalDate.now(),
+            horizonDays = 7,
+        )
         val calendarEntries = PaymentCalendarHelper.buildEntries(
             reminders = remindersWeek,
             recurring = recurringWeek,
@@ -103,10 +113,11 @@ object MainDashboardHelper {
             obligations = obligations,
             plannedIncome = incomeSources,
             categoryNames = categoryNames,
-            todayEpochDay = LocalDate.now().toEpochDay(),
+            todayEpochDay = todayEpochDay,
             horizonDays = 7,
             utilityPaymentDays = utilityPaymentDays,
             paidObligationPeriods = paidObligationPeriods,
+            utilityForecasts = utilityForecasts,
         )
         val calendarCount = calendarEntries.size
         val weekTotal = PaymentCalendarHelper.weekPaymentTotal(calendarEntries)
@@ -136,6 +147,42 @@ object MainDashboardHelper {
             planSetupLine = planSetupLine,
             upcomingPaymentsLine = upcomingPaymentsLine,
             goalsLine = buildUrgentGoalsLine(context, budgetManager),
+            familyLine = buildFamilyLine(context, budgetManager),
+        )
+    }
+
+    private suspend fun buildFamilyLine(context: Context, budgetManager: BudgetManager): AttentionLine? {
+        val defaultParticipant = ParticipantPreferences.getDefaultParticipant(context)
+        if (defaultParticipant.isBlank()) return null
+        val monthStart = BudgetPlanHelper.monthStartMillis()
+        val transactions = budgetManager.repository.getAllTransactions().first()
+        val summary = ParticipantFamilyHelper.buildSummary(transactions, monthStart, defaultParticipant)
+            ?: return null
+        val subtitle = if (summary.allExpenseTotal > summary.myExpenseTotal + 0.01) {
+            context.getString(R.string.main_family_all_expenses, MoneyFormat.formatRub(summary.allExpenseTotal))
+        } else {
+            null
+        }
+        return AttentionLine(
+            context.getString(
+                R.string.main_family_my_expenses,
+                summary.participantName,
+                MoneyFormat.formatRub(summary.myExpenseTotal),
+            ),
+            subtitle,
+        )
+    }
+
+    suspend fun loadMonthForecast(
+        budgetManager: BudgetManager,
+        totalBalance: Double,
+    ): MonthForecastHelper.MonthForecast? {
+        val monthStart = BudgetPlanHelper.monthStartMillis()
+        val transactions = budgetManager.repository.getAllTransactions().first()
+        val monthTransactions = transactions.filter { it.date >= monthStart }
+        return MonthForecastHelper.build(
+            currentBalance = totalBalance,
+            monthTransactions = monthTransactions,
         )
     }
 
@@ -186,6 +233,12 @@ object MainDashboardHelper {
             property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
         }
         val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
+        val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
+            context,
+            utilityDao,
+            today,
+            horizonDays = horizonDays,
+        )
         val entries = PaymentCalendarHelper.buildEntries(
             reminders = dao.getRemindersInRange(todayStr, endStr),
             recurring = dao.getRecurringInRange(todayStr, endStr),
@@ -197,6 +250,7 @@ object MainDashboardHelper {
             horizonDays = horizonDays,
             utilityPaymentDays = utilityPaymentDays,
             paidObligationPeriods = paidObligationPeriods,
+            utilityForecasts = utilityForecasts,
         )
         return SalaryCycleHelper.compute(totalBalance, incomeSources, entries, today)
             ?: SalaryCycleHelper.computeMonthFallback(totalBalance)

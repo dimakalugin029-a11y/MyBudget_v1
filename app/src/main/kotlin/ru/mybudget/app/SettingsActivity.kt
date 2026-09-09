@@ -34,8 +34,10 @@ import ru.mybudget.app.setup.AutoBackupPreferences
 import ru.mybudget.app.setup.BudgetTemplateId
 import ru.mybudget.app.setup.BudgetTemplates
 import ru.mybudget.app.setup.MeterReadingReminderPreferences
+import ru.mybudget.app.setup.CompactUiPreferences
 import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
+import ru.mybudget.app.setup.WeeklySummaryPreferences
 import ru.mybudget.app.backup.WebDavBackupClient
 import ru.mybudget.app.security.WebDavSecrets
 import ru.mybudget.app.setup.WebDavBackupPreferences
@@ -144,11 +146,13 @@ class SettingsActivity : AppCompatActivity() {
 
         backupManager = BackupManager(this)
         setupThemeSelector()
+        setupCompactUi()
         setupAppLockSettings()
         setupBackupButtons()
         setupAutoBackup()
         setupWebDavBackup()
         setupOverspendNotifications()
+        setupWeeklySummary()
         setupMeterReadingReminder()
         setupParticipants()
 
@@ -179,7 +183,21 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun setupParticipants() {
         val input = findViewById<EditText>(R.id.participantsInput)
+        val defaultSpinner = findViewById<Spinner>(R.id.defaultParticipantSpinner)
         input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
+        refreshDefaultParticipantSpinner(defaultSpinner)
+        defaultSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val label = parent?.getItemAtPosition(position)?.toString().orEmpty()
+                val name = if (label == getString(R.string.settings_default_participant_hint)) {
+                    ""
+                } else {
+                    label
+                }
+                ParticipantPreferences.setDefaultParticipant(this@SettingsActivity, name)
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
         findViewById<Button>(R.id.saveParticipantsButton).setOnClickListener {
             val names = input.text.toString()
                 .split('\n', ',')
@@ -194,11 +212,24 @@ class SettingsActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             input.setText(ParticipantPreferences.getNames(this).joinToString("\n"))
+            refreshDefaultParticipantSpinner(defaultSpinner)
             Toast.makeText(this, R.string.settings_participants_saved, Toast.LENGTH_SHORT).show()
         }
         findViewById<Button>(R.id.participantsReportButton).setOnClickListener {
             startActivity(Intent(this, ParticipantsReportActivity::class.java))
         }
+        findViewById<MaterialButton>(R.id.familySyncWizardButton).setOnClickListener {
+            startActivity(Intent(this, FamilySyncWizardActivity::class.java))
+        }
+    }
+
+    private fun refreshDefaultParticipantSpinner(spinner: Spinner) {
+        val names = ParticipantPreferences.getNames(this)
+        val options = listOf(getString(R.string.settings_default_participant_hint)) + names
+        val current = ParticipantPreferences.getDefaultParticipant(this)
+        spinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, options)
+        val index = options.indexOf(current).coerceAtLeast(0)
+        spinner.setSelection(index, false)
     }
 
     private fun setupThemeSelector() {
@@ -358,6 +389,27 @@ class SettingsActivity : AppCompatActivity() {
             autoBackupFolderLauncher.launch(AutoBackupPreferences.folderUri(this))
         }
         refreshAutoBackupFolderLabel()
+    }
+
+    private fun setupCompactUi() {
+        val compactSwitch = findViewById<SwitchCompat>(R.id.compactUiSwitch)
+        compactSwitch.isChecked = CompactUiPreferences.isEnabled(this)
+        compactSwitch.setOnCheckedChangeListener { _, checked ->
+            CompactUiPreferences.setEnabled(this, checked)
+        }
+    }
+
+    private fun setupWeeklySummary() {
+        val weeklySwitch = findViewById<SwitchCompat>(R.id.weeklySummarySwitch)
+        weeklySwitch.isChecked = WeeklySummaryPreferences.isEnabled(this)
+        weeklySwitch.setOnCheckedChangeListener { _, checked ->
+            WeeklySummaryPreferences.setEnabled(this, checked)
+            if (checked) {
+                WeeklySummaryScheduler.ensureScheduled(this)
+            } else {
+                WeeklySummaryScheduler.cancel(this)
+            }
+        }
     }
 
     private fun setupOverspendNotifications() {

@@ -15,8 +15,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.UtilityMeterReadingEntity
 import ru.mybudget.app.setup.ActivePropertyPreferences
-import ru.mybudget.app.utilities.MeterDateParser
 import ru.mybudget.app.utilities.MeterRepository
+import ru.mybudget.app.utilities.UtilityExcelParser
 import ru.mybudget.app.utilities.UtilityMeterDialogs
 
 class UtilityMeterHistoryActivity : AppCompatActivity() {
@@ -119,7 +119,7 @@ class UtilityMeterHistoryActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: Holder, position: Int) {
             val item = items[position]
-            holder.period.text = MeterDateParser.formatPeriodLabelForDisplay(item.periodLabel)
+            holder.period.text = UtilityExcelParser.formatPeriodLabelForDisplay(item.periodLabel)
             val cons = item.consumption?.let { " · расход ${MoneyFormat.format(it)}" } ?: ""
             holder.values.text = "Показание: ${MoneyFormat.format(item.readingValue)}$cons"
             holder.itemView.setOnLongClickListener {

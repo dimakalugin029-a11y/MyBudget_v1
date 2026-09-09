@@ -29,6 +29,7 @@ import ru.mybudget.app.utilities.MeterRepository
 import ru.mybudget.app.utilities.MeterWaterTotals
 import ru.mybudget.app.utilities.UtilityExcelExporter
 import ru.mybudget.app.utilities.UtilityExcelIo
+import ru.mybudget.app.utilities.UtilityExcelParser
 import ru.mybudget.app.utilities.UtilityMeterDialogs
 import java.time.LocalDate
 
@@ -320,7 +321,7 @@ class UtilityMetersActivity : AppCompatActivity() {
             }
             val last = item.lastReading
             if (last != null) {
-                val periodShown = MeterDateParser.formatPeriodLabelForDisplay(last.periodLabel)
+                val periodShown = UtilityExcelParser.formatPeriodLabelForDisplay(last.periodLabel)
                 val cons = last.consumption?.let { " · расход ${MoneyFormat.format(it)}" } ?: ""
                 holder.lastReading.text = "Последнее: $periodShown — показание ${MoneyFormat.format(last.readingValue)}$cons"
             } else {

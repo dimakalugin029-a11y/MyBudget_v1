@@ -32,6 +32,10 @@ class RemindersActivity : AppCompatActivity() {
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     private val repeatKeys = listOf("once", "daily", "weekly", "monthly")
 
+    companion object {
+        const val EXTRA_PRESET_DATE_MS = "reminders_preset_date_ms"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_reminders)
@@ -76,9 +80,11 @@ class RemindersActivity : AppCompatActivity() {
         }
         if (intent.getBooleanExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, false)) {
             intent.removeExtra(PlanningEntryWizard.EXTRA_AUTO_ADD)
+            val presetMs = intent.getLongExtra(EXTRA_PRESET_DATE_MS, 0L)
+            intent.removeExtra(EXTRA_PRESET_DATE_MS)
             lifecycleScope.launch {
                 manager.getCategoriesAsync()
-                showReminderDialog(null)
+                showReminderDialog(null, presetDate = if (presetMs > 0L) Date(presetMs) else null)
             }
         }
     }
@@ -87,7 +93,7 @@ class RemindersActivity : AppCompatActivity() {
         findViewById<TextView>(chipId).setOnClickListener { onClick() }
     }
 
-    private fun showReminderDialog(existing: PaymentReminder?) {
+    private fun showReminderDialog(existing: PaymentReminder?, presetDate: Date? = null) {
         if (existing != null && existing.obligationId > 0) {
             Toast.makeText(this, R.string.reminder_linked_obligation, Toast.LENGTH_LONG).show()
             return
@@ -119,7 +125,7 @@ class RemindersActivity : AppCompatActivity() {
         )
         repeatSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, repeatLabels)
         repeatSpinner.setSelection(repeatKeys.indexOf(existing?.repeatType).coerceAtLeast(0))
-        var dueDate = existing?.dueDate ?: Date()
+        var dueDate = existing?.dueDate ?: presetDate ?: Date()
         dateButton.text = dateFormat.format(dueDate)
         dateButton.setOnClickListener {
             val cal = Calendar.getInstance().apply { time = dueDate }

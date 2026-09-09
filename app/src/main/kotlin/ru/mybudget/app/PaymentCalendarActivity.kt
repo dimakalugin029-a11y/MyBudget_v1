@@ -21,6 +21,7 @@ import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
 import ru.mybudget.app.utilities.PaymentCalendarUrgencyHelper
+import ru.mybudget.app.utilities.UtilityCalendarForecastHelper
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -214,7 +215,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
             CalendarFilter.ALL -> byHorizon
             CalendarFilter.REMINDER -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.REMINDER }
             CalendarFilter.RECURRING -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.RECURRING }
-            CalendarFilter.UTILITY -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.UTILITY }
+            CalendarFilter.UTILITY -> byHorizon.filter {
+                it.kind == PaymentCalendarHelper.EntryKind.UTILITY ||
+                    it.kind == PaymentCalendarHelper.EntryKind.UTILITY_FORECAST
+            }
             CalendarFilter.OBLIGATION -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
             CalendarFilter.INCOME -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.INCOME }
         }
@@ -264,12 +268,57 @@ class PaymentCalendarActivity : AppCompatActivity() {
         val epoch = day.epochDay ?: return
         selectedDayEpoch = if (selectedDayEpoch == epoch) null else epoch
         refreshMonthGrid()
+        showDayDialog(LocalDate.ofEpochDay(epoch))
+    }
+
+    private fun showDayDialog(date: LocalDate) {
+        val epoch = date.toEpochDay()
         val dayEntries = filteredEntries().filter { it.epochDay == epoch }
-        when {
-            dayEntries.size == 1 -> showEntryActions(dayEntries.first())
-            dayEntries.size > 1 -> setViewMode(ViewMode.LIST)
-            else -> publishFiltered()
+        val locale = Locale("ru")
+        val title = date.format(java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy", locale))
+        val message = if (dayEntries.isEmpty()) {
+            getString(R.string.payment_calendar_day_empty)
+        } else {
+            dayEntries.joinToString("\n") { entry ->
+                val amount = entry.amount
+                if (amount != null && amount > 0.0) {
+                    "• ${entry.title} · ${MoneyFormat.formatRub(amount)}"
+                } else {
+                    "• ${entry.title}"
+                }
+            }
         }
+        val labels = mutableListOf<String>()
+        val handlers = mutableListOf<() -> Unit>()
+        dayEntries.forEach { entry ->
+            labels += entry.title
+            handlers += { showEntryActions(entry) }
+        }
+        labels += getString(R.string.payment_calendar_day_add_reminder)
+        handlers += {
+            startActivity(
+                Intent(this, RemindersActivity::class.java)
+                    .putExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, true)
+                    .putExtra(
+                        RemindersActivity.EXTRA_PRESET_DATE_MS,
+                        date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    ),
+            )
+        }
+        labels += getString(R.string.payment_calendar_day_add_payment)
+        handlers += {
+            startActivity(
+                Intent(this, PlannedObligationsActivity::class.java)
+                    .putExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, true)
+                    .putExtra(PlannedObligationsActivity.EXTRA_PRESET_DUE_DAY, date.dayOfMonth),
+            )
+        }
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setItems(labels.toTypedArray()) { _, which -> handlers[which]() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showEntryActions(entry: PaymentCalendarHelper.Entry) {
@@ -299,6 +348,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { openUtilityBill(entry, false) }
+            }
+            PaymentCalendarHelper.EntryKind.UTILITY_FORECAST -> {
+                labels += getString(R.string.payment_calendar_action_open_utilities)
+                handlers += { openUtilityForecast(entry) }
             }
             PaymentCalendarHelper.EntryKind.OBLIGATION -> {
                 labels += getString(R.string.payment_calendar_action_pay)
@@ -427,6 +480,12 @@ class PaymentCalendarActivity : AppCompatActivity() {
         )
     }
 
+    private fun openUtilityForecast(entry: PaymentCalendarHelper.Entry) {
+        val intent = Intent(this, UtilitiesActivity::class.java)
+        entry.sourceRef.propertyId?.let { intent.putExtra(UtilitiesActivity.EXTRA_PROPERTY_ID, it) }
+        startActivity(intent)
+    }
+
     private fun loadEntries() {
         lifecycleScope.launch(Dispatchers.IO) {
             val db = BudgetDatabase.getInstance(this@PaymentCalendarActivity)
@@ -464,6 +523,11 @@ class PaymentCalendarActivity : AppCompatActivity() {
             val utilityPaymentDays = db.utilityDao().getAllProperties().associate { property ->
                 property.id to UtilityPaymentReminderPreferences.paymentDay(this@PaymentCalendarActivity, property.id)
             }
+            val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
+                this@PaymentCalendarActivity,
+                db.utilityDao(),
+                today,
+            )
             val entries = PaymentCalendarHelper.buildEntries(
                 reminders,
                 recurring,
@@ -474,6 +538,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 today.toEpochDay(),
                 utilityPaymentDays = utilityPaymentDays,
                 paidObligationPeriods = paidObligationPeriods,
+                utilityForecasts = utilityForecasts,
             ).map { entry ->
                 if (entry.kind != PaymentCalendarHelper.EntryKind.INCOME || entry.subtitle.isNotBlank()) {
                     entry

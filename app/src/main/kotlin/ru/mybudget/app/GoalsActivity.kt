@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -49,6 +50,9 @@ class GoalsActivity : AppCompatActivity() {
             this.adapter = this@GoalsActivity.adapter
         }
         findViewById<View>(R.id.addGoalButton).setOnClickListener { showGoalDialog(null) }
+        findViewById<View>(R.id.whatIfButton).setOnClickListener {
+            startActivity(Intent(this, WhatIfActivity::class.java))
+        }
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             manager.repository.getAllSavingsGoals().collectLatest { goals ->

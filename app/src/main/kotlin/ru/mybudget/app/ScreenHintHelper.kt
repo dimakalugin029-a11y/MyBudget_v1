@@ -5,6 +5,7 @@ import android.content.Intent
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import ru.mybudget.app.setup.CompactUiPreferences
 
 object ScreenHintPreferences {
     private const val PREFS_NAME = "screen_hints"
@@ -38,6 +39,7 @@ object ScreenHintHelper {
         const val UTILITIES_SETUP = "hint_utilities_setup"
         const val PLANNED_INCOME = "hint_planned_income"
         const val PLANNED_OBLIGATIONS = "hint_planned_obligations"
+        const val ROLLOVER = "hint_rollover"
     }
 
     fun bind(
@@ -58,6 +60,10 @@ object ScreenHintHelper {
             helpLink?.visibility = View.GONE
         }
         if (ScreenHintPreferences.isDismissed(activity, prefKey)) {
+            hintRoot.visibility = View.GONE
+            return
+        }
+        if (CompactUiPreferences.shouldHideHints(activity)) {
             hintRoot.visibility = View.GONE
             return
         }

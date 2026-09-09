@@ -48,4 +48,22 @@
     <item quantity="many">%d операций</item>
     <item quantity="other">%d операций</item>
   </plurals>
+  <plurals name="weekly_summary_payments">
+    <item quantity="one">На неделе %1$d платёж · %2$s</item>
+    <item quantity="few">На неделе %1$d платежа · %2$s</item>
+    <item quantity="many">На неделе %1$d платежей · %2$s</item>
+    <item quantity="other">На неделе %1$d платежей · %2$s</item>
+  </plurals>
+  <plurals name="rollover_list_count">
+    <item quantity="one">%d статья</item>
+    <item quantity="few">%d статьи</item>
+    <item quantity="many">%d статей</item>
+    <item quantity="other">%d статей</item>
+  </plurals>
+  <plurals name="weekly_summary_overspend">
+    <item quantity="one">Перерасход: %1$d статья</item>
+    <item quantity="few">Перерасход: %1$d статьи</item>
+    <item quantity="many">Перерасход: %1$d статей</item>
+    <item quantity="other">Перерасход: %1$d статей</item>
+  </plurals>
 </resources>

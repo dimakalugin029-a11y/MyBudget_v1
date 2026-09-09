@@ -100,10 +100,14 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12">
             <androidx.cardview.widget.CardView
+                android:id="@+id/statsKpiIncomeCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="@dimen/space_4"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 style="@style/Card.MyBudget.Surface">
                 <LinearLayout
                     android:orientation="vertical"
@@ -137,12 +141,16 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView
+                android:id="@+id/statsKpiExpenseCard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_marginLeft="@dimen/space_4"
                 android:layout_marginRight="@dimen/space_4"
-                android:layout_weight="1"
                 android:layout_marginHorizontal="@dimen/space_4"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
                 style="@style/Card.MyBudget.Surface">
                 <LinearLayout
                     android:orientation="vertical"

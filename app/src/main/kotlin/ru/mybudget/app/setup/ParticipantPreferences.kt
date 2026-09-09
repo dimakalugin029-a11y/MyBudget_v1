@@ -6,6 +6,19 @@ object ParticipantPreferences {
     const val MAX_PARTICIPANTS = 8
     private const val PREFS = "participant_prefs"
     private const val KEY_NAMES = "names"
+    private const val KEY_DEFAULT = "default_participant"
+
+    fun getDefaultParticipant(context: Context): String =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_DEFAULT, "")
+            .orEmpty()
+
+    fun setDefaultParticipant(context: Context, name: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_DEFAULT, name.trim())
+            .apply()
+    }
 
     fun getNames(context: Context): List<String> {
         val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_NAMES, "").orEmpty()

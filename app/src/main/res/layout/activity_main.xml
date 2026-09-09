@@ -6,6 +6,7 @@
     android:layout_height="match_parent"
     android:fillViewport="true">
     <LinearLayout
+        android:id="@+id/mainContentRoot"
         android:orientation="vertical"
         android:padding="@dimen/space_16"
         android:layout_width="match_parent"
@@ -29,6 +30,13 @@
                 android:layout_weight="1"
                 android:text="@string/main_app_title"
                 android:textSize="22sp" />
+            <ImageButton
+                android:id="@+id/mainSearchButton"
+                android:layout_width="@dimen/touch_min_size"
+                android:layout_height="@dimen/touch_min_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/main_search"
+                android:src="@drawable/ic_search" />
             <ImageButton
                 android:id="@+id/mainSettingsButton"
                 android:layout_width="@dimen/touch_min_size"
@@ -71,6 +79,14 @@
                     android:textStyle="bold" />
                 <TextView
                     android:id="@+id/mainSafeToSpendText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:textColor="@color/main_hero_text_secondary"
+                    android:textSize="13sp"
+                    android:visibility="gone" />
+                <TextView
+                    android:id="@+id/mainMonthForecastText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_4"
@@ -216,6 +232,20 @@
                         android:layout_height="wrap_content">
                         <include
                             android:id="@+id/mainAttentionGoalsRow"
+                            layout="@layout/include_main_attention_row"/>
+                        <View
+                            android:background="@color/border_light"
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:orientation="vertical"
+                        android:id="@+id/mainAttentionFamily"
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+                        <include
+                            android:id="@+id/mainAttentionFamilyRow"
                             layout="@layout/include_main_attention_row"/>
                         <View
                             android:background="@color/border_light"

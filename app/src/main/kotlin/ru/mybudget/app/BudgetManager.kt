@@ -199,9 +199,10 @@ class BudgetManager private constructor(context: Context) {
         amount: Double,
         type: String,
         description: String,
+        participantLabel: String = "",
     ) {
         withContext(Dispatchers.IO) {
-            repository.recordTransaction(categoryId, amount, type, description)
+            repository.recordTransaction(categoryId, amount, type, description, participantLabel = participantLabel)
             loadCategoriesFromDatabase(persistParentFixes = false)
         }
     }
@@ -337,6 +338,32 @@ class BudgetManager private constructor(context: Context) {
             if (hasSubcategories(fromId) || hasSubcategories(toId)) return@withContext false
             if (from.currentBalance + 1.0E-9 < amount) return@withContext false
             repository.transferBetweenLeafCategories(fromId, toId, amount)
+            loadCategoriesFromDatabase(persistParentFixes = false)
+            true
+        }
+    }
+
+    suspend fun distributeSubcategoryAmount(
+        fromId: Int,
+        items: List<Pair<Int, Double>>,
+    ): Boolean {
+        if (items.isEmpty()) return false
+        return withContext(Dispatchers.IO) {
+            getCategoriesAsync()
+            val from = categoriesCache.firstOrNull { it.id == fromId } ?: return@withContext false
+            if (from.parentId == 0 || hasSubcategories(fromId)) return@withContext false
+            val total = items.sumOf { it.second }
+            if (total <= 0.0) return@withContext false
+            if (items.any { (id, amount) -> amount <= 0.0 || id == fromId }) return@withContext false
+            if (items.any { (id, _) ->
+                    val to = categoriesCache.firstOrNull { it.id == id }
+                    to == null || to.parentId == 0 || hasSubcategories(id)
+                }
+            ) {
+                return@withContext false
+            }
+            if (from.currentBalance + 0.01 < total) return@withContext false
+            items.forEach { (id, amount) -> repository.transferBetweenLeafCategories(fromId, id, amount) }
             loadCategoriesFromDatabase(persistParentFixes = false)
             true
         }

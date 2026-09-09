@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.BudgetDatabase
@@ -16,6 +17,11 @@ import ru.mybudget.app.setup.MonthStartPreferences
 import kotlin.math.max
 
 class MonthStartActivity : AppCompatActivity() {
+    private companion object {
+        const val TOTAL_STEPS = 6
+        const val LAST_STEP = TOTAL_STEPS - 1
+    }
+
     private lateinit var stepLabel: TextView
     private lateinit var emoji: TextView
     private lateinit var titleView: TextView
@@ -31,6 +37,7 @@ class MonthStartActivity : AppCompatActivity() {
     private var obligationMonthly = 0.0
     private var obligationUnlinked = 0
     private var tariffLinesMissing = 0
+    private var previousMonthSummary: MonthStartSummaryHelper.Summary? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,8 +84,25 @@ class MonthStartActivity : AppCompatActivity() {
             val tariffLines = utilityDao.getTemplateTariffLineCount(propertyId)
             val filledTariffs = utilityDao.getFilledTariffCount(propertyId)
             tariffLinesMissing = max(tariffLines - filledTariffs, 0)
+
+            val previousMonth = MonthStartSummaryHelper.previousMonth(currentMonth)
+            val previousPlans = dao.getMonthlyPlansForBudgetMonth(
+                budgetId,
+                previousMonth.year,
+                previousMonth.month,
+            ).associateBy { it.categoryId }
+            val transactions = manager.repository.getAllTransactions().first()
+            previousMonthSummary = MonthStartSummaryHelper.build(
+                transactions = transactions,
+                categories = all,
+                budgetId = budgetId,
+                monthlyPlans = previousPlans,
+                year = previousMonth.year,
+                month = previousMonth.month,
+            )
+
             withContext(Dispatchers.Main) {
-                if (step in 1..4) showStep()
+                if (step in 1..LAST_STEP) showStep()
             }
         }
     }
@@ -88,14 +112,31 @@ class MonthStartActivity : AppCompatActivity() {
         actionButton.setOnClickListener(null)
         when (step) {
             0 -> {
-                stepLabel.text = getString(R.string.month_start_step, 1, 5)
+                stepLabel.text = getString(R.string.month_start_step, 1, TOTAL_STEPS)
                 emoji.text = "📅"
                 titleView.text = getString(R.string.month_start_intro_title)
                 body.text = getString(R.string.month_start_intro_body)
                 nextButton.text = getString(R.string.month_start_next)
             }
             1 -> {
-                stepLabel.text = getString(R.string.month_start_step, 2, 5)
+                val summary = previousMonthSummary
+                stepLabel.text = getString(R.string.month_start_step, 2, TOTAL_STEPS)
+                emoji.text = "📈"
+                titleView.text = if (summary != null) {
+                    getString(R.string.month_start_summary_title, summary.label)
+                } else {
+                    getString(R.string.month_start_summary_title_loading)
+                }
+                body.text = summary?.let { MonthStartSummaryHelper.formatBody(this, it) }.orEmpty()
+                if (summary?.hasActivity == true) {
+                    showAction(getString(R.string.month_start_open_comparison)) {
+                        startActivity(Intent(this, MonthComparisonActivity::class.java))
+                    }
+                }
+                nextButton.text = getString(R.string.month_start_next)
+            }
+            2 -> {
+                stepLabel.text = getString(R.string.month_start_step, 3, TOTAL_STEPS)
                 emoji.text = "🔄"
                 titleView.text = getString(R.string.month_start_rollover_title)
                 body.text = if (rolloverCount > 0) {
@@ -110,8 +151,8 @@ class MonthStartActivity : AppCompatActivity() {
                 }
                 nextButton.text = getString(R.string.month_start_next)
             }
-            2 -> {
-                stepLabel.text = getString(R.string.month_start_step, 3, 5)
+            3 -> {
+                stepLabel.text = getString(R.string.month_start_step, 4, TOTAL_STEPS)
                 emoji.text = "📊"
                 titleView.text = getString(R.string.month_start_expense_plan_title)
                 body.text = when {
@@ -124,8 +165,8 @@ class MonthStartActivity : AppCompatActivity() {
                 }
                 nextButton.text = getString(R.string.month_start_next)
             }
-            3 -> {
-                stepLabel.text = getString(R.string.month_start_step, 4, 5)
+            4 -> {
+                stepLabel.text = getString(R.string.month_start_step, 5, TOTAL_STEPS)
                 emoji.text = "📆"
                 titleView.text = getString(R.string.month_start_obligations_title)
                 body.text = when {
@@ -142,8 +183,8 @@ class MonthStartActivity : AppCompatActivity() {
                 }
                 nextButton.text = getString(R.string.month_start_next)
             }
-            4 -> {
-                stepLabel.text = getString(R.string.month_start_step, 5, 5)
+            5 -> {
+                stepLabel.text = getString(R.string.month_start_step, 6, TOTAL_STEPS)
                 emoji.text = "🏠"
                 titleView.text = getString(R.string.month_start_utilities_title)
                 body.text = if (tariffLinesMissing > 0) {
@@ -168,7 +209,7 @@ class MonthStartActivity : AppCompatActivity() {
     }
 
     private fun advanceStep() {
-        if (step >= 4) {
+        if (step >= LAST_STEP) {
             finishWizard()
         } else {
             step++

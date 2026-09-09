@@ -315,6 +315,41 @@ abstract class BudgetDao {
     )
     abstract suspend fun getExpenseSumsSince(startMs: Long): List<CategoryExpenseSum>
 
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE LOWER(description) LIKE '%' || :q || '%'
+        ORDER BY date DESC LIMIT :limit
+        """,
+    )
+    abstract suspend fun searchTransactions(q: String, limit: Int): List<TransactionEntity>
+
+    @Query(
+        """
+        SELECT * FROM categories
+        WHERE budgetId = :budgetId AND isActive = 1 AND LOWER(name) LIKE '%' || :q || '%'
+        ORDER BY name LIMIT :limit
+        """,
+    )
+    abstract suspend fun searchCategories(
+        budgetId: Int,
+        q: String,
+        limit: Int,
+    ): List<BudgetCategoryEntity>
+
+    @Query(
+        """
+        SELECT * FROM planned_obligations
+        WHERE budgetId = :budgetId AND LOWER(name) LIKE '%' || :q || '%'
+        ORDER BY name LIMIT :limit
+        """,
+    )
+    abstract suspend fun searchObligations(
+        budgetId: Int,
+        q: String,
+        limit: Int,
+    ): List<PlannedObligationEntity>
+
     @Query("UPDATE budget_profiles SET isActive = 0 WHERE id = :id")
     abstract suspend fun deactivateBudgetProfile(id: Int)
 
@@ -481,6 +516,7 @@ abstract class BudgetDao {
         description: String,
         groupId: String? = null,
         date: Long = System.currentTimeMillis(),
+        participantLabel: String = "",
     ) {
         insertTransaction(
             TransactionEntity(
@@ -490,6 +526,7 @@ abstract class BudgetDao {
                 description = description,
                 date = date,
                 groupId = groupId,
+                participantLabel = participantLabel,
             ),
         )
         val delta = if (type == "income") amount else -amount

@@ -123,8 +123,14 @@ class MeterRepository(
         if (history.any { it.periodLabel == periodLabel || periodEpoch(it.periodLabel) == periodEpochDay }) {
             return MeterReadingSaveResult.DuplicateDate
         }
-        val earlier = history.lastOrNull { (periodEpoch(it.periodLabel) ?: Long.MIN_VALUE) < periodEpochDay }
-        val later = history.firstOrNull { (periodEpoch(it.periodLabel) ?: Long.MAX_VALUE) > periodEpochDay }
+        val earlier = history.lastOrNull {
+            val epoch = periodEpoch(it.periodLabel)
+            epoch != null && epoch < periodEpochDay
+        }
+        val later = history.firstOrNull {
+            val epoch = periodEpoch(it.periodLabel)
+            epoch != null && epoch > periodEpochDay
+        }
         if (earlier != null && readingValue + 1e-6 < earlier.readingValue) return MeterReadingSaveResult.InconsistentPast
         if (later != null && readingValue - 1e-6 > later.readingValue) return MeterReadingSaveResult.InconsistentFuture
         val computedConsumption = consumption ?: earlier?.let { (readingValue - it.readingValue).coerceAtLeast(0.0) }
@@ -203,7 +209,7 @@ class MeterRepository(
         return sums
     }
 
-    private fun periodEpoch(label: String): Long? = MeterDateParser.parseToDate(label)?.toEpochDay()
+    private fun periodEpoch(label: String): Long? = UtilityExcelParser.parsePeriodToEpochDay(label)
 
     private fun waterKind(group: String, name: String): WaterKind {
         val text = "$group $name".lowercase()

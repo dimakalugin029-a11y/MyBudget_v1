@@ -64,6 +64,47 @@
                 </RadioGroup>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
+            android:id="@+id/compactUiCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_16"
+            style="@style/Card.MyBudget.Surface">
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="@dimen/space_16"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_compact_ui_title"
+                    style="@style/Text.MyBudget.Section"/>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:layout_marginBottom="@dimen/space_12"
+                    android:text="@string/settings_compact_ui_hint"
+                    android:textSize="13sp"
+                    style="@style/Text.MyBudget.Subtitle"/>
+                <LinearLayout
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_compact_ui_switch"/>
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/compactUiSwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -305,6 +346,48 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
         <androidx.cardview.widget.CardView
+            android:id="@+id/weeklySummaryCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_16"
+            style="@style/Card.MyBudget.Surface">
+            <LinearLayout
+                android:orientation="vertical"
+                android:padding="@dimen/space_16"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <TextView
+                    style="@style/Text.MyBudget.Section"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/weekly_summary_title"/>
+                <TextView
+                    style="@style/Text.MyBudget.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_4"
+                    android:layout_marginBottom="@dimen/space_12"
+                    android:text="@string/weekly_summary_hint"
+                    android:textSize="13sp"/>
+                <LinearLayout
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        style="@style/Text.MyBudget.Section"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/weekly_summary_switch"/>
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/weeklySummarySwitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"/>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+        <androidx.cardview.widget.CardView
             android:id="@+id/meterReadingReminderCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -409,6 +492,18 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_8"
                     android:text="@string/save"/>
+                <TextView
+                    style="@style/Text.MyBudget.Subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_12"
+                    android:layout_marginBottom="@dimen/space_4"
+                    android:text="@string/settings_default_participant_label" />
+                <Spinner
+                    android:id="@+id/defaultParticipantSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_8" />
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/participantsReportButton"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -417,6 +512,15 @@
                     android:layout_marginTop="@dimen/space_8"
                     android:minHeight="@dimen/touch_min_size"
                     android:text="@string/settings_participants_report_btn"
+                    app:cornerRadius="@dimen/radius_10" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/familySyncWizardButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_8"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/settings_family_sync_btn"
                     app:cornerRadius="@dimen/radius_10" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>

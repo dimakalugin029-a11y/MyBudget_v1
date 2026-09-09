@@ -17,6 +17,7 @@ import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import ru.mybudget.app.setup.ExpenseShortcut
 import ru.mybudget.app.setup.ExpenseShortcutPreferences
+import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.setup.QuickExpensePreferences
 
 class QuickExpenseActivity : AppCompatActivity() {
@@ -209,7 +210,8 @@ class QuickExpenseActivity : AppCompatActivity() {
             getString(R.string.transaction_expense)
         }
         lifecycleScope.launch {
-            manager.recordTransaction(categoryId, amount, "expense", description)
+            val participant = ParticipantPreferences.getDefaultParticipant(this@QuickExpenseActivity)
+            manager.recordTransaction(categoryId, amount, "expense", description, participant)
             QuickExpensePreferences.saveLastExpense(this@QuickExpenseActivity, categoryId, amount, description)
             val category = manager.getCategoryById(categoryId)
             val label = category?.let { formatCategoryLabel(it) } ?: getString(R.string.transaction_expense)

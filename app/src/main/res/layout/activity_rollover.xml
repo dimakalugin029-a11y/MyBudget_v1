@@ -2,44 +2,50 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="@color/background_light"
-    android:paddingLeft="@dimen/space_16"
+    android:paddingHorizontal="@dimen/space_16"
     android:paddingTop="@dimen/space_12"
-    android:paddingRight="@dimen/space_16"
-    android:paddingBottom="@dimen/space_16"
+    android:paddingBottom="@dimen/space_8"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingHorizontal="@dimen/space_16">
+    android:layout_height="match_parent">
     <include
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
+        android:layout_marginBottom="@dimen/space_8"
         layout="@layout/include_screen_header"/>
-    <TextView
-        android:id="@+id/rolloverHintText"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        android:text="@string/rollover_hint"
-        style="@style/Text.MyBudget.Subtitle"/>
-    <TextView
+    <include
+        android:id="@+id/rolloverHint"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/rollover_target_label"
-        style="@style/Text.MyBudget.SectionLabel"/>
-    <Spinner
-        android:id="@+id/rolloverTargetSpinner"
+        layout="@layout/include_dismissible_hint"/>
+    <LinearLayout
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        android:minHeight="@dimen/touch_min_size"/>
+        android:layout_marginBottom="@dimen/space_6">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/rollover_list_title"
+            style="@style/Text.MyBudget.SectionLabel"/>
+        <TextView
+            android:id="@+id/rolloverListCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            style="@style/Text.MyBudget.Subtitle"/>
+    </LinearLayout>
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:minHeight="0dp">
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rolloverRecyclerView"
             android:clipToPadding="false"
+            android:paddingBottom="@dimen/space_4"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
         <TextView
@@ -53,16 +59,110 @@
             android:text="@string/rollover_empty"
             style="@style/Text.MyBudget.Subtitle"/>
     </FrameLayout>
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/rolloverTransferButton"
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_8"
-        android:minHeight="@dimen/touch_min_size"
-        android:text="@string/rollover_transfer_button"
-        app:backgroundTint="@color/income_green"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        android:layout_marginBottom="@dimen/space_8"
+        style="@style/Card.MyBudget.Surface">
+        <LinearLayout
+            android:orientation="vertical"
+            android:padding="@dimen/space_12"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <LinearLayout
+                android:baselineAligned="false"
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="@dimen/space_8">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/space_2"
+                        android:text="@string/rollover_reserve_target_short"
+                        style="@style/Text.MyBudget.Subtitle"/>
+                    <Spinner
+                        android:id="@+id/rolloverReserveTargetSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="40dp"/>
+                </LinearLayout>
+                <LinearLayout
+                    android:orientation="vertical"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/space_2"
+                        android:text="@string/rollover_reserve_percent_short"
+                        style="@style/Text.MyBudget.Subtitle"/>
+                    <Spinner
+                        android:id="@+id/rolloverReservePercentSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="40dp"/>
+                </LinearLayout>
+            </LinearLayout>
+            <TextView
+                android:id="@+id/rolloverReserveTotalText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_6"
+                android:visibility="gone"
+                android:textSize="13sp"
+                style="@style/Text.MyBudget.Section"/>
+            <View
+                android:background="@color/border_light"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="@dimen/space_8"/>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_2"
+                android:text="@string/rollover_transfer_target_short"
+                style="@style/Text.MyBudget.Subtitle"/>
+            <Spinner
+                android:id="@+id/rolloverTargetSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="40dp"/>
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/rolloverReserveButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="@dimen/space_4"
+            android:minHeight="@dimen/touch_min_size"
+            android:text="@string/rollover_reserve_button_short"
+            app:backgroundTint="@color/budget_blue"
+            app:cornerRadius="@dimen/radius_10"
+            style="@style/Widget.MaterialComponents.Button"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/rolloverTransferButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/space_4"
+            android:minHeight="@dimen/touch_min_size"
+            android:text="@string/rollover_transfer_button_short"
+            app:backgroundTint="@color/income_green"
+            app:cornerRadius="@dimen/radius_10"
+            style="@style/Widget.MaterialComponents.Button"/>
+    </LinearLayout>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/rolloverKeepButton"
         android:layout_width="match_parent"

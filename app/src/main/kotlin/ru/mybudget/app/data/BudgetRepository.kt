@@ -101,8 +101,9 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         description: String,
         groupId: String? = null,
         date: Long = System.currentTimeMillis(),
+        participantLabel: String = "",
     ) {
-        budgetDao.recordTransaction(categoryId, amount, type, description, groupId, date)
+        budgetDao.recordTransaction(categoryId, amount, type, description, groupId, date, participantLabel)
         if (type == "expense") {
             OverspendNotifier.checkAfterExpense(BudgetApplication.instance, categoryId)
         }

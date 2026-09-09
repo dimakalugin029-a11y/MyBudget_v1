@@ -19,6 +19,7 @@ object PaymentCalendarHelper {
         REMINDER,
         RECURRING,
         UTILITY,
+        UTILITY_FORECAST,
         OBLIGATION,
     }
 
@@ -62,6 +63,7 @@ object PaymentCalendarHelper {
         horizonDays: Int = 60,
         utilityPaymentDays: Map<Int, Int> = emptyMap(),
         paidObligationPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet(),
+        utilityForecasts: List<UtilityCalendarForecastHelper.ForecastEntry> = emptyList(),
     ): List<Entry> {
         val maxDay = todayEpochDay + horizonDays
         val today = LocalDate.ofEpochDay(todayEpochDay)
@@ -107,6 +109,12 @@ object PaymentCalendarHelper {
             utilityPaymentDays = utilityPaymentDays,
             today = today,
             horizonEnd = horizonEnd,
+            todayEpochDay = todayEpochDay,
+            maxDay = maxDay,
+        )
+        addUtilityForecastEntries(
+            result = result,
+            forecasts = utilityForecasts,
             todayEpochDay = todayEpochDay,
             maxDay = maxDay,
         )
@@ -201,6 +209,27 @@ object PaymentCalendarHelper {
             unpaidCount == 1 -> "1 месяц не списано с бюджета"
             unpaidCount in 2..4 -> "$unpaidCount месяца не списано с бюджета"
             else -> "$unpaidCount месяцев не списано с бюджета"
+        }
+    }
+
+    private fun addUtilityForecastEntries(
+        result: MutableList<Entry>,
+        forecasts: List<UtilityCalendarForecastHelper.ForecastEntry>,
+        todayEpochDay: Long,
+        maxDay: Long,
+    ) {
+        for (forecast in forecasts) {
+            if (forecast.epochDay !in todayEpochDay..maxDay) continue
+            val dueDate = LocalDate.ofEpochDay(forecast.epochDay)
+            result += Entry(
+                epochDay = forecast.epochDay,
+                dateLabel = dueDate.format(displayFmt),
+                title = "Коммуналка (прогноз): ${forecast.propertyName}",
+                subtitle = "По среднему за прошлые месяцы",
+                amount = forecast.forecastTotal,
+                kind = EntryKind.UTILITY_FORECAST,
+                sourceRef = SourceRef(propertyId = forecast.propertyId),
+            )
         }
     }
 

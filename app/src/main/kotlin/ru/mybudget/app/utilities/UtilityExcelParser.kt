@@ -11,7 +11,7 @@ import java.util.zip.ZipInputStream
 
 object UtilityExcelParser {
     private val ruMonthPrefixes = listOf(
-        "январ", "феврал", "март", "апрел", "май", "мая", "июн",
+        "январ", "феврал", "март", "апрел", "ма", "июн",
         "июл", "август", "сентябр", "октябр", "ноябр", "декабр",
     )
     private val dotted = DateTimeFormatter.ofPattern("d.M.yyyy")

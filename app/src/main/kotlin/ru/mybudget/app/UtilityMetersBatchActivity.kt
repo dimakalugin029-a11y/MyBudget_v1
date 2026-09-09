@@ -24,6 +24,7 @@ import ru.mybudget.app.utilities.MeterBatchSaveFailure
 import ru.mybudget.app.utilities.MeterCatalogSummary
 import ru.mybudget.app.utilities.MeterDateParser
 import ru.mybudget.app.utilities.MeterRepository
+import ru.mybudget.app.utilities.UtilityExcelParser
 import java.time.LocalDate
 
 class UtilityMetersBatchActivity : AppCompatActivity() {
@@ -186,7 +187,7 @@ class UtilityMetersBatchActivity : AppCompatActivity() {
             holder.value.hint = if (last != null) {
                 holder.itemView.context.getString(
                     R.string.meter_batch_last_hint,
-                    MeterDateParser.formatPeriodLabelForDisplay(last.periodLabel),
+                    UtilityExcelParser.formatPeriodLabelForDisplay(last.periodLabel),
                     MoneyFormat.format(last.readingValue),
                 )
             } else {

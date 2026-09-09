@@ -29,6 +29,11 @@ import java.util.Locale
 
 class PlannedObligationsActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
+
+    companion object {
+        const val EXTRA_PRESET_DUE_DAY = "obligations_preset_due_day"
+    }
+
     private lateinit var adapter: ObligationAdapter
     private var budgetId = 1
     private var currentList: List<PlannedObligationEntity> = emptyList()
@@ -89,10 +94,12 @@ class PlannedObligationsActivity : AppCompatActivity() {
         }
         if (intent.getBooleanExtra(PlanningEntryWizard.EXTRA_AUTO_ADD, false)) {
             intent.removeExtra(PlanningEntryWizard.EXTRA_AUTO_ADD)
+            val presetDueDay = intent.getIntExtra(EXTRA_PRESET_DUE_DAY, 0)
+            intent.removeExtra(EXTRA_PRESET_DUE_DAY)
             lifecycleScope.launch {
                 manager.getCategoriesAsync()
                 refreshLeaves()
-                showEditDialog(null)
+                showEditDialog(null, presetDueDay)
             }
         }
     }
@@ -277,18 +284,18 @@ class PlannedObligationsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showEditDialog(existing: PlannedObligationEntity?) {
+    private fun showEditDialog(existing: PlannedObligationEntity?, presetDueDay: Int = 0) {
         lifecycleScope.launch {
             manager.getCategoriesAsync()
             refreshLeaves()
             if (leafCategories.isEmpty() && existing == null) {
                 Toast.makeText(this@PlannedObligationsActivity, R.string.obligations_need_categories, Toast.LENGTH_LONG).show()
             }
-            openEditDialog(existing)
+            openEditDialog(existing, presetDueDay)
         }
     }
 
-    private fun openEditDialog(existing: PlannedObligationEntity?) {
+    private fun openEditDialog(existing: PlannedObligationEntity?, presetDueDay: Int = 0) {
         val inflate = layoutInflater.inflate(R.layout.dialog_add_planned_obligation, null)
         val nameInput = inflate.findViewById<EditText>(R.id.obligationNameInput)
         val amountInput = inflate.findViewById<EditText>(R.id.obligationAmountInput)
@@ -366,7 +373,9 @@ class PlannedObligationsActivity : AppCompatActivity() {
             incomeSourceSpinner.setSelection(if (linkedIndex >= 0) linkedIndex + 1 else 0)
         } else {
             paychecksSpinner.setSelection((ObligationPreferences.getPaychecksPerMonth(this) - 1).coerceIn(0, 3))
-            dueDaySpinner.setSelection(PlannedObligationHelper.dueDaySpinnerPosition(1))
+            dueDaySpinner.setSelection(
+                PlannedObligationHelper.dueDaySpinnerPosition(if (presetDueDay in 1..31) presetDueDay else 1),
+            )
             remindSwitch.isChecked = true
             kindSpinner.setSelection(PlannedObligationHelper.kindSpinnerPosition(PlannedObligationHelper.KIND_OTHER))
             incomeSourceSpinner.setSelection(0)
