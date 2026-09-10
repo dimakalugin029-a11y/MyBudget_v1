@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -72,10 +71,6 @@ class IncomeDistributionActivity : AppCompatActivity() {
             this.adapter = this@IncomeDistributionActivity.adapter
         }
         findViewById<View>(R.id.addCategoryButton).setOnClickListener { pickCategories() }
-        findViewById<View>(R.id.applyDefaultsButton).setOnClickListener { applyDefaults() }
-        findViewById<View>(R.id.manualEntryButton).setOnClickListener {
-            findViewById<TextView>(R.id.distributionModeHint).setText(R.string.income_distribution_mode_manual)
-        }
         submitButton.setOnClickListener { submit() }
         bindActionRow(R.id.incomeDistributionPlanRow, "📊", R.string.income_distribution_by_plan) {
             fillByPlan()
@@ -85,6 +80,9 @@ class IncomeDistributionActivity : AppCompatActivity() {
         }
         bindActionRow(R.id.incomeDistributionGoalsRow, "🎯", R.string.income_distribution_by_goals) {
             fillByGoals()
+        }
+        bindActionRow(R.id.incomeDistributionDefaultsRow, "⭐", R.string.income_distribution_defaults) {
+            applyDefaults()
         }
         bindActionRow(R.id.incomeDistributionRemainderRow, "⚖️", R.string.income_distribution_remainder) {
             showRemainderDialog()
@@ -178,24 +176,6 @@ class IncomeDistributionActivity : AppCompatActivity() {
             val peek = header.height.coerceAtLeast(resources.getDimensionPixelSize(R.dimen.touch_min_size))
             behavior.peekHeight = peek
             applyContentInset(peek)
-        }
-        val root = findViewById<View>(R.id.incomeDistributionRoot)
-        root.viewTreeObserver.addOnGlobalLayoutListener {
-            val visible = android.graphics.Rect()
-            root.getWindowVisibleDisplayFrame(visible)
-            val covered = root.rootView.height - visible.bottom
-            val imeOpen = covered > root.height / 4
-            val headerPeek = header.height.coerceAtLeast(resources.getDimensionPixelSize(R.dimen.touch_min_size))
-            if (imeOpen) {
-                collapseActionsSheet()
-                if (behavior.peekHeight != 0) {
-                    behavior.peekHeight = 0
-                    applyContentInset(0)
-                }
-            } else if (behavior.peekHeight != headerPeek) {
-                behavior.peekHeight = headerPeek
-                applyContentInset(headerPeek)
-            }
         }
     }
 
@@ -381,16 +361,17 @@ class IncomeDistributionActivity : AppCompatActivity() {
             return
         }
         val labels = visible.map { CategoryMultiPicker.leafLabel(it, parents) }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(R.string.income_distribution_remainder_title)
-            .setMessage(getString(R.string.income_distribution_remainder_msg, MoneyFormat.format(leftover)))
-            .setItems(labels) { _, which ->
-                val category = visible[which]
-                amounts[category.id] = MoneyFormat.roundMoney((amounts[category.id] ?: 0.0) + leftover)
-                refreshList()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        ItemsDialogHelper.show(
+            context = this,
+            title = getString(R.string.income_distribution_remainder_title),
+            message = getString(R.string.income_distribution_remainder_msg, MoneyFormat.format(leftover)),
+            items = labels,
+            negativeText = getString(android.R.string.cancel),
+        ) { which ->
+            val category = visible[which]
+            amounts[category.id] = MoneyFormat.roundMoney((amounts[category.id] ?: 0.0) + leftover)
+            refreshList()
+        }
     }
 
     private fun submit() {

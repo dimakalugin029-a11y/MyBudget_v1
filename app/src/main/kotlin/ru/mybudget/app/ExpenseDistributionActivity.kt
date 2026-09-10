@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -159,16 +158,17 @@ class ExpenseDistributionActivity : AppCompatActivity() {
             return
         }
         val labels = visible.map { CategoryMultiPicker.leafLabel(it, parents) }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(R.string.expense_distribution_remainder_title)
-            .setMessage(getString(R.string.expense_distribution_remainder_msg, MoneyFormat.format(leftover)))
-            .setItems(labels) { _, which ->
-                val category = visible[which]
-                amounts[category.id] = MoneyFormat.roundMoney((amounts[category.id] ?: 0.0) + leftover)
-                refreshList()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        ItemsDialogHelper.show(
+            context = this,
+            title = getString(R.string.expense_distribution_remainder_title),
+            message = getString(R.string.expense_distribution_remainder_msg, MoneyFormat.format(leftover)),
+            items = labels,
+            negativeText = getString(android.R.string.cancel),
+        ) { which ->
+            val category = visible[which]
+            amounts[category.id] = MoneyFormat.roundMoney((amounts[category.id] ?: 0.0) + leftover)
+            refreshList()
+        }
     }
 
     private fun submit() {

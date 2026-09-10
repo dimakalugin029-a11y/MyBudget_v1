@@ -45,36 +45,6 @@
             app:iconGravity="textStart"
             app:strokeColor="@color/budget_blue"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8">
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:id="@+id/applyDefaultsButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/income_distribution_defaults"
-                android:layout_weight="1"
-                android:layout_marginEnd="@dimen/space_6"
-                app:strokeColor="@color/budget_blue"
-                app:strokeWidth="1dp"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:id="@+id/manualEntryButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/income_distribution_manual"
-                android:layout_weight="1"
-                android:layout_marginStart="@dimen/space_6"
-                app:strokeColor="@color/settings_orange"
-                app:strokeWidth="1dp"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        </LinearLayout>
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/categoriesRecyclerView"
             android:paddingBottom="@dimen/space_8"
@@ -174,6 +144,13 @@
                         android:layout_height="1dp"/>
                     <include
                         android:id="@+id/incomeDistributionGoalsRow"
+                        layout="@layout/include_main_list_row"/>
+                    <View
+                        android:background="@color/border_light"
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"/>
+                    <include
+                        android:id="@+id/incomeDistributionDefaultsRow"
                         layout="@layout/include_main_list_row"/>
                     <View
                         android:background="@color/border_light"

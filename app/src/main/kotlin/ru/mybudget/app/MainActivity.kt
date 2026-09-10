@@ -105,7 +105,10 @@ class MainActivity : AppCompatActivity() {
             findViewById<TextView>(R.id.mainProfileNameText).text =
                 profile?.name ?: getString(R.string.budget_profiles_default_name)
             val balance = manager.getTotalBalance(activeId)
-            findViewById<TextView>(R.id.mainActiveBalanceText).apply {
+        findViewById<View>(R.id.mainBalanceCard).setOnClickListener {
+            startActivity(Intent(this@MainActivity, BudgetActivity::class.java))
+        }
+        findViewById<TextView>(R.id.mainActiveBalanceText).apply {
                 text = MoneyFormat.formatRub(balance)
                 setTextColor(
                     ContextCompat.getColor(

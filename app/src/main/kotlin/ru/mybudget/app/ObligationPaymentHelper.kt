@@ -77,6 +77,24 @@ object ObligationPaymentHelper {
         return true
     }
 
+    suspend fun completeObligation(
+        manager: BudgetManager,
+        obligationId: Int,
+        dueEpochDay: Long,
+    ): Boolean {
+        val obligation = manager.repository.getPlannedObligationById(obligationId) ?: return false
+        if (obligation.categoryId <= 0) return false
+        val dueDate = LocalDate.ofEpochDay(dueEpochDay)
+        val key = periodKey(obligationId, dueDate)
+        if (manager.repository.isObligationPeriodPaid(key.obligationId, key.year, key.month)) {
+            return false
+        }
+        insertPaymentRecord(manager, key, obligation.amount)
+        syncLinkedReminderAfterPay(manager, obligation, dueDate)
+        syncLinkedRecurringAfterPay(manager, obligation, dueDate)
+        return true
+    }
+
     suspend fun markPeriodPaidFromDueDate(
         manager: BudgetManager,
         obligationId: Int?,

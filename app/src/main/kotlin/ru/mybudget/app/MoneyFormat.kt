@@ -9,9 +9,11 @@ object MoneyFormat {
 
     private val symbols = DecimalFormatSymbols(Locale("ru", "RU")).apply {
         decimalSeparator = ','
-        groupingSeparator = ' '
+        groupingSeparator = '\u202F'
     }
-    private val formatter = DecimalFormat("0.00", symbols)
+    private val formatter = DecimalFormat("#,##0.00", symbols).apply {
+        groupingSize = 3
+    }
     private val quantityFormatter = DecimalFormat("0.######", symbols)
 
     fun format(value: Double): String = formatter.format(roundMoney(value))
@@ -47,8 +49,11 @@ object MoneyFormat {
     private fun parseDecimal(text: CharSequence?): Double? {
         if (text.isNullOrBlank()) return null
         val normalized = text.toString().trim()
-            .replace(" ", "")
+            .replace("\u0020", "")
             .replace("\u00A0", "")
+            .replace("\u2007", "")
+            .replace("\u2009", "")
+            .replace("\u202F", "")
             .replace(',', '.')
         return normalized.toDoubleOrNull()
     }

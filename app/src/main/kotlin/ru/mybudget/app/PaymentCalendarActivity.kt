@@ -22,6 +22,7 @@ import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
 import ru.mybudget.app.utilities.PaymentCalendarUrgencyHelper
 import ru.mybudget.app.utilities.UtilityCalendarForecastHelper
+import ru.mybudget.app.utilities.UtilityLegacyPaymentHelper
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.TextStyle
@@ -313,12 +314,13 @@ class PaymentCalendarActivity : AppCompatActivity() {
                     .putExtra(PlannedObligationsActivity.EXTRA_PRESET_DUE_DAY, date.dayOfMonth),
             )
         }
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setItems(labels.toTypedArray()) { _, which -> handlers[which]() }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        ItemsDialogHelper.show(
+            context = this,
+            title = title,
+            message = message,
+            items = labels.toTypedArray(),
+            negativeText = getString(android.R.string.cancel),
+        ) { which -> handlers[which]() }
     }
 
     private fun showEntryActions(entry: PaymentCalendarHelper.Entry) {
@@ -334,6 +336,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
             PaymentCalendarHelper.EntryKind.REMINDER -> {
                 labels += getString(R.string.payment_calendar_action_pay)
                 handlers += { payReminder(entry) }
+                labels += getString(R.string.payment_calendar_action_done)
+                handlers += { completeEntry(entry) }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { startActivity(Intent(this, RemindersActivity::class.java)) }
             }
@@ -345,6 +349,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 if (entry.sourceRef.billId != null) {
                     labels += getString(R.string.payment_calendar_action_pay)
                     handlers += { openUtilityBill(entry, true) }
+                    labels += getString(R.string.payment_calendar_action_done)
+                    handlers += { completeEntry(entry) }
                 }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { openUtilityBill(entry, false) }
@@ -356,6 +362,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
             PaymentCalendarHelper.EntryKind.OBLIGATION -> {
                 labels += getString(R.string.payment_calendar_action_pay)
                 handlers += { payObligation(entry) }
+                labels += getString(R.string.payment_calendar_action_done)
+                handlers += { completeEntry(entry) }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
             }
@@ -372,12 +380,13 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 append(entry.subtitle)
             }
         }
-        AlertDialog.Builder(this)
-            .setTitle(entry.title)
-            .setMessage(message)
-            .setItems(labels.toTypedArray()) { _, which -> handlers[which]() }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        ItemsDialogHelper.show(
+            context = this,
+            title = entry.title,
+            message = message,
+            items = labels.toTypedArray(),
+            negativeText = getString(android.R.string.cancel),
+        ) { which -> handlers[which]() }
     }
 
     private fun openIncomeFromPlan(entry: PaymentCalendarHelper.Entry) {
@@ -418,6 +427,56 @@ class PaymentCalendarActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun completeEntry(entry: PaymentCalendarHelper.Entry) {
+        when (entry.kind) {
+            PaymentCalendarHelper.EntryKind.REMINDER -> if (entry.sourceRef.reminderId == null) return
+            PaymentCalendarHelper.EntryKind.OBLIGATION -> if (entry.sourceRef.obligationId == null) return
+            PaymentCalendarHelper.EntryKind.UTILITY -> if (entry.sourceRef.billId == null) return
+            else -> return
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.payment_calendar_done_title)
+            .setMessage(getString(R.string.payment_calendar_done_msg, entry.title))
+            .setPositiveButton(R.string.payment_calendar_action_done) { _, _ -> executeComplete(entry) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun executeComplete(entry: PaymentCalendarHelper.Entry) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val ok = when (entry.kind) {
+                PaymentCalendarHelper.EntryKind.REMINDER ->
+                    ReminderPaymentHelper.completeReminder(
+                        budgetManager,
+                        entry.sourceRef.reminderId ?: return@launch,
+                    )
+                PaymentCalendarHelper.EntryKind.OBLIGATION ->
+                    ObligationPaymentHelper.completeObligation(
+                        budgetManager,
+                        entry.sourceRef.obligationId ?: return@launch,
+                        entry.epochDay,
+                    )
+                PaymentCalendarHelper.EntryKind.UTILITY -> {
+                    val dao = BudgetDatabase.getInstance(this@PaymentCalendarActivity).utilityDao()
+                    val bill = entry.sourceRef.billId?.let { dao.getBillById(it) }
+                    if (bill == null || bill.budgetPaidAt != null) {
+                        false
+                    } else {
+                        UtilityLegacyPaymentHelper.markBillAsLegacyPaid(this@PaymentCalendarActivity, dao, bill)
+                        true
+                    }
+                }
+                else -> false
+            }
+            withContext(Dispatchers.Main) {
+                if (ok) {
+                    Toast.makeText(this@PaymentCalendarActivity, R.string.payment_calendar_done_success, Toast.LENGTH_SHORT).show()
+                    loadEntries()
+                }
+            }
+        }
     }
 
     private fun confirmPayEntry(entry: PaymentCalendarHelper.Entry) {

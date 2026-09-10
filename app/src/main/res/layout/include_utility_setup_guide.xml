@@ -22,6 +22,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="@string/utility_setup_title"
+                android:textColor="@color/black"
                 style="@style/Text.MyBudget.SectionLabel"/>
             <ImageButton
                 android:id="@+id/utilitySetupDismiss"
@@ -35,7 +36,7 @@
         </LinearLayout>
         <TextView
             android:textSize="13sp"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/black"
             android:id="@+id/utilitySetupStep1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,7 +45,7 @@
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
             android:textSize="13sp"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/black"
             android:id="@+id/utilitySetupStep2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -53,7 +54,7 @@
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
             android:textSize="13sp"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/black"
             android:id="@+id/utilitySetupStep3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

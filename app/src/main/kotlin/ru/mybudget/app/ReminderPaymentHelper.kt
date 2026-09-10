@@ -21,6 +21,18 @@ object ReminderPaymentHelper {
         return true
     }
 
+    suspend fun completeReminder(manager: BudgetManager, reminderId: Int): Boolean {
+        val entity = manager.repository.getReminderById(reminderId) ?: return false
+        ObligationPaymentHelper.markPeriodPaidFromDueDate(
+            manager,
+            entity.obligationId,
+            entity.dueDate,
+            entity.amount,
+        )
+        advanceOrClose(manager, entity)
+        return true
+    }
+
     private suspend fun advanceOrClose(manager: BudgetManager, entity: PaymentReminderEntity) {
         val next = nextDueDate(entity)
         if (next != null) {
