@@ -113,7 +113,7 @@ class BudgetActivity : AppCompatActivity() {
                     if (total >= 0.0) R.color.main_hero_balance_positive else R.color.main_hero_balance_negative,
                 ),
             )
-            val daily = BudgetPlanHelper.safeToSpendDaily(total)
+            val daily = BudgetPlanHelper.safeToSpendDaily(total, reservedObligationsAmount(activeId))
             if (daily != null) {
                 safeToSpendText.visibility = View.VISIBLE
                 safeToSpendText.text = getString(
@@ -127,6 +127,14 @@ class BudgetActivity : AppCompatActivity() {
             loadMonthlyMaps(activeId, manager.getCategoriesForBudget(activeId))
             displayCategories(manager.getCategoriesForBudget(activeId))
         }
+    }
+
+    private suspend fun reservedObligationsAmount(budgetId: Int): Double {
+        val dao = BudgetDatabase.getInstance(this).budgetDao()
+        val obligations = dao.getPlannedObligationsByBudgetOnce(budgetId)
+        if (obligations.isEmpty()) return 0.0
+        val payments = dao.getObligationPaymentsByBudget(budgetId)
+        return ObligationPaymentHelper.unpaidPeriodAmount(obligations, payments)
     }
 
     private suspend fun loadMonthlyMaps(budgetId: Int, categories: List<BudgetCategory>) {

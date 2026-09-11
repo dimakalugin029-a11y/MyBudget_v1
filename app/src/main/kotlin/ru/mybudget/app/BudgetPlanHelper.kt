@@ -32,6 +32,13 @@ object BudgetPlanHelper {
         return totalBalance / daysLeft
     }
 
+    fun safeToSpendDaily(totalBalance: Double, reservedAmount: Double): Double? {
+        val daysLeft = daysLeftInMonth()
+        val available = totalBalance - reservedAmount
+        if (daysLeft <= 0 || available <= 0.0) return null
+        return available / daysLeft
+    }
+
     fun planPercent(spent: Double, planned: Double): Int {
         if (planned <= 0.0) return 0
         return ((spent / planned) * 100.0).toInt().coerceIn(0, 100)

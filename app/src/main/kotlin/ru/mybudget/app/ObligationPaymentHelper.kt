@@ -37,6 +37,23 @@ object ObligationPaymentHelper {
         return PlannedObligationHelper.dueLocalDate(YearMonth.from(today), obligation.dueDay)
     }
 
+    fun unpaidPeriodAmount(
+        obligations: List<PlannedObligationEntity>,
+        payments: List<ObligationPaymentEntity>,
+        today: LocalDate = LocalDate.now(),
+    ): Double {
+        val paid = paidKeys(payments)
+        var sum = 0.0
+        for (obligation in obligations) {
+            if (!obligation.isActive || obligation.categoryId <= 0) continue
+            val dueDate = activePeriodDueDate(obligation, today) ?: continue
+            if (!isPaid(paid, periodKey(obligation.id, dueDate))) {
+                sum += obligation.amount
+            }
+        }
+        return sum
+    }
+
     fun canPayNow(
         obligation: PlannedObligationEntity,
         paid: Set<PeriodKey>,
