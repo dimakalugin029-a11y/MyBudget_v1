@@ -337,6 +337,7 @@ class BudgetActivity : AppCompatActivity() {
             } else {
                 menu.add(0, 5, 0, R.string.budget_transfer_subcategory)
                 menu.add(0, 9, 0, R.string.budget_distribute_to_subcategories)
+                menu.add(0, 10, 0, R.string.budget_move_subcategory)
             }
             menu.add(0, 4, 0, R.string.budget_rename)
             menu.add(0, 6, 0, R.string.budget_profiles_delete)
@@ -346,6 +347,7 @@ class BudgetActivity : AppCompatActivity() {
                     4 -> BudgetDialogs.showEditCategory(this@BudgetActivity, manager, category) { reload() }
                     5 -> showSubcategoryTransferDialog(category)
                     9 -> openSubcategoryDistribution(category)
+                    10 -> MoveSubcategoryDialog.show(this@BudgetActivity, manager, category) { reload() }
                     6 -> BudgetDialogs.confirmDeleteCategory(
                         this@BudgetActivity,
                         manager,

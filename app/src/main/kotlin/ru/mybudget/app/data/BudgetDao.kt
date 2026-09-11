@@ -576,4 +576,20 @@ abstract class BudgetDao {
         applyBalanceDelta(fromId, -amount)
         applyBalanceDelta(toId, amount)
     }
+
+    @Transaction
+    open suspend fun moveSubcategoryToCategory(categoryId: Int, newParentId: Int) {
+        val category = getCategoryById(categoryId) ?: return
+        val oldParentId = category.parentId
+        if (oldParentId == newParentId) return
+        val balance = category.currentBalance
+        if (oldParentId != 0) {
+            applyBalanceDelta(oldParentId, -balance)
+        }
+        updateCategory(category.copy(parentId = newParentId))
+        if (newParentId != 0) {
+            applyBalanceDelta(newParentId, balance)
+        }
+        recordBalanceSnapshotForCategory(categoryId)
+    }
 }

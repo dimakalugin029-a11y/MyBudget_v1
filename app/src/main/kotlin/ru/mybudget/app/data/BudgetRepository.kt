@@ -153,6 +153,10 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         budgetDao.transferBetweenLeafCategories(fromId, toId, amount)
     }
 
+    suspend fun moveSubcategoryToCategory(categoryId: Int, newParentId: Int) {
+        budgetDao.moveSubcategoryToCategory(categoryId, newParentId)
+    }
+
     suspend fun getCategoryBalance(categoryId: Int): Double {
         return budgetDao.getCategoryById(categoryId)?.currentBalance ?: 0.0
     }

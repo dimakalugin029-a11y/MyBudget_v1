@@ -194,6 +194,15 @@
   <string name="budget_transfer_title">Перевод между подстатьями</string>
   <string name="budget_transfer_to">Куда</string>
   <string name="budget_transfer_to_label">Куда перевести</string>
+  <string name="budget_move_subcategory">Перенести в другую категорию</string>
+  <string name="budget_move_title">Перенос подстатьи</string>
+  <string name="budget_move_pick_message">Выберите категорию, в которую перенести «%1$s» (баланс %2$s):</string>
+  <string name="budget_move_no_targets">Нет других категорий для переноса</string>
+  <string name="budget_move_confirm_title">Подтверждение</string>
+  <string name="budget_move_confirm_message">Перенести «%1$s» (баланс %2$s) в категорию «%3$s»? Подстатья сохранится вместе с балансом и историей.</string>
+  <string name="budget_move_confirm_ok">Перенести</string>
+  <string name="budget_move_done">Подстатья перенесена</string>
+  <string name="budget_move_failed">Не удалось перенести подстатью</string>
   <string name="category_no_parent">Без категории</string>
   <string name="category_parent_fallback">Категория #%1$d</string>
   <string name="category_parent_preview">Родитель</string>

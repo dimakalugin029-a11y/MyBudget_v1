@@ -280,6 +280,24 @@ class BudgetManager private constructor(context: Context) {
         true
     }
 
+    suspend fun moveSubcategoryToCategory(categoryId: Int, newParentId: Int): Boolean =
+        withContext(Dispatchers.IO) {
+            val category = categoriesCache.firstOrNull { it.id == categoryId }
+                ?: return@withContext false
+            val target = categoriesCache.firstOrNull { it.id == newParentId }
+                ?: repository.getCategoryById(newParentId)
+                ?: return@withContext false
+            if (category.parentId == 0) return@withContext false
+            if (target.parentId != 0 || !target.isActive) return@withContext false
+            if (categoryId == newParentId) return@withContext false
+            if (category.parentId == newParentId) return@withContext false
+            if (category.budgetId != target.budgetId) return@withContext false
+            if (hasSubcategories(categoryId)) return@withContext false
+            repository.moveSubcategoryToCategory(categoryId, newParentId)
+            reloadCategoriesFromDatabase()
+            true
+        }
+
     fun getTotalBalance(budgetId: Int = getActiveBudgetId()): Double {
         return getRootCategories(budgetId).sumOf { getCategoryBalanceWithSubcategories(it.id) }
     }
