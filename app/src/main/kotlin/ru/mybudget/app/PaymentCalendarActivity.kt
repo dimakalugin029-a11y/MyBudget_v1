@@ -206,13 +206,13 @@ class PaymentCalendarActivity : AppCompatActivity() {
         }
     }
 
-    private fun filteredEntries(): List<PaymentCalendarHelper.Entry> {
+    private fun baseEntries(): List<PaymentCalendarHelper.Entry> {
         val horizonEnd = when (currentHorizon) {
             TimeHorizon.WEEK -> todayEpochDay + 7
             TimeHorizon.ALL -> todayEpochDay + 60
         }
         val byHorizon = allEntries.filter { it.epochDay in todayEpochDay..horizonEnd }
-        val byType = when (currentFilter) {
+        return when (currentFilter) {
             CalendarFilter.ALL -> byHorizon
             CalendarFilter.REMINDER -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.REMINDER }
             CalendarFilter.RECURRING -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.RECURRING }
@@ -223,6 +223,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
             CalendarFilter.OBLIGATION -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
             CalendarFilter.INCOME -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.INCOME }
         }
+    }
+
+    private fun filteredEntries(): List<PaymentCalendarHelper.Entry> {
+        val byType = baseEntries()
         val day = selectedDayEpoch ?: return byType
         return byType.filter { it.epochDay == day }
     }
@@ -246,7 +250,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             }
         }
         monthTitle.text = "$monthName ${visibleMonth.year}"
-        val counts = filteredEntries()
+        val counts = baseEntries()
             .filter { YearMonth.from(LocalDate.ofEpochDay(it.epochDay)) == visibleMonth }
             .groupingBy { it.epochDay }
             .eachCount()
@@ -314,6 +318,18 @@ class PaymentCalendarActivity : AppCompatActivity() {
                     .putExtra(PlannedObligationsActivity.EXTRA_PRESET_DUE_DAY, date.dayOfMonth),
             )
         }
+        labels += getString(R.string.payment_calendar_day_add_income)
+        handlers += {
+            startActivity(
+                Intent(this, PlannedIncomeActivity::class.java)
+                    .putExtra(PlannedIncomeActivity.EXTRA_AUTO_ADD, true)
+                    .putExtra(PlannedIncomeActivity.EXTRA_PRESET_DAY_OF_MONTH, date.dayOfMonth),
+            )
+        }
+        labels += getString(R.string.payment_calendar_day_distribute_income)
+        handlers += {
+            startActivity(Intent(this, IncomeDistributionActivity::class.java))
+        }
         ItemsDialogHelper.show(
             context = this,
             title = title,
@@ -338,10 +354,18 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 handlers += { payReminder(entry) }
                 labels += getString(R.string.payment_calendar_action_done)
                 handlers += { completeEntry(entry) }
+                if (entry.sourceRef.reminderId != null) {
+                    labels += getString(R.string.payment_calendar_entry_change_date)
+                    handlers += { changeEntryDate(entry) }
+                }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { startActivity(Intent(this, RemindersActivity::class.java)) }
             }
             PaymentCalendarHelper.EntryKind.RECURRING -> {
+                if (entry.sourceRef.recurringId != null) {
+                    labels += getString(R.string.payment_calendar_entry_change_date)
+                    handlers += { changeEntryDate(entry) }
+                }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { startActivity(Intent(this, RecurringActivity::class.java)) }
             }
@@ -364,6 +388,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 handlers += { payObligation(entry) }
                 labels += getString(R.string.payment_calendar_action_done)
                 handlers += { completeEntry(entry) }
+                if (entry.sourceRef.obligationId != null) {
+                    labels += getString(R.string.payment_calendar_entry_change_date)
+                    handlers += { changeEntryDate(entry) }
+                }
                 labels += getString(R.string.payment_calendar_action_open)
                 handlers += { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
             }
@@ -387,6 +415,37 @@ class PaymentCalendarActivity : AppCompatActivity() {
             items = labels.toTypedArray(),
             negativeText = getString(android.R.string.cancel),
         ) { which -> handlers[which]() }
+    }
+
+    private fun changeEntryDate(entry: PaymentCalendarHelper.Entry) {
+        val initial = LocalDate.ofEpochDay(entry.epochDay)
+        val listener = android.app.DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
+            val newDate = LocalDate.of(year, month + 1, dayOfMonth)
+            lifecycleScope.launch(Dispatchers.IO) {
+                when (entry.kind) {
+                    PaymentCalendarHelper.EntryKind.REMINDER -> {
+                        val id = entry.sourceRef.reminderId ?: return@launch
+                        budgetManager.repository.updateReminderDueDate(id.toLong(), newDate.toString())
+                    }
+                    PaymentCalendarHelper.EntryKind.RECURRING -> {
+                        val id = entry.sourceRef.recurringId ?: return@launch
+                        budgetManager.repository.updateRecurringNextDate(id, newDate.toString())
+                    }
+                    PaymentCalendarHelper.EntryKind.OBLIGATION -> {
+                        val id = entry.sourceRef.obligationId ?: return@launch
+                        val obligation = budgetManager.repository.getPlannedObligationById(id)
+                            ?: return@launch
+                        budgetManager.repository.updatePlannedObligation(
+                            obligation.copy(dueDay = newDate.dayOfMonth),
+                        )
+                    }
+                    else -> return@launch
+                }
+                withContext(Dispatchers.Main) { loadEntries() }
+            }
+        }
+        android.app.DatePickerDialog(this, listener, initial.year, initial.monthValue - 1, initial.dayOfMonth)
+            .show()
     }
 
     private fun openIncomeFromPlan(entry: PaymentCalendarHelper.Entry) {

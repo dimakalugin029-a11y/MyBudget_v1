@@ -741,7 +741,10 @@
   <string name="payment_calendar_paid_done">Списано с бюджета</string>
   <string name="payment_calendar_day_empty">На этот день планов нет</string>
   <string name="payment_calendar_day_add_reminder">Добавить напоминание</string>
-  <string name="payment_calendar_day_add_payment">Добавить обязательный платёж</string>
+   <string name="payment_calendar_day_add_payment">Добавить обязательный платёж</string>
+   <string name="payment_calendar_day_add_income">Добавить доход</string>
+   <string name="payment_calendar_day_distribute_income">Распределить доход</string>
+   <string name="payment_calendar_entry_change_date">Изменить дату</string>
   <string name="payment_calendar_tap_hint">Нажмите на событие для действий</string>
   <string name="payment_calendar_title">Календарь платежей</string>
   <string name="payment_calendar_add_plan">Добавить план</string>

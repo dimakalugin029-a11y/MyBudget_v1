@@ -23,6 +23,11 @@ import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import java.util.Locale
 
 class PlannedIncomeActivity : AppCompatActivity() {
+
+    companion object {
+        const val EXTRA_AUTO_ADD = "extra_auto_add"
+        const val EXTRA_PRESET_DAY_OF_MONTH = "extra_preset_day_of_month"
+    }
     private lateinit var manager: BudgetManager
     private lateinit var adapter: IncomeSourceAdapter
     private var budgetId = 1
@@ -62,6 +67,10 @@ class PlannedIncomeActivity : AppCompatActivity() {
         findViewById<RecyclerView>(R.id.incomePlanRecycler).apply {
             layoutManager = LinearLayoutManager(this@PlannedIncomeActivity)
             this.adapter = this@PlannedIncomeActivity.adapter
+        }
+        if (intent.getBooleanExtra(EXTRA_AUTO_ADD, false)) {
+            val presetDay = intent.getIntExtra(EXTRA_PRESET_DAY_OF_MONTH, 10)
+            showEditDialog(null, presetDay)
         }
     }
 
@@ -129,7 +138,7 @@ class PlannedIncomeActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showEditDialog(existing: PlannedIncomeSourceEntity?) {
+    private fun showEditDialog(existing: PlannedIncomeSourceEntity?, presetDay: Int = 10) {
         val inflate = layoutInflater.inflate(R.layout.dialog_add_planned_income, null)
         val nameInput = inflate.findViewById<EditText>(R.id.incomeSourceNameInput)
         val amountInput = inflate.findViewById<EditText>(R.id.incomeSourceAmountInput)
@@ -215,7 +224,7 @@ class PlannedIncomeActivity : AppCompatActivity() {
             typeSpinner.setSelection(0)
             periodSpinner.setSelection(0)
             monthSpinner.setSelection(2)
-            daySpinner.setSelection(PlannedIncomeHelper.daySpinnerPosition(10))
+            daySpinner.setSelection(PlannedIncomeHelper.daySpinnerPosition(presetDay))
         }
         updateBonusFields()
 
