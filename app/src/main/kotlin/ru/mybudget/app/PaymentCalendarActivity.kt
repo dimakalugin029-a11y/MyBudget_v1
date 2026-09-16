@@ -326,10 +326,6 @@ class PaymentCalendarActivity : AppCompatActivity() {
                     .putExtra(PlannedIncomeActivity.EXTRA_PRESET_DAY_OF_MONTH, date.dayOfMonth),
             )
         }
-        labels += getString(R.string.payment_calendar_day_distribute_income)
-        handlers += {
-            startActivity(Intent(this, IncomeDistributionActivity::class.java))
-        }
         ItemsDialogHelper.show(
             context = this,
             title = title,
