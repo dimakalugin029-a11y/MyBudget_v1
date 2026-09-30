@@ -347,6 +347,8 @@ class BudgetActivity : AppCompatActivity() {
                 menu.add(0, 9, 0, R.string.budget_distribute_to_subcategories)
                 menu.add(0, 10, 0, R.string.budget_move_subcategory)
             }
+            menu.add(0, 11, 0, R.string.budget_move_up)
+            menu.add(0, 12, 0, R.string.budget_move_down)
             menu.add(0, 4, 0, R.string.budget_rename)
             menu.add(0, 6, 0, R.string.budget_profiles_delete)
             setOnMenuItemClickListener { item ->
@@ -367,6 +369,8 @@ class BudgetActivity : AppCompatActivity() {
                         reload()
                     }
                     8 -> openRemainder(category, leftover)
+                    11 -> lifecycleScope.launch { manager.moveCategory(category.id, -1); reload() }
+                    12 -> lifecycleScope.launch { manager.moveCategory(category.id, 1); reload() }
                 }
                 true
             }

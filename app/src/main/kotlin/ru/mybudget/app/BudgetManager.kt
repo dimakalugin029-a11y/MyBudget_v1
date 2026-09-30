@@ -194,6 +194,33 @@ class BudgetManager private constructor(context: Context) {
         }
     }
 
+    suspend fun moveCategory(
+        categoryId: Int,
+        offset: Int,
+    ): Boolean {
+        return withContext(Dispatchers.IO) {
+            val category = categoriesCache.firstOrNull { it.id == categoryId } ?: return@withContext false
+            val siblings = categoriesCache
+                .filter { it.parentId == category.parentId && it.isActive && it.budgetId == category.budgetId }
+                .sortedBy { it.position }
+            val index = siblings.indexOfFirst { it.id == categoryId }
+            val targetIndex = index + offset
+            if (index == -1 || targetIndex !in siblings.indices) return@withContext false
+            val swapped = siblings.toMutableList()
+            val temp = swapped[index]
+            swapped[index] = swapped[targetIndex]
+            swapped[targetIndex] = temp
+            swapped.forEachIndexed { i, item ->
+                if (item.position != i) {
+                    item.position = i
+                    repository.updateCategoryPosition(item.id, i)
+                }
+            }
+            loadCategoriesFromDatabase(persistParentFixes = false)
+            true
+        }
+    }
+
     suspend fun recordTransaction(
         categoryId: Int,
         amount: Double,
