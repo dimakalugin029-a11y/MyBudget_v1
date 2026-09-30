@@ -4,6 +4,8 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,20 +23,32 @@ class BudgetManager private constructor(context: Context) {
     val repository = BudgetRepository(database.budgetDao())
     val utilityDao = database.utilityDao()
 
-    private var categoriesCache: MutableList<BudgetCategory> = mutableListOf()
+    private val categoriesFlowInternal = MutableStateFlow<List<BudgetCategory>>(emptyList())
+    val categoriesFlow: StateFlow<List<BudgetCategory>> = categoriesFlowInternal
+    private val categoriesCache: List<BudgetCategory> get() = categoriesFlowInternal.value
     @Volatile
     private var isDataLoaded = false
 
     init {
         loadInitialData()
+        observeCategories()
+    }
+
+    private fun observeCategories() {
+        coroutineScope.launch {
+            repository.getAllCategories().collect { list ->
+                if (isDataLoaded) {
+                    categoriesFlowInternal.value = list
+                }
+            }
+        }
     }
 
     fun clearAllData() {
         coroutineScope.launch {
             repository.deleteAllTransactions()
             repository.deleteAllCategories()
-            categoriesCache.clear()
-            isDataLoaded = false
+            categoriesFlowInternal.value = emptyList()
             loadCategoriesFromDatabase(persistParentFixes = false)
         }
     }
@@ -77,7 +91,7 @@ class BudgetManager private constructor(context: Context) {
     private suspend fun loadCategoriesFromDatabase(persistParentFixes: Boolean) {
         repository.ensureDefaultBudgetProfile()
         val fromDb = repository.getAllCategories().first()
-        categoriesCache = fromDb.toMutableList()
+        categoriesFlowInternal.value = fromDb
         isDataLoaded = true
         if (persistParentFixes) {
             normalizeParentBalances(categoriesCache)

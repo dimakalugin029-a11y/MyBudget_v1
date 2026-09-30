@@ -13,7 +13,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.setup.OverspendPreferences
@@ -29,6 +31,8 @@ class BudgetActivity : AppCompatActivity() {
     private var listFilter = BudgetPlanHelper.ListFilter.ALL
     private var monthlySpentMap: Map<Int, Double> = emptyMap()
     private var monthlyPlannedMap: Map<Int, Double> = emptyMap()
+    @Volatile
+    private var isDataRefreshInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,6 +70,13 @@ class BudgetActivity : AppCompatActivity() {
         findViewById<View>(R.id.budgetExpandToggle).setOnClickListener { toggleExpandAll() }
         findViewById<View>(R.id.selectionBar).visibility = View.GONE
         setupFilters()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                manager.categoriesFlow.collect {
+                    if (!isDataRefreshInProgress) refresh()
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -99,8 +110,18 @@ class BudgetActivity : AppCompatActivity() {
     }
 
     private fun reload() {
+        isDataRefreshInProgress = true
         lifecycleScope.launch {
-            manager.getCategoriesAsync(forceReload = true)
+            try {
+                manager.getCategoriesAsync(forceReload = true)
+                refresh()
+            } finally {
+                isDataRefreshInProgress = false
+            }
+        }
+    }
+
+    private suspend fun refresh() {
             val profiles = manager.getBudgetProfilesAsync()
             val activeId = manager.getActiveBudgetId()
             val total = manager.getTotalBalance(activeId)
@@ -126,7 +147,6 @@ class BudgetActivity : AppCompatActivity() {
             }
             loadMonthlyMaps(activeId, manager.getCategoriesForBudget(activeId))
             displayCategories(manager.getCategoriesForBudget(activeId))
-        }
     }
 
     private suspend fun reservedObligationsAmount(budgetId: Int): Double {
