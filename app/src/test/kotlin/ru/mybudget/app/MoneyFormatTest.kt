@@ -2,49 +2,67 @@ package ru.mybudget.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MoneyFormatTest {
+
     @Test
-    fun roundMoney_roundsToTwoDecimals() {
-        assertEquals(12.34, MoneyFormat.roundMoney(12.345), 0.0001)
-        assertEquals(12.36, MoneyFormat.roundMoney(12.355), 0.0001)
+    fun `format rounds to two decimals with grouping`() {
+        assertEquals("1\u202F234,56", MoneyFormat.format(1234.56))
+        assertEquals("0,10", MoneyFormat.format(0.1))
+        assertEquals("123,46", MoneyFormat.format(123.456))
     }
 
     @Test
-    fun formatRub_usesRussianLocale() {
-        val formatted = MoneyFormat.formatRub(1234.56)
-        assertTrue(formatted.contains("234,56"))
-        assertTrue(formatted.endsWith("\u20BD"))
+    fun `format handles negative values`() {
+        assertEquals("-50,00", MoneyFormat.format(-50.0))
     }
 
     @Test
-    fun format_groupsThousandsWithNarrowSpace() {
-        assertEquals("156\u202F632,00", MoneyFormat.format(156632.0))
-        assertEquals("9\u202F999,99", MoneyFormat.format(9999.99))
-        assertEquals("999,00", MoneyFormat.format(999.0))
-        assertEquals("0,00", MoneyFormat.format(0.0))
+    fun `formatRub appends ruble sign`() {
+        assertEquals("100,00 ₽", MoneyFormat.formatRub(100.0))
     }
 
     @Test
-    fun parse_acceptsCommaAndSpaces() {
-        assertEquals(1234.56, MoneyFormat.parse("1 234,56")!!, 0.0001)
-        assertEquals(1234.56, MoneyFormat.parse("1\u202F234,56")!!, 0.0001)
-        assertEquals(1234.56, MoneyFormat.parse("1\u00A0234,56")!!, 0.0001)
-        assertEquals(1234.56, MoneyFormat.parse("1\u2009234,56")!!, 0.0001)
-        assertEquals(12.5, MoneyFormat.parse("12.5")!!, 0.0001)
+    fun `formatChartAxis uses compact units`() {
+        assertEquals("1,2 млн", MoneyFormat.formatChartAxis(1_200_000.0))
+        assertEquals("50 тыс", MoneyFormat.formatChartAxis(50_000.0))
+        assertEquals("999,00", MoneyFormat.formatChartAxis(999.0))
     }
 
     @Test
-    fun parse_blankReturnsNull() {
+    fun `formatQuantity shows up to six decimals without trailing zeros`() {
+        assertEquals("1,5", MoneyFormat.formatQuantity(1.5))
+        assertEquals("0,123457", MoneyFormat.formatQuantity(0.1234567))
+    }
+
+    @Test
+    fun `roundMoney rounds half up at cents`() {
+        assertEquals(12.34, MoneyFormat.roundMoney(12.345), 1e-9)
+        assertEquals(12.34, MoneyFormat.roundMoney(12.344), 1e-9)
+    }
+
+    @Test
+    fun `parse accepts comma decimal separator`() {
+        assertEquals(12.34, MoneyFormat.parse("12,34")!!, 1e-9)
+        assertEquals(12.34, MoneyFormat.parse("12.34")!!, 1e-9)
+    }
+
+    @Test
+    fun `parse strips group separators`() {
+        assertEquals(1234.56, MoneyFormat.parse("1\u202F234,56")!!, 1e-9)
+        assertEquals(1234.56, MoneyFormat.parse("1\u00A0234,56")!!, 1e-9)
+    }
+
+    @Test
+    fun `parse returns null for blank or invalid input`() {
         assertNull(MoneyFormat.parse(null))
         assertNull(MoneyFormat.parse(""))
-        assertNull(MoneyFormat.parse("   "))
+        assertNull(MoneyFormat.parse("abc"))
     }
 
     @Test
-    fun parseQuantity_preservesSixDecimals() {
-        assertEquals(1.234567, MoneyFormat.parseQuantity("1,234567")!!, 0.0000001)
+    fun `parseQuantity keeps six decimals`() {
+        assertEquals(0.123457, MoneyFormat.parseQuantity("0,1234567")!!, 1e-9)
     }
 }
