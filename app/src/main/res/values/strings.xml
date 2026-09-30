@@ -197,6 +197,7 @@
   <string name="budget_move_subcategory">Перенести в другую категорию</string>
   <string name="budget_move_up">Переместить вверх</string>
   <string name="budget_move_down">Переместить вниз</string>
+  <string name="budget_drag_handle">Переместить перетаскиванием</string>
   <string name="budget_move_title">Перенос подстатьи</string>
   <string name="budget_move_pick_message">Выберите категорию, в которую перенести «%1$s» (баланс %2$s):</string>
   <string name="budget_move_no_targets">Нет других категорий для переноса</string>

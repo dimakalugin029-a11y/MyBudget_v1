@@ -72,6 +72,17 @@
             android:text="@string/ui_expense_minus"
             android:textColor="@color/expense_red"
             android:textSize="18sp"/>
+        <ImageButton
+            android:id="@+id/dragHandle"
+            android:layout_width="@dimen/touch_min_size"
+            android:layout_height="@dimen/touch_min_size"
+            android:layout_gravity="top"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/budget_drag_handle"
+            android:padding="@dimen/space_6"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_menu_more"
+            app:tint="@color/text_secondary"/>
     </LinearLayout>
     <LinearLayout
         android:id="@+id/categoryPlanRow"

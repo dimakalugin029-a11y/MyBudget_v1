@@ -3,6 +3,7 @@ package ru.mybudget.app
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.DragEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
@@ -33,6 +34,9 @@ class BudgetActivity : AppCompatActivity() {
     private var monthlyPlannedMap: Map<Int, Double> = emptyMap()
     @Volatile
     private var isDataRefreshInProgress = false
+    private var draggedRow: View? = null
+    private var draggedCategory: BudgetCategory? = null
+    private val rowCategories = mutableMapOf<View, BudgetCategory>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +73,7 @@ class BudgetActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.budgetExpandToggle).setOnClickListener { toggleExpandAll() }
         findViewById<View>(R.id.selectionBar).visibility = View.GONE
+        categoriesContainer.setOnDragListener(dragListener)
         setupFilters()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -184,6 +189,9 @@ class BudgetActivity : AppCompatActivity() {
 
     private fun displayCategories(categories: List<BudgetCategory>) {
         categoriesContainer.removeAllViews()
+        rowCategories.clear()
+        draggedRow = null
+        draggedCategory = null
         val parents = categories.filter { it.parentId == 0 && it.isActive }.sortedBy { it.position }
         findViewById<View>(R.id.budgetLoadingState).visibility = View.GONE
         findViewById<View>(R.id.budgetErrorState).visibility = View.GONE
@@ -293,6 +301,7 @@ class BudgetActivity : AppCompatActivity() {
             showCategoryMenu(row, category, isParent = true, childCount = childCount, leftover = leftover)
             true
         }
+        bindDragHandle(row, category)
         categoriesContainer.addView(row)
     }
 
@@ -315,7 +324,92 @@ class BudgetActivity : AppCompatActivity() {
         row.findViewById<View>(R.id.addExpenseButton).setOnClickListener {
             BudgetDialogs.showAddTransaction(this, manager, category, BudgetDialogs.TransactionKind.EXPENSE) { reload() }
         }
+        bindDragHandle(row, category)
         categoriesContainer.addView(row)
+    }
+
+    private fun bindDragHandle(row: View, category: BudgetCategory) {
+        rowCategories[row] = category
+        val handle = row.findViewById<View>(R.id.dragHandle) ?: return
+        handle.setOnLongClickListener {
+            startCategoryDrag(row, category)
+            true
+        }
+    }
+
+    private fun startCategoryDrag(row: View, category: BudgetCategory) {
+        draggedRow = row
+        draggedCategory = category
+        row.startDragAndDrop(null, View.DragShadowBuilder(row), category.id, 0)
+    }
+
+    private val dragListener = View.OnDragListener { _, event ->
+        when (event.action) {
+            DragEvent.ACTION_DRAG_STARTED -> {
+                val categoryId = event.localState as? Int
+                val category = categoryId?.let { id -> rowCategories.values.firstOrNull { it.id == id } }
+                draggedCategory = category
+                draggedRow = rowCategories.entries.firstOrNull { it.value.id == categoryId }?.key
+                category != null && draggedRow != null
+            }
+            DragEvent.ACTION_DRAG_LOCATION -> {
+                moveDraggedRowIfNeeded(event.x, event.y)
+                true
+            }
+            DragEvent.ACTION_DROP -> {
+                dropDraggedRow()
+                true
+            }
+            DragEvent.ACTION_DRAG_ENDED -> {
+                if (!event.result) displayCategories(manager.getCategoriesForBudget())
+                draggedRow = null
+                draggedCategory = null
+                true
+            }
+            else -> true
+        }
+    }
+
+    private fun moveDraggedRowIfNeeded(x: Float, y: Float) {
+        val drag = draggedRow ?: return
+        val dragCategory = draggedCategory ?: return
+        val target = findRowUnder(x, y) ?: return
+        if (target === drag) return
+        val targetCategory = rowCategories[target] ?: return
+        if (!areDragSiblings(dragCategory, targetCategory)) return
+        val from = categoriesContainer.indexOfChild(drag)
+        val to = categoriesContainer.indexOfChild(target)
+        if (from == -1 || to == -1) return
+        categoriesContainer.removeView(drag)
+        categoriesContainer.addView(drag, to)
+    }
+
+    private fun findRowUnder(x: Float, y: Float): View? {
+        for (i in 0 until categoriesContainer.childCount) {
+            val child = categoriesContainer.getChildAt(i)
+            if (x >= child.left && x <= child.right && y >= child.top && y <= child.bottom) return child
+        }
+        return null
+    }
+
+    private fun areDragSiblings(dragCategory: BudgetCategory, other: BudgetCategory): Boolean {
+        return dragCategory.parentId == other.parentId && dragCategory.budgetId == other.budgetId
+    }
+
+    private fun dropDraggedRow() {
+        val drag = draggedRow ?: return
+        val dragCategory = draggedCategory ?: return
+        val dragIndex = categoriesContainer.indexOfChild(drag)
+        if (dragIndex == -1) return
+        var targetIndex = 0
+        for (i in 0 until dragIndex) {
+            val sibling = rowCategories[categoriesContainer.getChildAt(i)] ?: continue
+            if (areDragSiblings(dragCategory, sibling)) targetIndex++
+        }
+        lifecycleScope.launch {
+            manager.moveCategoryToPosition(dragCategory.id, targetIndex)
+            reload()
+        }
     }
 
     private fun bindColorStrip(row: View, category: BudgetCategory, alwaysShow: Boolean = false) {
