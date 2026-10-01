@@ -21,6 +21,12 @@ object CsvTransactionImporter {
         val errors: List<String>,
     )
 
+    fun duplicateKey(dateMillis: Long, type: String, amount: Double, description: String): String {
+        val day = SimpleDateFormat("yyyyMMdd", Locale.US).format(java.util.Date(dateMillis))
+        val normDesc = description.trim().lowercase(Locale.US).replace(Regex("\\s+"), " ")
+        return "$day|$type|${MoneyFormat.roundMoney(amount)}|$normDesc"
+    }
+
     private data class BankColumnMap(
         val dateCol: Int,
         val amountCol: Int,

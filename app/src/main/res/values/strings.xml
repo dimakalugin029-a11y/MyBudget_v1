@@ -1148,6 +1148,8 @@
 
   <string name="transactions_import_ofx">Импорт OFX</string>
   <string name="transactions_import_done">Импортировано операций: %1$d</string>
+  <string name="transactions_import_done_with_duplicates">Импортировано операций: %1$d. Пропущено дублей: %2$d</string>
+  <string name="transactions_import_preview_duplicates">Дублей уже в истории: %1$d</string>
   <string name="transactions_import_failed">Не удалось импортировать CSV</string>
   <string name="transactions_import_pick_category">Выберите подстатью для операций без категории</string>
   <string name="transactions_income_label">Доходы</string>

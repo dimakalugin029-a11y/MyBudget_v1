@@ -416,12 +416,15 @@ class TransactionsActivity : AppCompatActivity() {
                 val labels = leaf.associate { it.id to CategoryMultiPicker.leafLabel(it, parents) }
                 val budgetId = manager.getActiveBudgetId()
                 val rules = ImportCategoryMappingPreferences.getRules(this@TransactionsActivity, budgetId)
+                val existingKeys = manager.repository.getAllTransactionsOnce()
+                    .map { CsvTransactionImporter.duplicateKey(it.date, it.type, it.amount, it.description) }
+                    .toSet()
                 val resolvedCount = parsed.rows.count { row ->
                     CsvTransactionImporter.resolveCategoryId(row.categoryName, labels, row.description, rules) != null
                 }
                 val needsDefault = resolvedCount < parsed.rows.size
                 withContext(Dispatchers.Main) {
-                    confirmImport(parsed, labels, rules, leaf, parents, needsDefault, budgetId)
+                    confirmImport(parsed, labels, rules, leaf, parents, needsDefault, budgetId, existingKeys)
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
@@ -439,12 +442,20 @@ class TransactionsActivity : AppCompatActivity() {
         parents: Map<Int, String>,
         needsDefault: Boolean,
         budgetId: Int,
+        existingKeys: Set<String>,
     ) {
+        val duplicates = parsed.rows.count { row ->
+            CsvTransactionImporter.duplicateKey(row.dateMillis, row.type, row.amount, row.description) in existingKeys
+        }
         val message = buildString {
             append(getString(R.string.transactions_import_preview, parsed.rows.size))
             if (parsed.skipped > 0) {
                 append("\n")
                 append(getString(R.string.transactions_import_preview_skipped, parsed.skipped))
+            }
+            if (duplicates > 0) {
+                append("\n")
+                append(getString(R.string.transactions_import_preview_duplicates, duplicates))
             }
             if (needsDefault) {
                 append("\n")
@@ -456,9 +467,9 @@ class TransactionsActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton(R.string.transactions_import_confirm) { _, _ ->
                 if (needsDefault) {
-                    pickDefaultCategoryAndImport(parsed.rows, leaf, labels, parents, rules, budgetId)
+                    pickDefaultCategoryAndImport(parsed.rows, leaf, labels, parents, rules, budgetId, existingKeys)
                 } else {
-                    importRows(parsed.rows, labels, rules, null, budgetId)
+                    importRows(parsed.rows, labels, rules, null, budgetId, existingKeys)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -472,12 +483,13 @@ class TransactionsActivity : AppCompatActivity() {
         parents: Map<Int, String>,
         rules: List<ImportCategoryMappingPreferences.Rule>,
         budgetId: Int,
+        existingKeys: Set<String>,
     ) {
         val options = leaf.map { CategoryMultiPicker.leafLabel(it, parents) }.toTypedArray()
         AlertDialog.Builder(this)
             .setTitle(R.string.transactions_import_pick_category)
             .setItems(options) { _, which ->
-                importRows(rows, labels, rules, leaf[which].id, budgetId)
+                importRows(rows, labels, rules, leaf[which].id, budgetId, existingKeys)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -489,19 +501,27 @@ class TransactionsActivity : AppCompatActivity() {
         rules: List<ImportCategoryMappingPreferences.Rule>,
         defaultCategoryId: Int?,
         budgetId: Int,
+        existingKeys: Set<String>,
     ) {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 var imported = 0
+                var skippedDuplicates = 0
+                val keys = existingKeys.toMutableSet()
                 val activeRules = rules.toMutableList()
                 for (row in rows) {
+                    val description = row.description.ifBlank { row.categoryName }
+                    val key = CsvTransactionImporter.duplicateKey(row.dateMillis, row.type, row.amount, description)
+                    if (key in keys) {
+                        skippedDuplicates++
+                        continue
+                    }
                     val categoryId = CsvTransactionImporter.resolveCategoryId(
                         row.categoryName,
                         labels,
                         row.description,
                         activeRules,
                     ) ?: defaultCategoryId ?: continue
-                    val description = row.description.ifBlank { row.categoryName }
                     manager.repository.recordTransaction(
                         categoryId = categoryId,
                         amount = MoneyFormat.roundMoney(row.amount),
@@ -509,6 +529,7 @@ class TransactionsActivity : AppCompatActivity() {
                         description = description,
                         date = row.dateMillis,
                     )
+                    keys.add(key)
                     if (
                         defaultCategoryId != null &&
                         categoryId == defaultCategoryId &&
@@ -531,7 +552,15 @@ class TransactionsActivity : AppCompatActivity() {
                     BudgetWidgetProvider.updateAll(this@TransactionsActivity)
                     Toast.makeText(
                         this@TransactionsActivity,
-                        getString(R.string.transactions_import_done, imported),
+                        if (skippedDuplicates > 0) {
+                            getString(
+                                R.string.transactions_import_done_with_duplicates,
+                                imported,
+                                skippedDuplicates,
+                            )
+                        } else {
+                            getString(R.string.transactions_import_done, imported)
+                        },
                         Toast.LENGTH_SHORT,
                     ).show()
                 }

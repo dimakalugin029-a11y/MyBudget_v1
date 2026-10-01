@@ -163,6 +163,8 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     fun getAllTransactions(): Flow<List<TransactionEntity>> = budgetDao.getAllTransactions()
 
+    suspend fun getAllTransactionsOnce(): List<TransactionEntity> = budgetDao.getAllTransactionsOnce()
+
     fun getTransactionsByCategoryIds(categoryIds: List<Int>): Flow<List<TransactionEntity>> {
         return budgetDao.getTransactionsByCategoryIds(categoryIds)
     }
