@@ -71,6 +71,8 @@
         <activity android:name=".StatisticsActivity" android:exported="false" />
         <activity android:name=".SearchActivity" android:exported="false" />
         <activity android:name=".MonthComparisonActivity" android:exported="false" />
+        <activity android:name=".CategoryTrendsActivity" android:exported="false" />
+        <activity android:name=".ImportRulesActivity" android:exported="false" />
         <activity android:name=".WhatIfActivity" android:exported="false" />
         <activity android:name=".YearOverviewActivity" android:exported="false" />
         <activity android:name=".FamilySyncWizardActivity" android:exported="false" />

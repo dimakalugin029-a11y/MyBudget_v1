@@ -1152,6 +1152,17 @@
   <string name="transactions_import_preview_duplicates">Дублей уже в истории: %1$d</string>
   <string name="transactions_import_failed">Не удалось импортировать CSV</string>
   <string name="transactions_import_pick_category">Выберите подстатью для операций без категории</string>
+  <string name="category_trends_title">Тренды по категориям</string>
+  <string name="category_trends_subtitle">Расходы по месяцам (последние 6 месяцев). Зелёный — снижение к прошлому месяцу, красный — рост.</string>
+  <string name="category_trends_up">Рост к прошлому месяцу: +%1$s</string>
+  <string name="category_trends_down">Снижение к прошлому месяцу: −%1$s</string>
+  <string name="category_trends_flat">Без изменений к прошлому месяцу</string>
+  <string name="stats_category_trends">Тренды по категориям</string>
+  <string name="import_rules_title">Правила автокатегоризации</string>
+  <string name="import_rules_empty">Правил пока нет. Они создаются автоматически, когда вы выбираете подстатью для импортированных операций без категории.</string>
+  <string name="import_rules_hint">Описание → подстатья. Первые 50 правил применяются при импорте CSV/OFX.</string>
+  <string name="import_rules_deleted">Правило удалено</string>
+  <string name="transactions_menu_import_rules">Правила автокатегоризации</string>
   <string name="transactions_income_label">Доходы</string>
   <string name="transactions_more_menu">Дополнительно</string>
   <string name="transactions_reset_filter">Сбросить фильтр</string>

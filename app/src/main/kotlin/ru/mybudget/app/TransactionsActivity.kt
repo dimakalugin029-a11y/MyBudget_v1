@@ -110,6 +110,7 @@ class TransactionsActivity : AppCompatActivity() {
                 menu.add(0, 1, 0, R.string.transactions_export_csv)
                 menu.add(0, 2, 1, R.string.transactions_import_csv)
                 menu.add(0, 3, 2, R.string.transactions_import_ofx)
+                menu.add(0, 4, 3, R.string.transactions_menu_import_rules)
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         1 -> {
@@ -120,6 +121,9 @@ class TransactionsActivity : AppCompatActivity() {
                             arrayOf("text/csv", "text/comma-separated-values", "*/*"),
                         )
                         3 -> importCsvLauncher.launch(arrayOf("*/*"))
+                        4 -> startActivity(
+                            Intent(this@TransactionsActivity, ImportRulesActivity::class.java),
+                        )
                     }
                     true
                 }

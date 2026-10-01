@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:padding="@dimen/space_16"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <include
+        layout="@layout/include_screen_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"/>
+    <TextView
+        android:id="@+id/importRulesHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <TextView
+        android:id="@+id/importRulesEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        android:visibility="gone"
+        android:text="@string/import_rules_empty"
+        style="@style/Text.MyBudget.Subtitle"/>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/importRulesList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+</LinearLayout>
