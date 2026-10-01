@@ -33,6 +33,7 @@ import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.AuditActionType
 import ru.mybudget.app.data.TransactionEntity
 import ru.mybudget.app.imports.CsvTransactionImporter
+import ru.mybudget.app.imports.OfxTransactionImporter
 import ru.mybudget.app.setup.ImportCategoryMappingPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.transactions.TransactionDayNetHelper
@@ -108,6 +109,7 @@ class TransactionsActivity : AppCompatActivity() {
             PopupMenu(this, findViewById(R.id.screenHeaderAction)).apply {
                 menu.add(0, 1, 0, R.string.transactions_export_csv)
                 menu.add(0, 2, 1, R.string.transactions_import_csv)
+                menu.add(0, 3, 2, R.string.transactions_import_ofx)
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         1 -> {
@@ -117,6 +119,7 @@ class TransactionsActivity : AppCompatActivity() {
                         2 -> importCsvLauncher.launch(
                             arrayOf("text/csv", "text/comma-separated-values", "*/*"),
                         )
+                        3 -> importCsvLauncher.launch(arrayOf("*/*"))
                     }
                     true
                 }
@@ -390,7 +393,11 @@ class TransactionsActivity : AppCompatActivity() {
             try {
                 val text = contentResolver.openInputStream(uri)?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
                     ?: error("no stream")
-                val parsed = CsvTransactionImporter.parse(text)
+                val parsed = if (OfxTransactionImporter.isOfx(text)) {
+                    OfxTransactionImporter.parse(text)
+                } else {
+                    CsvTransactionImporter.parse(text)
+                }
                 if (parsed.rows.isEmpty()) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@TransactionsActivity, R.string.transactions_import_failed, Toast.LENGTH_SHORT).show()

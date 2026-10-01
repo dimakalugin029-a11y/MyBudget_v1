@@ -1145,6 +1145,8 @@
   <string name="transactions_import_preview_need_category">Часть операций без категории — выберите подстатью на следующем шаге</string>
   <string name="transactions_import_preview_skipped">Пропущено строк: %1$d</string>
   <string name="transactions_import_csv">Импорт CSV</string>
+
+  <string name="transactions_import_ofx">Импорт OFX</string>
   <string name="transactions_import_done">Импортировано операций: %1$d</string>
   <string name="transactions_import_failed">Не удалось импортировать CSV</string>
   <string name="transactions_import_pick_category">Выберите подстатью для операций без категории</string>
