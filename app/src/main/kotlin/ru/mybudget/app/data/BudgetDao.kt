@@ -240,6 +240,9 @@ abstract class BudgetDao {
     @Query("SELECT * FROM savings_goals WHERE isActive = 1 ORDER BY name")
     abstract fun getAllSavingsGoals(): Flow<List<SavingsGoalEntity>>
 
+    @Query("SELECT * FROM savings_goals ORDER BY name")
+    abstract fun getAllSavingsGoalsIncludingArchived(): Flow<List<SavingsGoalEntity>>
+
     @Query("SELECT * FROM savings_goals")
     abstract suspend fun getAllSavingsGoalsForExport(): List<SavingsGoalEntity>
 

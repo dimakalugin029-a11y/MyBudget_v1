@@ -78,13 +78,63 @@
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
             android:textSize="12sp"
-            android:textColor="@color/budget_blue"
             android:id="@+id/goalMonthlyHint"
             android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_2"
             style="@style/Text.MyBudget.Subtitle"/>
+        <LinearLayout
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.button.MaterialButton
+                android:textSize="13sp"
+                android:textColor="@color/income_green"
+                android:id="@+id/depositGoalButton"
+                android:padding="@dimen/space_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/goals_deposit"
+                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            <com.google.android.material.button.MaterialButton
+                android:textSize="13sp"
+                android:textColor="@color/budget_blue"
+                android:id="@+id/withdrawGoalButton"
+                android:padding="@dimen/space_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/goals_withdraw"
+                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            <com.google.android.material.button.MaterialButton
+                android:textSize="13sp"
+                android:textColor="@color/expense_red"
+                android:id="@+id/archiveGoalButton"
+                android:padding="@dimen/space_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/goals_archive"
+                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            <com.google.android.material.button.MaterialButton
+                android:textSize="13sp"
+                android:textColor="@color/income_green"
+                android:id="@+id/restoreGoalButton"
+                android:padding="@dimen/space_8"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/goals_restore"
+                android:visibility="gone"
+                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+        </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

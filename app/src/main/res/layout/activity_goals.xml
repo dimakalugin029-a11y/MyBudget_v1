@@ -26,6 +26,12 @@
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/main_menu_goals"
         style="@style/Text.MyBudget.SectionLabel"/>
+    <TextView
+        android:id="@+id/goalsSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_8"
+        style="@style/Text.MyBudget.Section"/>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/addGoalButton"
         android:layout_width="match_parent"
@@ -44,6 +50,15 @@
         android:layout_marginBottom="@dimen/space_12"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/goals_what_if_btn"
+        app:cornerRadius="@dimen/radius_10"/>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/toggleArchiveButton"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/space_12"
+        android:minHeight="@dimen/touch_min_size"
+        android:text="@string/goals_archived_show"
         app:cornerRadius="@dimen/radius_10"/>
     <FrameLayout
         android:layout_width="match_parent"
