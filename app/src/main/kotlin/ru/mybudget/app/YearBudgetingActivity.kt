@@ -80,6 +80,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             .sortedWith(compareBy({ it.name }))
         val categoryIds = categories.map { it.id }.toSet()
         val sources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
+        val obligations = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
         val allCategoryPlans = manager.repository.getMonthlyPlansForBudget(budgetId)
             .filter { it.year == year }
             .groupBy { it.month }
@@ -87,6 +88,24 @@ class YearBudgetingActivity : AppCompatActivity() {
             .filter { it.year == year }
             .groupBy { it.month }
         val now = MonthlyPlanHelper.currentMonth()
+        val plansByMonth = mutableMapOf<Int, List<MonthlyCategoryPlanEntity>>()
+        for (month in 1..12) {
+            val plans = allCategoryPlans[month] ?: emptyList()
+            if (YearBudgetingHelper.isClosedMonth(year, month, now.year, now.month) && plans.isEmpty()) {
+                val fixation = YearBudgetingHelper.expenseFixations(
+                    year = year,
+                    month = month,
+                    budgetId = budgetId,
+                    expenseCategories = expenseCategories,
+                    categoryPlans = emptyList(),
+                    obligations = obligations,
+                )
+                fixation.forEach { manager.repository.upsertMonthlyPlan(it) }
+                plansByMonth[month] = fixation
+            } else {
+                plansByMonth[month] = plans
+            }
+        }
         val factByMonth = mutableMapOf<Int, YearBudgetingHelper.MonthFact>()
         for (month in 1..12) {
             if (!YearBudgetingHelper.isPastOrCurrentMonth(year, month, now.year, now.month)) continue
@@ -99,8 +118,9 @@ class YearBudgetingActivity : AppCompatActivity() {
             year = year,
             sources = sources,
             expenseCategories = expenseCategories,
-            categoryPlansByMonth = allCategoryPlans,
+            categoryPlansByMonth = plansByMonth,
             incomeOverridesByMonth = incomeOverrides,
+            obligations = obligations,
             factByMonth = factByMonth,
         )
     }

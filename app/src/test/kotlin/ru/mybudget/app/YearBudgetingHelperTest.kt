@@ -9,6 +9,7 @@ import org.junit.Test
 import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.MonthlyIncomePlanEntity
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
+import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.TransactionEntity
 
 class YearBudgetingHelperTest {
@@ -92,6 +93,66 @@ class YearBudgetingHelperTest {
         assertEquals(9000.0, withPlan.amount, 0.001)
         val fallback = YearBudgetingHelper.expenseLineFor(cat, null)!!
         assertEquals(7000.0, fallback.amount, 0.001)
+    }
+
+    @Test
+    fun expenseFallsBackToObligationsWhenNoPlan() {
+        val cat = category(10, plannedAmount = 0.0)
+        val obligation = PlannedObligationEntity(
+            id = 1,
+            budgetId = 1,
+            name = "Кредит",
+            amount = 24000.0,
+            periodType = PlannedObligationHelper.PERIOD_MONTHLY,
+            categoryId = 10,
+            paychecksPerMonth = 1,
+            dueMonth = 1,
+            note = "",
+            isActive = true,
+            createdAt = 0L,
+        )
+        val line = YearBudgetingHelper.expenseLineFor(cat, null, 24000.0)!!
+        assertEquals(24000.0, line.amount, 0.001)
+        val month = YearBudgetingHelper.buildMonth(
+            year = 2026,
+            month = 1,
+            sources = emptyList(),
+            expenseCategories = listOf(cat),
+            categoryPlans = emptyList(),
+            incomePlanOverrides = emptyList(),
+            obligations = listOf(obligation),
+            fact = null,
+        )
+        assertEquals(24000.0, month.expenseTotal, 0.001)
+    }
+
+    @Test
+    fun yearlyObligationSpreadAcrossMonths() {
+        val cat = category(10, plannedAmount = 0.0)
+        val obligation = PlannedObligationEntity(
+            id = 1,
+            budgetId = 1,
+            name = "Налог",
+            amount = 12000.0,
+            periodType = PlannedObligationHelper.PERIOD_YEARLY,
+            categoryId = 10,
+            paychecksPerMonth = 1,
+            dueMonth = 1,
+            note = "",
+            isActive = true,
+            createdAt = 0L,
+        )
+        val plan = YearBudgetingHelper.buildYear(
+            year = 2026,
+            sources = emptyList(),
+            expenseCategories = listOf(cat),
+            categoryPlansByMonth = emptyMap(),
+            incomeOverridesByMonth = emptyMap(),
+            obligations = listOf(obligation),
+            factByMonth = emptyMap(),
+        )
+        assertEquals(1000.0, plan.months[0].expenseTotal, 0.001)
+        assertEquals(12000.0, plan.expenseTotal, 0.001)
     }
 
     @Test
@@ -202,6 +263,80 @@ class YearBudgetingHelperTest {
         assertFalse(YearBudgetingHelper.isPastOrCurrentMonth(2026, 11, 2026, 10))
         assertTrue(YearBudgetingHelper.isPastOrCurrentMonth(2025, 12, 2026, 10))
     }
+
+    @Test
+    fun closedMonthFixationIgnoresLaterObligationChanges() {
+        val cat = category(10, plannedAmount = 0.0)
+        val fixation = YearBudgetingHelper.expenseFixations(
+            year = 2026,
+            month = 9,
+            budgetId = 1,
+            expenseCategories = listOf(cat),
+            categoryPlans = emptyList(),
+            obligations = listOf(obligationFor(10, 10000.0)),
+        )
+        assertEquals(1, fixation.size)
+        assertEquals(10000.0, fixation[0].plannedAmount, 0.001)
+        assertTrue(fixation[0].isEnabled)
+
+        val raised = YearBudgetingHelper.buildMonth(
+            year = 2026,
+            month = 9,
+            sources = emptyList(),
+            expenseCategories = listOf(cat),
+            categoryPlans = fixation,
+            incomePlanOverrides = emptyList(),
+            obligations = listOf(obligationFor(10, 20000.0)),
+            fact = null,
+        )
+        assertEquals(10000.0, raised.expenseTotal, 0.001)
+    }
+
+    @Test
+    fun fixationKeepsZeroRowsSoMonthStaysFrozen() {
+        val cat = category(10, plannedAmount = 0.0)
+        val fixation = YearBudgetingHelper.expenseFixations(
+            year = 2026,
+            month = 8,
+            budgetId = 1,
+            expenseCategories = listOf(cat),
+            categoryPlans = emptyList(),
+            obligations = emptyList(),
+        )
+        assertFalse(fixation[0].isEnabled)
+        assertEquals(0.0, fixation[0].plannedAmount, 0.001)
+        val afterNewObligation = YearBudgetingHelper.buildMonth(
+            year = 2026,
+            month = 8,
+            sources = emptyList(),
+            expenseCategories = listOf(cat),
+            categoryPlans = fixation,
+            incomePlanOverrides = emptyList(),
+            obligations = listOf(obligationFor(10, 5000.0)),
+            fact = null,
+        )
+        assertEquals(0.0, afterNewObligation.expenseTotal, 0.001)
+    }
+
+    @Test
+    fun isClosedMonthBoundary() {
+        assertTrue(YearBudgetingHelper.isClosedMonth(2026, 9, 2026, 10))
+        assertFalse(YearBudgetingHelper.isClosedMonth(2026, 10, 2026, 10))
+        assertFalse(YearBudgetingHelper.isClosedMonth(2026, 11, 2026, 10))
+        assertTrue(YearBudgetingHelper.isClosedMonth(2025, 12, 2026, 1))
+    }
+
+    private fun obligationFor(categoryId: Int, amount: Double) = PlannedObligationEntity(
+        id = 1,
+        budgetId = 1,
+        name = "Obligation",
+        amount = amount,
+        periodType = PlannedObligationHelper.PERIOD_MONTHLY,
+        categoryId = categoryId,
+        paychecksPerMonth = 1,
+        dueMonth = 1,
+        isActive = true,
+    )
 
     private fun tx(
         categoryId: Int,

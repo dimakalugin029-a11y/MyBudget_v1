@@ -3,6 +3,7 @@ package ru.mybudget.app
 import ru.mybudget.app.data.MonthlyCategoryPlanEntity
 import ru.mybudget.app.data.MonthlyIncomePlanEntity
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
+import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.TransactionEntity
 
 object YearBudgetingHelper {
@@ -102,9 +103,17 @@ object YearBudgetingHelper {
     fun expenseLineFor(
         category: BudgetCategory,
         plan: MonthlyCategoryPlanEntity?,
+        obligationMonthly: Double = 0.0,
     ): ExpenseLine? {
         if (!category.isActive) return null
-        val amount = MonthlyPlanHelper.effectivePlannedAmount(category, plan)
+        val amount = if (plan != null) {
+            MonthlyPlanHelper.effectivePlannedAmount(category, plan)
+        } else {
+            PlannedObligationHelper.effectivePlan(
+                MonthlyPlanHelper.effectivePlannedAmount(category, null),
+                obligationMonthly,
+            )
+        }
         if (amount <= 0.0) return null
         return ExpenseLine(
             categoryId = category.id,
@@ -120,13 +129,17 @@ object YearBudgetingHelper {
         expenseCategories: List<BudgetCategory>,
         categoryPlans: List<MonthlyCategoryPlanEntity>,
         incomePlanOverrides: List<MonthlyIncomePlanEntity>,
+        obligations: List<PlannedObligationEntity> = emptyList(),
         fact: MonthFact?,
     ): MonthPlan {
         val overridesBySource = incomePlanOverrides.associateBy { it.sourceId }
         val plansByCategory = categoryPlans.associateBy { it.categoryId }
+        val obligationsByCategory = PlannedObligationHelper.monthlyPlanByCategory(obligations)
 
         val incomeLines = sources.mapNotNull { incomeLineFor(it, overridesBySource) }
-        val expenseLines = expenseCategories.mapNotNull { expenseLineFor(it, plansByCategory[it.id]) }
+        val expenseLines = expenseCategories.mapNotNull {
+            expenseLineFor(it, plansByCategory[it.id], obligationsByCategory[it.id] ?: 0.0)
+        }
 
         val incomeTotal = MoneyFormat.roundMoney(incomeLines.sumOf { it.amount })
         val expenseTotal = MoneyFormat.roundMoney(expenseLines.sumOf { it.amount })
@@ -148,6 +161,7 @@ object YearBudgetingHelper {
         expenseCategories: List<BudgetCategory>,
         categoryPlansByMonth: Map<Int, List<MonthlyCategoryPlanEntity>>,
         incomeOverridesByMonth: Map<Int, List<MonthlyIncomePlanEntity>>,
+        obligations: List<PlannedObligationEntity> = emptyList(),
         factByMonth: Map<Int, MonthFact>,
     ): YearPlan {
         val months = monthKeys(year).map { (y, m) ->
@@ -158,6 +172,7 @@ object YearBudgetingHelper {
                 expenseCategories = expenseCategories,
                 categoryPlans = categoryPlansByMonth[m] ?: emptyList(),
                 incomePlanOverrides = incomeOverridesByMonth[m] ?: emptyList(),
+                obligations = obligations,
                 fact = factByMonth[m],
             )
         }
@@ -187,6 +202,38 @@ object YearBudgetingHelper {
     fun factTotals(transactions: List<TransactionEntity>): MonthFact {
         val (income, expense) = ForecastVsFactHelper.factTotals(transactions)
         return MonthFact(income, expense)
+    }
+
+    fun isClosedMonth(year: Int, month: Int, currentYear: Int, currentMonth: Int): Boolean {
+        return year < currentYear || (year == currentYear && month < currentMonth)
+    }
+
+    fun expenseFixations(
+        year: Int,
+        month: Int,
+        budgetId: Int,
+        expenseCategories: List<BudgetCategory>,
+        categoryPlans: List<MonthlyCategoryPlanEntity>,
+        obligations: List<PlannedObligationEntity>,
+    ): List<MonthlyCategoryPlanEntity> {
+        val plansByCategory = categoryPlans.associateBy { it.categoryId }
+        val obligationsByCategory = PlannedObligationHelper.monthlyPlanByCategory(obligations)
+        return expenseCategories.map { category ->
+            val amount = MoneyFormat.roundMoney(
+                PlannedObligationHelper.effectivePlan(
+                    MonthlyPlanHelper.effectivePlannedAmount(category, plansByCategory[category.id]),
+                    obligationsByCategory[category.id] ?: 0.0,
+                ),
+            )
+            MonthlyCategoryPlanEntity(
+                year = year,
+                month = month,
+                categoryId = category.id,
+                budgetId = budgetId,
+                plannedAmount = amount,
+                isEnabled = amount > 0.0,
+            )
+        }
     }
 
     fun isPastOrCurrentMonth(year: Int, month: Int, currentYear: Int, currentMonth: Int): Boolean {
