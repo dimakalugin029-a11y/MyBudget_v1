@@ -139,6 +139,15 @@ abstract class BudgetDao {
         month: Int,
     ): List<MonthlyCategoryPlanEntity>
 
+    @Query("SELECT * FROM monthly_category_plans WHERE budgetId = :budgetId")
+    abstract suspend fun getMonthlyPlansForBudget(budgetId: Int): List<MonthlyCategoryPlanEntity>
+
+    @Query("SELECT * FROM transactions WHERE date >= :fromMs AND date < :toMs ORDER BY date ASC")
+    abstract suspend fun getTransactionsInRange(fromMs: Long, toMs: Long): List<TransactionEntity>
+
+    @Query("SELECT * FROM savings_goals ORDER BY name")
+    abstract suspend fun getAllSavingsGoalsList(): List<SavingsGoalEntity>
+
     @Query(
         """
         SELECT COALESCE(SUM(amount), 0) FROM transactions

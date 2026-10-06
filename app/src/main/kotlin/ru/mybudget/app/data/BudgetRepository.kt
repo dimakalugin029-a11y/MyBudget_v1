@@ -277,6 +277,15 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
     fun getAllSavingsGoalsIncludingArchived(): Flow<List<SavingsGoalEntity>> =
         budgetDao.getAllSavingsGoalsIncludingArchived()
 
+    suspend fun getAllSavingsGoalsList(): List<SavingsGoalEntity> =
+        budgetDao.getAllSavingsGoalsList()
+
+    suspend fun getMonthlyPlansForBudget(budgetId: Int): List<MonthlyCategoryPlanEntity> =
+        budgetDao.getMonthlyPlansForBudget(budgetId)
+
+    suspend fun getTransactionsInRange(fromMs: Long, toMs: Long): List<TransactionEntity> =
+        budgetDao.getTransactionsInRange(fromMs, toMs)
+
     suspend fun insertSavingsGoal(goal: SavingsGoalEntity) = budgetDao.insertSavingsGoal(goal)
 
     suspend fun updateSavingsGoal(goal: SavingsGoalEntity) = budgetDao.updateSavingsGoal(goal)
