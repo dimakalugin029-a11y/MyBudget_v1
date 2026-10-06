@@ -40,6 +40,7 @@ object ScreenHintHelper {
         const val PLANNED_INCOME = "hint_planned_income"
         const val PLANNED_OBLIGATIONS = "hint_planned_obligations"
         const val ROLLOVER = "hint_rollover"
+        const val FORECAST = "hint_forecast"
     }
 
     fun bind(

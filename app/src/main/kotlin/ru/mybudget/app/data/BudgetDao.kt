@@ -607,4 +607,29 @@ abstract class BudgetDao {
         }
         recordBalanceSnapshotForCategory(categoryId)
     }
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertForecastSnapshot(snapshot: ForecastSnapshotEntity)
+
+    @Query(
+        """
+        SELECT * FROM forecast_snapshots
+        WHERE budgetId = :budgetId
+        ORDER BY year DESC, month DESC, scenario ASC
+        """,
+    )
+    abstract suspend fun getForecastSnapshots(budgetId: Int): List<ForecastSnapshotEntity>
+
+    @Query(
+        """
+        SELECT * FROM forecast_snapshots
+        WHERE budgetId = :budgetId AND year = :year AND month = :month
+        ORDER BY scenario ASC
+        """,
+    )
+    abstract suspend fun getForecastSnapshotsForMonth(
+        budgetId: Int,
+        year: Int,
+        month: Int,
+    ): List<ForecastSnapshotEntity>
 }

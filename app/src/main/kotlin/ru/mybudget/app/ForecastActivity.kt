@@ -34,6 +34,9 @@ class ForecastActivity : AppCompatActivity() {
             getString(R.string.main_icon_statistics),
         )
         summaryView = findViewById(R.id.forecastSummary)
+        findViewById<View>(R.id.forecastHint)?.let {
+            ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.FORECAST, R.string.hint_forecast, showHelpLink = false)
+        }
         emptyView = findViewById(R.id.forecastEmpty)
         adapter = ForecastAdapter()
         findViewById<RecyclerView>(R.id.forecastList).apply {
@@ -60,12 +63,16 @@ class ForecastActivity : AppCompatActivity() {
             scenario = ForecastHelper.Scenario.REALISTIC
             refresh()
         }
+        findViewById<MaterialButton>(R.id.forecastVsFact).setOnClickListener {
+            startActivity(android.content.Intent(this, ForecastVsFactActivity::class.java))
+        }
         refresh()
     }
 
     private fun refresh() {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { loadForecast() }
+            if (result != null) saveSnapshots(result)
             adapter.submit(result?.months ?: emptyList())
             if (result == null) {
                 summaryView.text = ""
@@ -80,6 +87,27 @@ class ForecastActivity : AppCompatActivity() {
                 )
             }
             syncToggleStates()
+        }
+    }
+
+    private fun saveSnapshots(result: ForecastHelper.ForecastResult) {
+        val budgetId = manager.getActiveBudgetId()
+        val scenarioName = scenario.name
+        lifecycleScope.launch(Dispatchers.IO) {
+            result.months.forEach { month ->
+                manager.repository.upsertForecastSnapshot(
+                    ru.mybudget.app.data.ForecastSnapshotEntity(
+                        budgetId = budgetId,
+                        year = month.year,
+                        month = month.month,
+                        scenario = scenarioName,
+                        totalIncome = month.totalIncome,
+                        totalExpense = month.totalExpense,
+                        net = month.net,
+                        linesJson = ForecastSnapshotCodec.encode(month),
+                    ),
+                )
+            }
         }
     }
 

@@ -37,5 +37,6 @@ class HelpActivity : AppCompatActivity() {
         R.string.help_s13_title to R.string.help_s13_body,
         R.string.help_s14_title to R.string.help_s14_body,
         R.string.help_s15_title to R.string.help_s15_body,
+        R.string.help_s16_title to R.string.help_s16_body,
     )
 }

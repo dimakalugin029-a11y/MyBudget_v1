@@ -82,6 +82,13 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_12"
         style="@style/Text.MyBudget.Section"/>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/forecastVsFact"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_8"
+        android:text="@string/forecast_vs_fact_title"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/forecastList"
         android:layout_width="match_parent"

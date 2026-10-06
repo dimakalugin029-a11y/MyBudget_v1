@@ -392,4 +392,17 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
 
     suspend fun getAllBalanceSnapshotsForExport(): List<BalanceSnapshotEntity> =
         budgetDao.getAllBalanceSnapshotsForExport()
+
+    suspend fun upsertForecastSnapshot(snapshot: ForecastSnapshotEntity) =
+        budgetDao.upsertForecastSnapshot(snapshot)
+
+    suspend fun getForecastSnapshots(budgetId: Int): List<ForecastSnapshotEntity> =
+        budgetDao.getForecastSnapshots(budgetId)
+
+    suspend fun getForecastSnapshotsForMonth(
+        budgetId: Int,
+        year: Int,
+        month: Int,
+    ): List<ForecastSnapshotEntity> =
+        budgetDao.getForecastSnapshotsForMonth(budgetId, year, month)
 }

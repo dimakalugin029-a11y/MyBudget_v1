@@ -290,3 +290,25 @@ data class CategoryExpenseSum(
     val categoryId: Int,
     val total: Double,
 )
+
+@Entity(
+    tableName = "forecast_snapshots",
+    indices = [
+        Index(
+            value = ["budgetId", "year", "month", "scenario"],
+            unique = true,
+        ),
+    ],
+)
+data class ForecastSnapshotEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val budgetId: Int,
+    val year: Int,
+    val month: Int,
+    val scenario: String,
+    val totalIncome: Double,
+    val totalExpense: Double,
+    val net: Double,
+    val linesJson: String,
+    val createdAt: Long = System.currentTimeMillis(),
+)

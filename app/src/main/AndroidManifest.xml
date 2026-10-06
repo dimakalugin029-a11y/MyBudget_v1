@@ -73,6 +73,7 @@
         <activity android:name=".MonthComparisonActivity" android:exported="false" />
         <activity android:name=".CategoryTrendsActivity" android:exported="false" />
         <activity android:name=".ForecastActivity" android:exported="false" />
+        <activity android:name=".ForecastVsFactActivity" android:exported="false" />
         <activity android:name=".ImportRulesActivity" android:exported="false" />
         <activity android:name=".WhatIfActivity" android:exported="false" />
         <activity android:name=".YearOverviewActivity" android:exported="false" />
