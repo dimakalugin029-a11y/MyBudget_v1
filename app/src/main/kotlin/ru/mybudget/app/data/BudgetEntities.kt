@@ -269,6 +269,19 @@ data class MonthlyCategoryPlanEntity(
     val isEnabled: Boolean = true,
 )
 
+@Entity(
+    tableName = "monthly_income_plans",
+    primaryKeys = ["year", "month", "sourceId"],
+)
+data class MonthlyIncomePlanEntity(
+    val year: Int,
+    val month: Int,
+    val sourceId: Int,
+    val budgetId: Int,
+    val amount: Double = 0.0,
+    val isEnabled: Boolean = true,
+)
+
 @Entity(tableName = "audit_actions")
 data class AuditActionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

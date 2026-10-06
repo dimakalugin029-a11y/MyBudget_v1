@@ -1505,4 +1505,19 @@
   <string name="widget_balance_label">Баланс</string>
   <string name="widget_description">Баланс и быстрые кнопки дохода и расхода</string>
   <string name="widget_name">MyBudget</string>
+  <string name="year_budget_title">Бюджетирование</string>
+  <string name="main_menu_year_budgeting">Бюджетирование</string>
+  <string name="year_budget_prev_year">&#8249;</string>
+  <string name="year_budget_next_year">&#8250;</string>
+  <string name="year_budget_empty">Нет данных для бюджета: задайте статьи расходов и источники дохода</string>
+  <string name="year_budget_quarter_line">Q%1$d: доход %2$s · расход %3$s · итог %4$s</string>
+  <string name="year_budget_year_line">Год: доход %1$s · расход %2$s · итог %3$s</string>
+  <string name="year_budget_month_net">Итог: %1$s</string>
+  <string name="year_budget_edit_month">Изменить</string>
+  <string name="year_budget_editor_income">Доходы</string>
+  <string name="year_budget_editor_expense">Расходы</string>
+  <string name="year_budget_editor_title">%1$s: план месяца</string>
+  <string name="year_budget_editor_save">Сохранить</string>
+  <string name="year_budget_editor_cancel">Отмена</string>
+  <string name="year_budget_editor_saved">План месяца сохранён</string>
 </resources>

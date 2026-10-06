@@ -22,6 +22,24 @@ abstract class BudgetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertMonthlyPlan(plan: MonthlyCategoryPlanEntity)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertMonthlyIncomePlan(plan: MonthlyIncomePlanEntity)
+
+    @Query("SELECT * FROM monthly_income_plans WHERE budgetId = :budgetId")
+    abstract suspend fun getMonthlyIncomePlansForBudget(budgetId: Int): List<MonthlyIncomePlanEntity>
+
+    @Query(
+        """
+        SELECT * FROM monthly_income_plans
+        WHERE budgetId = :budgetId AND year = :year AND month = :month
+    """,
+    )
+    abstract suspend fun getMonthlyIncomePlansForMonth(
+        budgetId: Int,
+        year: Int,
+        month: Int,
+    ): List<MonthlyIncomePlanEntity>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract suspend fun insertTransaction(transaction: TransactionEntity)
 

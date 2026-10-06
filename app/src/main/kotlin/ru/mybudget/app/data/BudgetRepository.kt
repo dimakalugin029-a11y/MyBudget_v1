@@ -405,4 +405,17 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         month: Int,
     ): List<ForecastSnapshotEntity> =
         budgetDao.getForecastSnapshotsForMonth(budgetId, year, month)
+
+    suspend fun upsertMonthlyIncomePlan(plan: MonthlyIncomePlanEntity) =
+        budgetDao.upsertMonthlyIncomePlan(plan)
+
+    suspend fun getMonthlyIncomePlansForBudget(budgetId: Int): List<MonthlyIncomePlanEntity> =
+        budgetDao.getMonthlyIncomePlansForBudget(budgetId)
+
+    suspend fun getMonthlyIncomePlansForMonth(
+        budgetId: Int,
+        year: Int,
+        month: Int,
+    ): List<MonthlyIncomePlanEntity> =
+        budgetDao.getMonthlyIncomePlansForMonth(budgetId, year, month)
 }

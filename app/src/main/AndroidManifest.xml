@@ -104,6 +104,7 @@
         <activity android:name=".MonthStartActivity" android:exported="false" />
         <activity android:name=".RolloverActivity" android:exported="false" />
         <activity android:name=".PaymentCalendarActivity" android:exported="false" />
+        <activity android:name=".YearBudgetingActivity" android:exported="false" />
 
         <receiver
             android:name=".BudgetWidgetProvider"
