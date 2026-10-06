@@ -71,6 +71,14 @@ object ForecastHelper {
     private const val REALISTIC_VARIABLE_FACTOR = 1.1
     private const val VARIABLE_FACT_MONTHS = 3
 
+    private fun appliesInMonth(periodType: String, dueMonth: Int, ym: YearMonth): Boolean {
+        return when (periodType) {
+            "quarterly" -> ((ym.monthValue - dueMonth.coerceIn(1, 12)) % 12 + 12) % 12 % 3 == 0
+            PlannedObligationHelper.PERIOD_YEARLY -> ym.monthValue == dueMonth.coerceIn(1, 12)
+            else -> true
+        }
+    }
+
     fun build(inputs: Inputs): ForecastResult {
         val startMonth = YearMonth.from(inputs.today).plusMonths(1)
         val avgFactByCategory = averageFactExpenseByCategory(inputs)
@@ -125,10 +133,10 @@ object ForecastHelper {
         val lines = inputs.incomeSources
             .filter { it.isActive }
             .mapNotNull { source ->
-                val monthly = when (source.periodType) {
-                    PlannedObligationHelper.PERIOD_YEARLY ->
-                        if (source.dueMonth == ym.monthValue) source.amount else 0.0
-                    else -> source.amount
+                val monthly = if (appliesInMonth(source.periodType, source.dueMonth, ym)) {
+                    source.amount
+                } else {
+                    0.0
                 }
                 if (monthly <= 0.0) return@mapNotNull null
                 IncomeLine(source.id, source.name, monthly)
@@ -193,7 +201,9 @@ object ForecastHelper {
         obligations.filter { it.isActive && it.categoryId > 0 }.forEach { item ->
             val (applies, monthly) = when (item.periodType) {
                 PlannedObligationHelper.PERIOD_YEARLY ->
-                    (item.dueMonth == ym.monthValue) to item.amount
+                    appliesInMonth(item.periodType, item.dueMonth, ym) to item.amount
+                "quarterly" ->
+                    appliesInMonth(item.periodType, item.dueMonth, ym) to item.amount
                 else -> true to PlannedObligationHelper.monthlyEquivalent(item)
             }
             if (applies) {

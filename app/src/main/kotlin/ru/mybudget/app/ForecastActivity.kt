@@ -93,7 +93,7 @@ class ForecastActivity : AppCompatActivity() {
         val obligations = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
         val monthlyPlans = manager.repository.getMonthlyPlansForBudget(budgetId)
         val goals = manager.repository.getAllSavingsGoalsList()
-        val pastMonths = MonthBudgetComparisonHelper.recentMonths().take(3)
+        val pastMonths = MonthBudgetComparisonHelper.recentMonths().drop(1).take(3)
         val pastRanges = pastMonths.map { MonthBudgetComparisonHelper.monthRangeMs(it.first, it.second) }
         val pastTransactions = manager.repository.getTransactionsInRange(
             pastRanges.minOf { it.first },

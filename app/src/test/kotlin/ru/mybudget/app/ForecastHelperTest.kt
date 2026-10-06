@@ -157,6 +157,38 @@ class ForecastHelperTest {
     }
 
     @Test
+    fun `quarterly income only in quarter months`() {
+        val result = ForecastHelper.build(
+            inputs(
+                horizon = ForecastHelper.Horizon.HALF_YEAR,
+                incomeSources = listOf(income(amount = 30000.0, periodType = "quarterly", dueMonth = 4)),
+            ),
+        )
+        assertEquals(0.0, result.months[0].totalIncome, 0.01)
+        assertEquals(0.0, result.months[1].totalIncome, 0.01)
+        assertEquals(30000.0, result.months[2].totalIncome, 0.01)
+        assertEquals(0.0, result.months[3].totalIncome, 0.01)
+        assertEquals(0.0, result.months[4].totalIncome, 0.01)
+        assertEquals(30000.0, result.months[5].totalIncome, 0.01)
+    }
+
+    @Test
+    fun `quarterly obligation only in quarter months`() {
+        val result = ForecastHelper.build(
+            inputs(
+                horizon = ForecastHelper.Horizon.HALF_YEAR,
+                obligations = listOf(obligation(amount = 9000.0, periodType = "quarterly", dueMonth = 4)),
+            ),
+        )
+        assertEquals(0.0, result.months[0].mandatoryExpense, 0.01)
+        assertEquals(0.0, result.months[1].mandatoryExpense, 0.01)
+        assertEquals(9000.0, result.months[2].mandatoryExpense, 0.01)
+        assertEquals(0.0, result.months[3].mandatoryExpense, 0.01)
+        assertEquals(0.0, result.months[4].mandatoryExpense, 0.01)
+        assertEquals(9000.0, result.months[5].mandatoryExpense, 0.01)
+    }
+
+    @Test
     fun `monthly plan overrides obligation`() {
         val result = ForecastHelper.build(
             inputs(monthlyPlans = listOf(plan(2026, 11, 10, 8000.0))),
