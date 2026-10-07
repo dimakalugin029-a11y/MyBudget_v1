@@ -26,6 +26,7 @@ import ru.mybudget.app.data.migration.Migration36To37
 import ru.mybudget.app.data.migration.Migration37To38
 import ru.mybudget.app.data.migration.Migration38To39
 import ru.mybudget.app.data.migration.Migration39To40
+import ru.mybudget.app.data.migration.Migration40To41
 import ru.mybudget.app.data.migration.Migration27To28
 
 @Database(
@@ -54,13 +55,19 @@ import ru.mybudget.app.data.migration.Migration27To28
         UtilityPropertyEntity::class,
         ForecastSnapshotEntity::class,
         MonthlyIncomePlanEntity::class,
+        VehicleEntity::class,
+        VehicleServiceLogEntity::class,
+        VehicleInsuranceEntity::class,
+        VehicleFuelLogEntity::class,
+        VehicleRepairEntity::class,
     ],
-    version = 40,
+    version = 41,
     exportSchema = false,
 )
 abstract class BudgetDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun utilityDao(): UtilityDao
+    abstract fun autoDao(): AutoDao
 
     companion object {
         @Volatile
@@ -434,6 +441,7 @@ abstract class BudgetDatabase : RoomDatabase() {
             Migration37To38.MIGRATION,
             Migration38To39.MIGRATION,
             Migration39To40.MIGRATION,
+            Migration40To41.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {

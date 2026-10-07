@@ -35,6 +35,7 @@ class RemindersWorker(
                 }
             }
             processRecurringTransactions(dao, repository, today)
+            processInsuranceReminders()
             processMeterVerifications()
             MeterReadingReminderHelper.processReminder(applicationContext)
             Result.success()
@@ -71,6 +72,17 @@ class RemindersWorker(
                 RecurringHelper.applyAndAdvance(repository, dao, recurring, applicationContext)
             }
         }
+    }
+
+    private suspend fun processInsuranceReminders() {
+        val database = BudgetDatabase.getInstance(applicationContext)
+        val autoDao = database.autoDao()
+        val due = InsuranceReminderNotifier.filterDue(
+            autoDao.getAllInsurances(),
+            autoDao.getAllVehicles(),
+            LocalDate.now().toEpochDay(),
+        )
+        InsuranceReminderNotifier.notifyDue(applicationContext, due)
     }
 
     private suspend fun processMeterVerifications() {

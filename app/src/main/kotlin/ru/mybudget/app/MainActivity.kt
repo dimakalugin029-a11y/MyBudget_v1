@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity() {
         bindRow(R.id.obligationsButton, R.string.main_icon_obligations, R.string.main_menu_obligations, PlannedObligationsActivity::class.java)
         bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
         bindRow(R.id.utilitiesButton, R.string.main_icon_utilities, R.string.main_menu_utilities, UtilitiesActivity::class.java)
+        bindRow(R.id.autoButton, R.string.main_icon_utilities, R.string.main_menu_auto, AutoActivity::class.java)
         ReminderScheduler.ensureScheduled(this)
         WeeklySummaryScheduler.ensureScheduled(this)
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)

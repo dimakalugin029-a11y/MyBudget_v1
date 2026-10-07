@@ -41,7 +41,7 @@ abstract class BudgetDao {
     ): List<MonthlyIncomePlanEntity>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    abstract suspend fun insertTransaction(transaction: TransactionEntity)
+    abstract suspend fun insertTransaction(transaction: TransactionEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertReminder(reminder: PaymentReminderEntity)
