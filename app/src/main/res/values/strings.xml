@@ -487,6 +487,7 @@
   <string name="main_icon_statistics">📈</string>
   <string name="main_icon_transactions">📋</string>
   <string name="main_icon_utilities">🏠</string>
+  <string name="main_icon_auto">🚗</string>
   <string name="main_menu_budget">Бюджет</string>
   <string name="main_menu_expense">Расходы</string>
   <string name="main_menu_expense_plan">План расходов</string>

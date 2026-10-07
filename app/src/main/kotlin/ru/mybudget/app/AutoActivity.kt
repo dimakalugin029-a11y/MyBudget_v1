@@ -113,7 +113,7 @@ class AutoActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auto)
-        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_auto), getString(R.string.main_icon_utilities))
+        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_auto), getString(R.string.main_icon_auto))
         repository = AutoRepository(
             BudgetDatabase.getInstance(this).autoDao(),
             BudgetDatabase.getInstance(this).budgetDao(),
