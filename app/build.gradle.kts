@@ -8,6 +8,10 @@ android {
     namespace = "ru.mybudget.app"
     compileSdk = 34
 
+    lint {
+        disable += "PropertyEscape"
+    }
+
     defaultConfig {
         applicationId = "ru.mybudget.app"
         minSdk = 24

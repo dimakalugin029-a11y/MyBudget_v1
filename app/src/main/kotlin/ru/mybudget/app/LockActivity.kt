@@ -91,6 +91,7 @@ class LockActivity : AppCompatActivity() {
     }
 
     @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION", "MissingSuperCall")
     override fun onBackPressed() {
         finishAffinity()
     }

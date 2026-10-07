@@ -105,6 +105,14 @@ class AutoBackupWorker(
             Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
         }
         runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    applicationContext,
+                    android.Manifest.permission.POST_NOTIFICATIONS,
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                return@runCatching
+            }
             ensureChannel()
             val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done)
