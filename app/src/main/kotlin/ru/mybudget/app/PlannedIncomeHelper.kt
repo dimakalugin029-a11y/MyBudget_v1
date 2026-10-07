@@ -48,6 +48,19 @@ object PlannedIncomeHelper {
         }
     }
 
+    fun bonusPayoutMonths(dueMonth: Int): Set<Int> {
+        val quarterEnd = ((dueMonth.coerceIn(1, 12) + 2) / 3) * 3
+        return quarterlyMonths(quarterEnd + 1)
+    }
+
+    fun budgetMonthAmount(source: PlannedIncomeSourceEntity, month: Int): Double {
+        if (isBonus(source) && effectivePeriod(source) == PERIOD_QUARTERLY) {
+            val payout = if (month in bonusPayoutMonths(source.dueMonth)) source.amount else 0.0
+            return MoneyFormat.roundMoney(payout)
+        }
+        return monthlyEquivalent(source)
+    }
+
     fun monthlyTotal(sources: List<PlannedIncomeSourceEntity>): Double {
         return MoneyFormat.roundMoney(
             sources.filter { it.isActive }.sumOf { monthlyEquivalent(it) },

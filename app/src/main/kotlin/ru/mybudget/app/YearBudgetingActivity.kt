@@ -262,7 +262,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             val prefill = if (overrideFlags[source.id] == true) {
                 overrideAmounts[source.id] ?: 0.0
             } else {
-                PlannedIncomeHelper.monthlyEquivalent(source)
+                PlannedIncomeHelper.budgetMonthAmount(source, monthPlan.month)
             }
             incomeInputs[source.id] = addInputRow(container, source.name, prefill)
         }

@@ -118,6 +118,7 @@ object YearBudgetingHelper {
     fun incomeLineFor(
         source: PlannedIncomeSourceEntity,
         overrides: Map<Int, MonthlyIncomePlanEntity>,
+        month: Int = 1,
     ): IncomeLine? {
         if (!source.isActive) return null
         val override = overrides[source.id]
@@ -130,7 +131,7 @@ object YearBudgetingHelper {
                 isOverride = true,
             )
         }
-        val equivalent = PlannedIncomeHelper.monthlyEquivalent(source)
+        val equivalent = PlannedIncomeHelper.budgetMonthAmount(source, month)
         if (equivalent <= 0.0) return null
         return IncomeLine(
             sourceId = source.id,
@@ -176,7 +177,7 @@ object YearBudgetingHelper {
         val plansByCategory = categoryPlans.associateBy { it.categoryId }
         val obligationsByCategory = PlannedObligationHelper.monthlyPlanByCategory(obligations)
 
-        val incomeLines = sources.mapNotNull { incomeLineFor(it, overridesBySource) }
+        val incomeLines = sources.mapNotNull { incomeLineFor(it, overridesBySource, month) }
         val expenseLines = expenseCategories.mapNotNull {
             expenseLineFor(it, plansByCategory[it.id], obligationsByCategory[it.id] ?: 0.0)
         }

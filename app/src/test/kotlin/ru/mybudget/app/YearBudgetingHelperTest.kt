@@ -20,6 +20,7 @@ class YearBudgetingHelperTest {
         amount: Double = 50000.0,
         sourceType: String = PlannedIncomeHelper.TYPE_SALARY,
         periodType: String = PlannedIncomeHelper.PERIOD_MONTHLY,
+        dueMonth: Int = 1,
         isActive: Boolean = true,
     ) = PlannedIncomeSourceEntity(
         id = id,
@@ -28,6 +29,7 @@ class YearBudgetingHelperTest {
         amount = amount,
         sourceType = sourceType,
         periodType = periodType,
+        dueMonth = dueMonth,
         isActive = isActive,
     )
 
@@ -55,11 +57,26 @@ class YearBudgetingHelperTest {
     ) = MonthlyIncomePlanEntity(year = 2026, month = month, sourceId = sourceId, budgetId = 1, amount = amount, isEnabled = isEnabled)
 
     @Test
-    fun incomeUsesMonthlyEquivalentByDefault() {
-        val bonus = source(2, amount = 30000.0, sourceType = PlannedIncomeHelper.TYPE_BONUS, periodType = PlannedIncomeHelper.PERIOD_QUARTERLY)
-        val line = YearBudgetingHelper.incomeLineFor(bonus, emptyMap())!!
-        assertEquals(10000.0, line.amount, 0.001)
-        assertFalse(line.isOverride)
+    fun quarterlyBonusFullAmountOnlyInPayoutMonths() {
+        val bonus = source(2, amount = 30000.0, sourceType = PlannedIncomeHelper.TYPE_BONUS, periodType = PlannedIncomeHelper.PERIOD_QUARTERLY, dueMonth = 2)
+        val payout = YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 4)!!
+        assertEquals(30000.0, payout.amount, 0.001)
+        assertFalse(payout.isOverride)
+        assertNull(YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 5))
+        assertNull(YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 3))
+        val payouts = PlannedIncomeHelper.bonusPayoutMonths(2)
+        assertEquals(setOf(4, 7, 10, 1), payouts)
+        val year = YearBudgetingHelper.buildYear(
+            year = 2026,
+            sources = listOf(bonus),
+            expenseCategories = emptyList(),
+            categoryPlansByMonth = emptyMap(),
+            incomeOverridesByMonth = emptyMap(),
+            factByMonth = emptyMap(),
+        )
+        assertEquals(30000.0 * 4, year.incomeTotal, 0.001)
+        assertEquals(30000.0, year.months[3].incomeTotal, 0.001)
+        assertEquals(0.0, year.months[4].incomeTotal, 0.001)
     }
 
     @Test
