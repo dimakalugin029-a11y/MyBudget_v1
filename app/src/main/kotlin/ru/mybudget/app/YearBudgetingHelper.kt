@@ -71,7 +71,47 @@ object YearBudgetingHelper {
         val incomeTotal: Double,
         val expenseTotal: Double,
         val net: Double,
+        val factByCategory: Map<Int, Double> = emptyMap(),
     )
+
+    data class CategoryYearSummary(
+        val categoryId: Int,
+        val name: String,
+        val planTotal: Double,
+        val factTotal: Double,
+        val remaining: Double,
+    )
+
+    fun categoryYearSummaries(
+        months: List<MonthPlan>,
+        factByCategory: Map<Int, Double>,
+        nameById: Map<Int, String>,
+    ): List<CategoryYearSummary> {
+        val planById = mutableMapOf<Int, Double>()
+        months.forEach { month ->
+            month.expenseLines.forEach { line ->
+                planById[line.categoryId] = (planById[line.categoryId] ?: 0.0) + line.amount
+            }
+        }
+        return (planById.keys + factByCategory.keys)
+            .map { id ->
+                val plan = MoneyFormat.roundMoney(planById[id] ?: 0.0)
+                val fact = MoneyFormat.roundMoney(factByCategory[id] ?: 0.0)
+                CategoryYearSummary(
+                    categoryId = id,
+                    name = nameById[id] ?: id.toString(),
+                    planTotal = plan,
+                    factTotal = fact,
+                    remaining = MoneyFormat.roundMoney(plan - fact),
+                )
+            }
+            .filter { it.planTotal != 0.0 || it.factTotal != 0.0 }
+            .sortedWith(
+                compareByDescending<CategoryYearSummary> { it.planTotal }
+                    .thenByDescending { it.factTotal }
+                    .thenBy { it.name },
+            )
+    }
 
     fun monthKeys(year: Int): List<Pair<Int, Int>> = (1..12).map { year to it }
 
@@ -163,6 +203,7 @@ object YearBudgetingHelper {
         incomeOverridesByMonth: Map<Int, List<MonthlyIncomePlanEntity>>,
         obligations: List<PlannedObligationEntity> = emptyList(),
         factByMonth: Map<Int, MonthFact>,
+        factByCategory: Map<Int, Double> = emptyMap(),
     ): YearPlan {
         val months = monthKeys(year).map { (y, m) ->
             buildMonth(
@@ -196,6 +237,7 @@ object YearBudgetingHelper {
             incomeTotal = yearIncome,
             expenseTotal = yearExpense,
             net = MoneyFormat.roundMoney(yearIncome - yearExpense),
+            factByCategory = factByCategory,
         )
     }
 

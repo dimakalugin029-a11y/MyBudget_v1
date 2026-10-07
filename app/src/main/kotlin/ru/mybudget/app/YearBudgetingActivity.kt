@@ -52,6 +52,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@YearBudgetingActivity)
             adapter = this@YearBudgetingActivity.adapter
         }
+        findViewById<MaterialButton>(R.id.yearBudgetCategoryToggle).setOnClickListener { toggleCategorySummary() }
         findViewById<View>(R.id.yearBudgetPrevYear).setOnClickListener {
             year -= 1
             load()
@@ -70,7 +71,18 @@ class YearBudgetingActivity : AppCompatActivity() {
             loaded = plan
             adapter.submit(plan)
             bindSummary(plan)
+            bindCategorySummary(plan)
         }
+    }
+
+    private fun toggleCategorySummary() {
+        val card = findViewById<View>(R.id.yearBudgetCategorySummaryCard)
+        val toggle = findViewById<MaterialButton>(R.id.yearBudgetCategoryToggle)
+        val show = card.visibility != View.VISIBLE
+        card.visibility = if (show) View.VISIBLE else View.GONE
+        toggle.text = getString(
+            if (show) R.string.year_budget_category_toggle_hide else R.string.year_budget_category_toggle_show,
+        )
     }
 
     private suspend fun buildYearPlan(): YearBudgetingHelper.YearPlan {
@@ -114,6 +126,12 @@ class YearBudgetingActivity : AppCompatActivity() {
                 .filter { it.categoryId in categoryIds }
             factByMonth[month] = YearBudgetingHelper.factTotals(transactions)
         }
+        val yearRange = MonthBudgetComparisonHelper.monthRangeMs(year, 1)
+        val yearEnd = MonthBudgetComparisonHelper.monthRangeMs(year, 12).second
+        val factByCategory = manager.repository.getTransactionsInRange(yearRange.first, yearEnd)
+            .filter { it.type == "expense" && it.categoryId in categoryIds }
+            .groupBy { it.categoryId }
+            .mapValues { entry -> MoneyFormat.roundMoney(entry.value.sumOf { it.amount }) }
         return YearBudgetingHelper.buildYear(
             year = year,
             sources = sources,
@@ -122,6 +140,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             incomeOverridesByMonth = incomeOverrides,
             obligations = obligations,
             factByMonth = factByMonth,
+            factByCategory = factByCategory,
         )
     }
 
@@ -149,6 +168,44 @@ class YearBudgetingActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.yearBudgetSummary).text = sb.toString()
         findViewById<View>(R.id.yearBudgetEmpty).visibility =
             if (plan.months.all { it.incomeLines.isEmpty() && it.expenseLines.isEmpty() }) View.VISIBLE else View.GONE
+    }
+
+    private fun bindCategorySummary(plan: YearBudgetingHelper.YearPlan) {
+        lifecycleScope.launch {
+            val nameById = withContext(Dispatchers.IO) {
+                val parents = manager.getRootCategories(budgetId).associate { it.id to it.name }
+                manager.getCategoriesForBudget(budgetId).associate { it.id to it.name }
+            }
+            val summaries = YearBudgetingHelper.categoryYearSummaries(
+                months = plan.months,
+                factByCategory = plan.factByCategory,
+                nameById = nameById,
+            )
+            val view = findViewById<TextView>(R.id.yearBudgetCategorySummary)
+            if (summaries.isEmpty()) {
+                view.text = getString(R.string.year_budget_category_summary_empty)
+                return@launch
+            }
+            val sb = StringBuilder()
+            summaries.forEach { s ->
+                sb.append(
+                    getString(
+                        R.string.year_budget_category_line,
+                        s.name,
+                        MoneyFormat.formatRub(s.planTotal),
+                        MoneyFormat.formatRub(s.factTotal),
+                        MoneyFormat.formatRub(s.remaining),
+                    ),
+                ).append('\n')
+            }
+            val totalsLine = getString(
+                R.string.year_budget_category_totals,
+                MoneyFormat.formatRub(summaries.sumOf { it.planTotal }),
+                MoneyFormat.formatRub(summaries.sumOf { it.factTotal }),
+                MoneyFormat.formatRub(summaries.sumOf { it.remaining }),
+            )
+            view.text = sb.append(totalsLine).toString()
+        }
     }
 
     private fun showMonthEditor(position: Int) {
@@ -391,12 +448,12 @@ class YearBudgetingActivity : AppCompatActivity() {
                 )
                 totalsView.append("\n")
                 totalsView.append(context.getString(R.string.year_budget_month_net, MoneyFormat.formatRub(month.net)))
-                if (month.fact != null && month.netDelta != null) {
+                if (month.netDelta != null) {
                     deltaView.visibility = View.VISIBLE
                     deltaView.text = context.getString(
                         R.string.forecast_vs_fact_net_delta,
                         MoneyFormat.formatRub(month.net),
-                        MoneyFormat.formatRub(month.fact.income - month.fact.expense),
+                        MoneyFormat.formatRub(month.fact!!.income - month.fact.expense),
                         deltaText(context, month.netDelta!!),
                     )
                     deltaView.setTextColor(
@@ -406,7 +463,14 @@ class YearBudgetingActivity : AppCompatActivity() {
                         ),
                     )
                 } else {
-                    deltaView.visibility = View.GONE
+                    deltaView.visibility = View.VISIBLE
+                    deltaView.text = context.getString(R.string.year_budget_month_net, MoneyFormat.formatRub(month.net))
+                    deltaView.setTextColor(
+                        ContextCompat.getColor(
+                            context,
+                            if (month.net >= 0.0) R.color.income_green else R.color.expense_red,
+                        ),
+                    )
                 }
                 editButton.setOnClickListener { onEdit(bindingAdapterPosition) }
                 val hasLines = month.incomeLines.isNotEmpty() || month.expenseLines.isNotEmpty()

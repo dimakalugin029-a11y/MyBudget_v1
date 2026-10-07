@@ -1520,4 +1520,9 @@
   <string name="year_budget_editor_save">Сохранить</string>
   <string name="year_budget_editor_cancel">Отмена</string>
   <string name="year_budget_editor_saved">План месяца сохранён</string>
+  <string name="year_budget_category_toggle_show">Сводка по статьям</string>
+  <string name="year_budget_category_toggle_hide">Скрыть сводку</string>
+  <string name="year_budget_category_line">%1$s: план %2$s · факт %3$s · остаток %4$s</string>
+  <string name="year_budget_category_totals">Итого: план %1$s · факт %2$s · остаток %3$s</string>
+  <string name="year_budget_category_summary_empty">Нет статей с планом или расходом за год</string>
 </resources>

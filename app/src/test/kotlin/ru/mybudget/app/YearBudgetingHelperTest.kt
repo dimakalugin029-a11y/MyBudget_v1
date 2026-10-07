@@ -326,6 +326,36 @@ class YearBudgetingHelperTest {
         assertTrue(YearBudgetingHelper.isClosedMonth(2025, 12, 2026, 1))
     }
 
+    @Test
+    fun categoryYearSummariesMergePlanAndFact() {
+        val months = listOf(
+            YearBudgetingHelper.buildMonth(
+                year = 2026, month = 1,
+                sources = emptyList(),
+                expenseCategories = listOf(category(10, plannedAmount = 30000.0), category(11, plannedAmount = 5000.0)),
+                categoryPlans = emptyList(), incomePlanOverrides = emptyList(), fact = null,
+            ),
+            YearBudgetingHelper.buildMonth(
+                year = 2026, month = 2,
+                sources = emptyList(),
+                expenseCategories = listOf(category(10, plannedAmount = 30000.0)),
+                categoryPlans = emptyList(), incomePlanOverrides = emptyList(), fact = null,
+            ),
+        )
+        val summaries = YearBudgetingHelper.categoryYearSummaries(
+            months = months,
+            factByCategory = mapOf(10 to 45000.0, 12 to 1000.0),
+            nameById = mapOf(10 to "Жильё", 11 to "Связь", 12 to "Прочее"),
+        )
+        assertEquals(3, summaries.size)
+        val housing = summaries.first { it.categoryId == 10 }
+        assertEquals(60000.0, housing.planTotal, 0.001)
+        assertEquals(45000.0, housing.factTotal, 0.001)
+        assertEquals(15000.0, housing.remaining, 0.001)
+        assertEquals(1000.0, summaries.first { it.categoryId == 12 }.factTotal, 0.001)
+        assertEquals("Жильё", summaries[0].name)
+    }
+
     private fun obligationFor(categoryId: Int, amount: Double) = PlannedObligationEntity(
         id = 1,
         budgetId = 1,
