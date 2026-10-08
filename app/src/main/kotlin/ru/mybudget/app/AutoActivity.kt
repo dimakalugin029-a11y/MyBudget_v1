@@ -306,7 +306,7 @@ class AutoActivity : AppCompatActivity() {
             itemsContainer.addView(row)
             itemRows.add(nameEdit to priceEdit)
         }
-        val multiItem = (type == EntryType.SERVICE || type == EntryType.REPAIR) && existing == null
+        val multiItem = type == EntryType.SERVICE || type == EntryType.REPAIR
         if (multiItem) {
             itemsContainer.visibility = View.VISIBLE
             addItemButton.visibility = View.VISIBLE
@@ -340,10 +340,26 @@ class AutoActivity : AppCompatActivity() {
                 else -> null
             }
             mileage?.let { mileageInput.setText(it.toString()) }
-            when (existing) {
-                is Record.Service -> descInput.setText(existing.log.workDescription)
-                is Record.Repair -> descInput.setText(existing.log.orderDescription)
-                else -> {}
+            if (multiItem) {
+                val fullDesc = when (existing) {
+                    is Record.Service -> existing.log.workDescription
+                    is Record.Repair -> existing.log.orderDescription
+                    else -> ""
+                } ?: ""
+                val (descLines, itemLines) = fullDesc.lines().partition { !isItemLine(it) }
+                descInput.setText(descLines.joinToString("\n").trim())
+                itemLines.forEach { line ->
+                    addRow()
+                    val (n, p) = splitItemLine(line)
+                    itemRows.last().first.setText(n)
+                    itemRows.last().second.setText(MoneyFormat.formatQuantity(p))
+                }
+            } else {
+                when (existing) {
+                    is Record.Service -> descInput.setText(existing.log.workDescription)
+                    is Record.Repair -> descInput.setText(existing.log.orderDescription)
+                    else -> {}
+                }
             }
             if (existing is Record.Insurance) {
                 endDateInput.setText(formatDay(existing.item.endDateEpochDay))
@@ -403,13 +419,26 @@ class AutoActivity : AppCompatActivity() {
                     if (n.isEmpty() && p <= 0.0) null else n to p
                 }
                 if (existing != null) {
-                    updateEntry(existing, cats, categorySpinner, dateInput, endDateInput, mileageInput, litersInput, priceInput, descInput, amountInput, payNowSwitch)
+                    updateEntry(existing, cats, categorySpinner, dateInput, endDateInput, mileageInput, litersInput, priceInput, descInput, amountInput, payNowSwitch, items)
                 } else {
                     saveEntry(type, cats, categorySpinner, dateInput, endDateInput, mileageInput, litersInput, priceInput, descInput, amountInput, payNowSwitch, items)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun isItemLine(line: String): Boolean {
+        val idx = line.lastIndexOf(" — ")
+        if (idx <= 0) return false
+        return MoneyFormat.parseQuantity(line.substring(idx + 3).trim()) != null
+    }
+
+    private fun splitItemLine(line: String): Pair<String, Double> {
+        val idx = line.lastIndexOf(" — ")
+        if (idx <= 0) return line.trim() to 0.0
+        val price = MoneyFormat.parseQuantity(line.substring(idx + 3).trim()) ?: 0.0
+        return line.substring(0, idx).trim() to price
     }
 
     private fun saveEntry(
@@ -529,12 +558,18 @@ class AutoActivity : AppCompatActivity() {
         descInput: EditText,
         amountInput: EditText,
         payNowSwitch: androidx.appcompat.widget.SwitchCompat,
+        items: List<Pair<String, Double>>,
     ) {
         val date = parseDate(dateInput.text.toString()) ?: return toast(R.string.auto_bad_date)
         val category = cats.getOrNull(categorySpinner.selectedItemPosition) ?: return
         val mileage = mileageInput.text.toString().toIntOrNull()
-        val description = descInput.text.toString().trim()
-        val amount = MoneyFormat.parse(amountInput.text) ?: 0.0
+        var description = descInput.text.toString().trim()
+        var amount = MoneyFormat.parse(amountInput.text) ?: 0.0
+        if (items.isNotEmpty()) {
+            amount = MoneyFormat.roundMoney(items.sumOf { it.second })
+            val lines = items.joinToString("\n") { (n, p) -> "$n — ${MoneyFormat.formatRub(p)}" }
+            description = if (description.isNotEmpty()) "$description\n$lines" else lines
+        }
         if (amount < 0.0) return toast(R.string.auto_bad_amount)
         lifecycleScope.launch {
             when (existing) {
