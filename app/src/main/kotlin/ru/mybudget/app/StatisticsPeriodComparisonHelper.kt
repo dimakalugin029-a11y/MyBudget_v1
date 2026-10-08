@@ -65,6 +65,6 @@ object StatisticsPeriodComparisonHelper {
             pct < -0.005 -> "−"
             else -> ""
         }
-        return prefix + String.format("%.0f%%", kotlin.math.abs(pct))
+        return prefix + String.format(java.util.Locale.US, "%.0f%%", kotlin.math.abs(pct))
     }
 }

@@ -441,10 +441,11 @@ class AutoActivity : AppCompatActivity() {
             .setTitle(record.title.ifBlank { getString(R.string.main_menu_auto) })
             .setMessage(message)
             .setNegativeButton(android.R.string.cancel, null)
-        if (!record.paid) {
-            builder.setPositiveButton(R.string.auto_pay) { _, _ -> confirmPay(record) }
-        } else {
+        if (record.paid) {
             builder.setPositiveButton(R.string.delete) { _, _ -> confirmDelete(record) }
+        } else {
+            builder.setPositiveButton(R.string.auto_pay) { _, _ -> confirmPay(record) }
+            builder.setNeutralButton(R.string.delete) { _, _ -> confirmDelete(record) }
         }
         builder.show()
     }

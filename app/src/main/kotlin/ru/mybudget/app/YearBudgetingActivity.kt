@@ -506,7 +506,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             private fun deltaText(context: android.content.Context, delta: ForecastVsFactHelper.Delta): String {
                 val sign = if (delta.absolute >= 0.0) "+" else "−"
                 val money = MoneyFormat.formatRub(kotlin.math.abs(delta.absolute))
-                val percent = delta.percent?.let { String.format("%.0f%%", kotlin.math.abs(it)) }
+                val percent = delta.percent?.let { String.format(java.util.Locale.US, "%.0f%%", kotlin.math.abs(it)) }
                     ?: context.getString(R.string.stats_no_data)
                 return "$sign$money ($percent)"
             }
