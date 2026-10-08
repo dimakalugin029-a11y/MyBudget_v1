@@ -38,6 +38,11 @@ class AutoRepository(
     suspend fun deleteFuelLog(id: Int) = autoDao.deleteFuelLog(id)
     suspend fun deleteRepair(id: Int) = autoDao.deleteRepair(id)
 
+    suspend fun updateServiceLog(log: VehicleServiceLogEntity) = autoDao.updateServiceLog(log)
+    suspend fun updateInsurance(insurance: VehicleInsuranceEntity) = autoDao.updateInsurance(insurance)
+    suspend fun updateFuelLog(log: VehicleFuelLogEntity) = autoDao.updateFuelLog(log)
+    suspend fun updateRepair(repair: VehicleRepairEntity) = autoDao.updateRepair(repair)
+
     suspend fun payExpense(categoryId: Int, amount: Double, description: String, dateEpochDay: Long): Long {
         val date = dateEpochDay * MILLIS_PER_DAY
         val transactionId = budgetDao.insertTransaction(

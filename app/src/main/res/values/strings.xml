@@ -1543,8 +1543,8 @@
   <string name="auto_add_insurance">Новый полис ОСАГО</string>
   <string name="auto_add_fuel">Новая заправка</string>
   <string name="auto_add_repair">Новый ремонт</string>
-  <string name="auto_field_date">Дата (ГГГГ-ММ-ДД)</string>
-  <string name="auto_field_end_date">Действует до (ГГГГ-ММ-ДД)</string>
+  <string name="auto_field_date">Дата (ДД.ММ.ГГГГ)</string>
+  <string name="auto_field_end_date">Действует до (ДД.ММ.ГГГГ)</string>
   <string name="auto_field_mileage">Пробег, км (необязательно)</string>
   <string name="auto_field_liters">Литры</string>
   <string name="auto_field_price">Цена за литр</string>
@@ -1555,7 +1555,10 @@
   <string name="auto_add_item">+ Добавить позицию</string>
   <string name="auto_item_name">Название позиции</string>
   <string name="auto_item_price">Цена</string>
-  <string name="auto_pay_now">Оплатить сразу</string>
+  <string name="auto_pay_now">Оплачено</string>
+  <string name="auto_filter_all">ВСЕ</string>
+  <string name="auto_edit">Правка</string>
+  <string name="auto_fuel_amount_auto">Сумма (литры × цена, считается автоматически)</string>
   <string name="auto_pay">Оплатить</string>
   <string name="auto_paid">Оплачено</string>
   <string name="auto_unpaid">Не оплачено</string>
@@ -1563,7 +1566,7 @@
   <string name="auto_negative_message">На статье не хватает %1$s. Запись будет оплачена «в минус» — остаток статьи станет отрицательным. Продолжить?</string>
   <string name="auto_delete_record_message">Удалить запись из журнала?</string>
   <string name="auto_no_categories">Сначала создайте статью бюджета</string>
-  <string name="auto_bad_date">Некорректная дата (ожидается ГГГГ-ММ-ДД)</string>
+  <string name="auto_bad_date">Некорректная дата (ожидается ДД.ММ.ГГГГ)</string>
   <string name="auto_bad_amount">Некорректная сумма</string>
   <string name="auto_empty">Записей пока нет</string>
     <string name="auto_insurance_notify_channel">Напоминания об ОСАГО</string>

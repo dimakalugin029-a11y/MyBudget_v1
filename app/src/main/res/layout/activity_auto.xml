@@ -93,6 +93,81 @@
                 android:text="@string/auto_section_repair"/>
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/filterAllButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="3dp"
+                android:textSize="12sp"
+                android:text="@string/auto_filter_all"/>
+
+            <Button
+                android:id="@+id/filterServiceButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="3dp"
+                android:layout_marginStart="3dp"
+                android:textSize="12sp"
+                android:text="@string/auto_section_service"/>
+
+            <Button
+                android:id="@+id/filterInsuranceButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="3dp"
+                android:layout_marginStart="3dp"
+                android:textSize="12sp"
+                android:text="@string/auto_section_insurance"/>
+
+            <Button
+                android:id="@+id/filterFuelButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="3dp"
+                android:layout_marginStart="3dp"
+                android:textSize="12sp"
+                android:text="@string/auto_section_fuel"/>
+
+            <Button
+                android:id="@+id/filterRepairButton"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:layout_weight="1"
+                android:layout_marginStart="3dp"
+                android:textSize="12sp"
+                android:text="@string/auto_section_repair"/>
+        </LinearLayout>
+
         <TextView
             android:id="@+id/fuelStatsText"
             android:layout_width="match_parent"
