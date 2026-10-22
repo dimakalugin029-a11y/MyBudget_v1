@@ -1,34 +1,54 @@
-name: CI
+name: Android checks
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-checks-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up JDK 17
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Run unit tests
-        run: ./gradlew test --console=plain
-
-      - name: Assemble debug APK
-        run: ./gradlew assembleDebug --console=plain
-
-      - name: Upload test report
-        if: failure()
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Enable Gradle wrapper
+        run: chmod +x gradlew
+      - name: Check committed database schemas
+        run: python3 tools/check_room_schemas.py
+      - name: Check historical migration SQL
+        run: python3 tools/check_migration_sql.py
+      - name: Check balance ledger invariants
+        run: python3 tools/check_balance_ledger.py
+      - name: Run unit tests and compile device tests
+        run: ./gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin --console=plain --no-daemon
+      - name: Check generated schema matches the committed version
+        shell: bash
+        run: |
+          git diff --exit-code -- app/schemas
+          if [ -n "$(git ls-files --others --exclude-standard -- app/schemas)" ]; then
+            echo "New Room schema files must be committed."
+            exit 1
+          fi
+      - name: Upload verification reports
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-report
-          path: app/build/reports/tests/
+          name: android-check-reports
+          path: |
+            app/build/reports/tests/
+            app/build/test-results/
+          if-no-files-found: ignore

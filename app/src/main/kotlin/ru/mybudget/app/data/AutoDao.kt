@@ -8,6 +8,12 @@ import androidx.room.Update
 
 @Dao
 interface AutoDao {
+    @Query("SELECT * FROM auto_save_commands WHERE requestId = :requestId")
+    suspend fun getSaveCommand(requestId: String): AutoSaveCommandEntity?
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertSaveCommand(command: AutoSaveCommandEntity)
+
     @Query("DELETE FROM vehicles")
     suspend fun deleteAllVehicles()
 
@@ -37,6 +43,21 @@ interface AutoDao {
 
     @Query("SELECT COALESCE(MAX(sortOrder), -1) FROM vehicles")
     suspend fun getMaxVehicleSortOrder(): Int
+
+    @Query("UPDATE vehicles SET isArchived = :archived WHERE id = :id")
+    suspend fun setVehicleArchived(id:Int, archived:Boolean)
+
+    @Query("UPDATE vehicle_service_logs SET isArchived = :archived WHERE id = :id")
+    suspend fun setServiceArchived(id:Int, archived:Boolean)
+
+    @Query("UPDATE vehicle_insurances SET isArchived = :archived WHERE id = :id")
+    suspend fun setInsuranceArchived(id:Int, archived:Boolean)
+
+    @Query("UPDATE vehicle_fuel_logs SET isArchived = :archived WHERE id = :id")
+    suspend fun setFuelArchived(id:Int, archived:Boolean)
+
+    @Query("UPDATE vehicle_repairs SET isArchived = :archived WHERE id = :id")
+    suspend fun setRepairArchived(id:Int, archived:Boolean)
 
     @Query("DELETE FROM vehicles WHERE id = :id")
     suspend fun deleteVehicle(id: Int)

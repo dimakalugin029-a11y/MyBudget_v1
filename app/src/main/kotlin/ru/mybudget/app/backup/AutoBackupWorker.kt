@@ -45,17 +45,18 @@ class AutoBackupWorker(
         if (encrypt && password.isNullOrBlank()) {
             return fail(applicationContext.getString(R.string.auto_backup_encrypt_unavailable), retry = false)
         }
-        pruneOldBackups(tree)
         val stamp = LocalDateTime.now().format(fileStamp)
         val suffix = if (encrypt) "_encrypted" else ""
-        val displayName = "MyBudget_auto_${stamp}$suffix.json"
-        val file = tree.createFile("application/json", displayName)
+        val displayName = "MyBudget_auto_${stamp}$suffix.mybudget"
+        val file = tree.createFile("application/octet-stream", displayName)
             ?: return fail(applicationContext.getString(R.string.auto_backup_write_failed))
-        val ok = BackupManager(applicationContext).exportToFile(file.uri, password)
+        val backupManager = BackupManager(applicationContext)
+        val ok = backupManager.exportToArchiveFile(file.uri, password)
         if (!ok) {
             file.delete()
-            return fail(applicationContext.getString(R.string.auto_backup_write_failed))
+            return fail(backupManager.lastExportError ?: applicationContext.getString(R.string.auto_backup_write_failed))
         }
+        pruneOldBackups(tree, file.uri)
         uploadToWebDavIfNeeded(displayName, file.uri)
         val now = System.currentTimeMillis()
         AutoBackupPreferences.setLastAutoExportMs(applicationContext, now)
@@ -68,16 +69,16 @@ class AutoBackupWorker(
         return Result.success()
     }
 
-    private fun pruneOldBackups(tree: DocumentFile) {
+    private fun pruneOldBackups(tree: DocumentFile, protectedUri: Uri) {
         val existing = tree.listFiles()
             .filter { file ->
                 val name = file.name.orEmpty()
-                name.startsWith("MyBudget_auto_") && name.endsWith(".json")
+                name.startsWith("MyBudget_auto_") && (name.endsWith(".json") || name.endsWith(".mybudget"))
             }
             .sortedBy { it.lastModified() }
-        val overflow = existing.size - 2
+        val overflow = existing.size - 3
         if (overflow > 0) {
-            existing.take(overflow).forEach { it.delete() }
+            existing.filter { it.uri != protectedUri }.take(overflow).forEach { it.delete() }
         }
     }
 

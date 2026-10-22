@@ -50,31 +50,19 @@ object AutoBackupHelper {
             }
             val stamp = LocalDateTime.now().format(fileStamp)
             val suffix = if (encrypt) "_encrypted" else ""
-            val displayName = "MyBudget_auto_${stamp}$suffix.json"
-            val file = tree.createFile("application/json", displayName)
+            val displayName = "MyBudget_auto_${stamp}$suffix.mybudget"
+            val file = tree.createFile("application/octet-stream", displayName)
                 ?: return@withContext AutoExportResult(
                     success = false,
                     message = appContext.getString(R.string.auto_backup_write_failed),
                 )
-            val ok = runCatching {
-                val payload = BackupManager(appContext).exportToJson(password).toByteArray(Charsets.UTF_8)
-                appContext.contentResolver.openOutputStream(file.uri)?.use { it.write(payload) } ?: error("cannot write backup")
-                val digest = java.security.MessageDigest.getInstance("SHA-256")
-                appContext.contentResolver.openInputStream(file.uri)?.use { input ->
-                    val buffer = ByteArray(8192)
-                    while (true) {
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        digest.update(buffer, 0, count)
-                    }
-                } ?: error("cannot verify backup")
-                java.security.MessageDigest.isEqual(digest.digest(), java.security.MessageDigest.getInstance("SHA-256").digest(payload))
-            }.getOrDefault(false)
+            val backupManager = BackupManager(appContext)
+            val ok = backupManager.exportToArchiveFile(file.uri, password)
             if (!ok) {
                 file.delete()
                 return@withContext AutoExportResult(
                     success = false,
-                    message = appContext.getString(R.string.auto_backup_write_failed),
+                    message = backupManager.lastExportError ?: appContext.getString(R.string.auto_backup_write_failed),
                 )
             }
             pruneOldBackups(tree, file.uri)
@@ -90,7 +78,7 @@ object AutoBackupHelper {
         val existing = tree.listFiles()
             .filter { file ->
                 val name = file.name.orEmpty()
-                name.startsWith("MyBudget_auto_") && name.endsWith(".json")
+                name.startsWith("MyBudget_auto_") && (name.endsWith(".json") || name.endsWith(".mybudget"))
             }
             .sortedBy { it.lastModified() }
         val overflow = existing.size - 3

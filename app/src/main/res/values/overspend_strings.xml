@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="income_cover_overspend">Покрыть перерасход</string>
+    <string name="overspend_explanation">Отметьте статьи и укажите суммы. Можно покрыть минус частично. Эти суммы заменят текущее распределение только по показанным статьям; остальные назначения сохранятся. Доход будет записан после подтверждения распределения.</string>
+    <string name="overspend_empty">В выбранном бюджете нет активных статей с перерасходом.</string>
+    <string name="overspend_fill">Заполнить выбранные полностью</string>
+    <string name="overspend_apply">Применить к распределению</string>
+    <string name="overspend_summary">Доход: %1$s
+Другие назначения: %2$s
+На покрытие: %3$s
+Останется: %4$s</string>
+    <string name="overspend_preview">Было: %1$s → пополнить: %2$s → станет: %3$s</string>
+    <string name="overspend_amount">Сумма покрытия</string>
+    <string name="overspend_invalid">Введите сумму от нуля до размера перерасхода.</string>
+    <string name="overspend_insufficient">Дохода не хватает. Уменьшите суммы или снимите отметки — выберите приоритет самостоятельно.</string>
+    <string name="overspend_select">Отметьте хотя бы одну статью и укажите сумму покрытия.</string>
+    <string name="overspend_mode">Покрытие перерасхода. Остаток можно распределить по другим статьям.</string>
+    <string name="overspend_refresh_error">Не удалось обновить остатки статей. Попробуйте ещё раз.</string>
+</resources>

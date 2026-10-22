@@ -6,10 +6,33 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class BudgetDao {
+    @Query("SELECT * FROM balance_ledger_state WHERE id=1")
+    abstract suspend fun getLedgerState(): BalanceLedgerStateEntity?
+    @Upsert
+    abstract suspend fun setLedgerState(state: BalanceLedgerStateEntity)
+    @Query("SELECT * FROM balance_movements WHERE (:budgetId IS NULL OR budgetId=:budgetId) AND createdAt < :until ORDER BY createdAt,id")
+    abstract suspend fun getBalanceMovements(budgetId: Int?, until: Long): List<BalanceMovementEntity>
+    @Query("SELECT * FROM balance_movements ORDER BY id")
+    abstract suspend fun getAllBalanceMovements(): List<BalanceMovementEntity>
+    @Query("DELETE FROM balance_movements")
+    abstract suspend fun deleteBalanceMovements()
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    abstract suspend fun insertBalanceMovements(rows: List<BalanceMovementEntity>)
+    @Query("INSERT INTO balance_movements (categoryId,budgetId,delta,budgetDelta,createdAt,kind,operationId) SELECT id,budgetId,currentBalance,CASE WHEN parentId=0 AND isActive=1 THEN currentBalance ELSE 0 END,:at,'opening','baseline' FROM categories")
+    abstract suspend fun insertLedgerOpening(at: Long)
+    @Transaction
+    open suspend fun resetBalanceLedger() {
+        deleteBalanceMovements()
+        val at = System.currentTimeMillis() / 1000 * 1000
+        setLedgerState(BalanceLedgerStateEntity(startedAt = at))
+        insertLedgerOpening(at)
+    }
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun claimMoneyCommand(command: MoneyCommandEntity): Long
     @Query("SELECT * FROM obligation_payments WHERE transactionId = :transactionId")
@@ -118,8 +141,9 @@ abstract class BudgetDao {
         val rounded = ru.mybudget.app.MoneyFormat.roundMoney(newAmount)
         require(rounded.isFinite() && rounded > 0.0) { "Invalid rounded amount" }
         val revert = if (current.type == "income") -current.amount else current.amount
-        applyBalanceDelta(current.categoryId, revert)
-        applyBalanceDelta(newCategoryId, if (newType == "income") rounded else -rounded)
+        val operation = "correct-$transactionId-${java.util.UUID.randomUUID()}"
+        applyBalanceDelta(current.categoryId, revert, "correction", operation)
+        applyBalanceDelta(newCategoryId, if (newType == "income") rounded else -rounded, "correction", operation)
         updateTransaction(current.copy(
             categoryId = newCategoryId,
             amount = rounded,
@@ -142,7 +166,7 @@ abstract class BudgetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertBudgetProfile(profile: BudgetProfileEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     abstract suspend fun insertCategory(category: BudgetCategoryEntity)
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
@@ -677,7 +701,12 @@ abstract class BudgetDao {
     }
 
     @Transaction
-    open suspend fun applyBalanceDelta(categoryId: Int, amount: Double) {
+    open suspend fun applyBalanceDelta(categoryId: Int, amount: Double, kind: String = "adjustment", operationId: String = "") {
+        require(amount.isFinite())
+        val previous = getLedgerState()
+        if (previous == null) resetBalanceLedger()
+        val state = requireNotNull(getLedgerState())
+        setLedgerState(state.copy(kind=kind, operationId=operationId))
         val category = getCategoryByIdAny(categoryId) ?: error("Статья операции отсутствует")
         updateCategory(category.copy(currentBalance = category.currentBalance + amount))
         if (category.parentId != 0) {
@@ -685,6 +714,7 @@ abstract class BudgetDao {
             updateCategory(parent.copy(currentBalance = parent.currentBalance + amount))
         }
         recordBalanceSnapshotForCategory(categoryId)
+        setLedgerState(state)
     }
 
     @Transaction
@@ -699,7 +729,7 @@ abstract class BudgetDao {
     ) {
         require(amount.isFinite() && amount > 0.0 && type in listOf("income", "expense")) { "Некорректная операция" }
         requireNotNull(getCategoryById(categoryId)) { "Статья недоступна" }
-        insertTransaction(
+        val insertedTransactionId = insertTransaction(
             TransactionEntity(
                 categoryId = categoryId,
                 amount = amount,
@@ -711,7 +741,7 @@ abstract class BudgetDao {
             ),
         )
         val delta = if (type == "income") amount else -amount
-        applyBalanceDelta(categoryId, delta)
+        applyBalanceDelta(categoryId, delta, type, groupId ?: "tx-$insertedTransactionId")
     }
 
     @Transaction
@@ -725,7 +755,7 @@ abstract class BudgetDao {
     open suspend fun revertAndDeleteTransaction(transaction: TransactionEntity) {
         val current = getTransactionById(transaction.id) ?: return
         val delta = if (current.type == "income") -current.amount else current.amount
-        applyBalanceDelta(current.categoryId, delta)
+        applyBalanceDelta(current.categoryId, delta, "reversal", "cancel-${current.id}")
         undoPaymentLinks(current.id)
         deleteTransaction(current.id)
     }
@@ -763,14 +793,15 @@ abstract class BudgetDao {
     }
 
     @Transaction
-    open suspend fun transferBetweenLeafCategories(fromId: Int, toId: Int, amount: Double, requestId: String? = null) {
+    open suspend fun transferBetweenLeafCategories(fromId: Int, toId: Int, amount: Double, requestId: String? = null, operationId: String? = null) {
         if (requestId != null && claimMoneyCommand(MoneyCommandEntity(requestId)) == -1L) return
         require(amount.isFinite() && amount > 0.0 && fromId != toId)
         val from = requireNotNull(getCategoryById(fromId))
         requireNotNull(getCategoryById(toId))
         require(from.currentBalance + 0.001 >= amount) { "Недостаточно средств" }
-        applyBalanceDelta(fromId, -amount)
-        applyBalanceDelta(toId, amount)
+        val operation = operationId ?: requestId ?: java.util.UUID.randomUUID().toString()
+        applyBalanceDelta(fromId, -amount, "transfer", operation)
+        applyBalanceDelta(toId, amount, "transfer", operation)
     }
 
     @Transaction
@@ -780,15 +811,17 @@ abstract class BudgetDao {
         val from = requireNotNull(getCategoryById(fromId))
         require(amounts.all { it.isFinite() && it > 0.0 } && ids.none { it == fromId })
         require(from.currentBalance + 0.001 >= amounts.sum()) { "Недостаточно средств" }
-        for (index in ids.indices) transferBetweenLeafCategories(fromId, ids[index], amounts[index])
+        val operation = requestId ?: java.util.UUID.randomUUID().toString()
+        for (index in ids.indices) transferBetweenLeafCategories(fromId, ids[index], amounts[index], operationId=operation)
     }
 
     @Transaction
     open suspend fun relocateCategoryBalance(fromId: Int, toId: Int, amount: Double) {
         require(amount.isFinite() && fromId != toId)
         requireNotNull(getCategoryById(fromId)); requireNotNull(getCategoryById(toId))
-        applyBalanceDelta(fromId, -amount)
-        applyBalanceDelta(toId, amount)
+        val operation = java.util.UUID.randomUUID().toString()
+        applyBalanceDelta(fromId, -amount, "transfer", operation)
+        applyBalanceDelta(toId, amount, "transfer", operation)
     }
 
     @Transaction
@@ -798,11 +831,11 @@ abstract class BudgetDao {
         if (oldParentId == newParentId) return
         val balance = category.currentBalance
         if (oldParentId != 0) {
-            applyBalanceDelta(oldParentId, -balance)
+            applyBalanceDelta(oldParentId, -balance, "reclassify", "move-$categoryId")
         }
         updateCategory(category.copy(parentId = newParentId))
         if (newParentId != 0) {
-            applyBalanceDelta(newParentId, balance)
+            applyBalanceDelta(newParentId, balance, "reclassify", "move-$categoryId")
         }
         recordBalanceSnapshotForCategory(categoryId)
     }

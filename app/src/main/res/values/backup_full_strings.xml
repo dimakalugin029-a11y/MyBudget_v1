@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="backup_full_plain">Данные и фотографии, без пароля</string>
+<string name="backup_full_encrypted">Данные и фотографии, с паролем</string>
+<string name="backup_data_only">Только данные JSON, без фотографий</string></resources>

@@ -12,7 +12,7 @@ import java.time.LocalDate
 class AuditMoneyIntegrityTest {
     private lateinit var db: BudgetDatabase
     @Before fun prepare() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         db.budgetDao().insertBudgetProfile(BudgetProfileEntity(id = 1, name = "Test"))
         db.budgetDao().insertCategory(BudgetCategoryEntity(1, "Первый", 0, currentBalance = 1000.0))
         db.budgetDao().insertCategory(BudgetCategoryEntity(2, "Второй", 0))

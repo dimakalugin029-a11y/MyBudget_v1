@@ -47,22 +47,54 @@ class BackupManager internal constructor(context: Context, private val database:
     private val dao = database.budgetDao()
     private val utilityDao = database.utilityDao()
     private val autoDao = database.autoDao()
+    var lastExportError: String? = null
+        private set
     private val gson: Gson = GsonBuilder().serializeNulls().create()
 
-    suspend fun exportToArchiveFile(uri: Uri, password: String? = null): Boolean = withContext(Dispatchers.IO) {
-        runCatching {
-            val photos = utilityDao.getAllBillPhotosForExport()
-            val archivePhotos = BackupArchiveHelper.rewritePhotosForArchive(photos)
-            val plainJson = buildPlainJson(archivePhotos)
-            val payload = if (password.isNullOrBlank()) {
-                plainJson
-            } else {
-                BackupCrypto.encrypt(plainJson, password)
+    suspend fun buildFullBackup(password: String? = null): ByteArray = withContext(Dispatchers.IO) {
+        val zip = database.withTransaction {
+            val photos = utilityDao.getAllBillPhotosForExport().toMutableList()
+            utilityDao.getAllBillsForExport().forEach { bill ->
+                val legacyUri = bill.receiptPhotoUri
+                if (!legacyUri.isNullOrBlank() && photos.none { it.billId == bill.id && it.photoType == UtilityBillPhotoEntity.TYPE_RECEIPT }) {
+                    photos.add(UtilityBillPhotoEntity(billId = bill.id, photoType = UtilityBillPhotoEntity.TYPE_RECEIPT, storedUri = legacyUri))
+                }
             }
-            val archiveBytes = BackupArchiveHelper.exportArchive(appContext, payload, photos)
-            appContext.contentResolver.openOutputStream(uri)?.use { it.write(archiveBytes) }
+            val json = buildPlainJson(BackupArchiveHelper.rewritePhotosForArchive(photos))
+            BackupArchiveHelper.exportArchive(appContext, json, photos)
+        }
+        // Parse the generated archive before declaring it a complete backup.
+        FullBackupContainer.validateAttachments(BackupArchiveHelper.readArchive(zip))
+        FullBackupContainer.encode(zip, password)
+    }
+
+    suspend fun exportToArchiveFile(uri: Uri, password: String? = null): Boolean = withContext(Dispatchers.IO) {
+        lastExportError = null
+        try {
+            val bytes = buildFullBackup(password)
+            appContext.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                 ?: error("cannot open output stream")
-        }.isSuccess
+            appContext.contentResolver.openInputStream(uri)?.use { input ->
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                val buffer = ByteArray(8192)
+                var total = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    require(total <= FullBackupContainer.MAX_FILE_BYTES) { "Копия слишком большая" }
+                    digest.update(buffer, 0, count)
+                }
+                require(java.security.MessageDigest.isEqual(digest.digest(),
+                    java.security.MessageDigest.getInstance("SHA-256").digest(bytes))) { "Проверка записи копии не пройдена" }
+            } ?: error("cannot verify backup")
+            true
+        } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+        } catch (e: Exception) {
+            lastExportError = e.message
+            android.util.Log.w("FullBackup", "Export failed", e)
+            false
+        }
     }
 
     suspend fun exportToJson(password: String? = null): String = withContext(Dispatchers.IO) {
@@ -83,7 +115,7 @@ class BackupManager internal constructor(context: Context, private val database:
     suspend fun readFileContent(uri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {
             appContext.contentResolver.openInputStream(uri)?.use { input ->
-                BackupArchiveHelper.readBounded(input, 32 * 1024 * 1024).toString(Charsets.UTF_8)
+                BackupArchiveHelper.readBounded(input, FullBackupContainer.MAX_FILE_BYTES).toString(Charsets.UTF_8)
             }
         }.getOrNull()
     }
@@ -118,7 +150,13 @@ class BackupManager internal constructor(context: Context, private val database:
                 }
                 else -> cleanJson
             }
-            importPlainJson(plainJson, mode)
+            try {
+                val full = FullBackupContainer.unpack(plainJson)
+                if (full == null) importPlainJson(plainJson, mode) else importPlainJson(full.json, mode, full.photoBytes)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (e: Exception) {
+                BackupImportResult(success = false, message = appContext.getString(R.string.backup_import_failed, e.message.orEmpty()))
+            }
         }
 
     suspend fun importFromFile(
@@ -152,6 +190,11 @@ class BackupManager internal constructor(context: Context, private val database:
                 }
                 else -> payload
             }
+            try {
+                FullBackupContainer.validateAttachments(BackupArchiveHelper.ArchiveContent(plainJson, archive.photoBytes))
+            } catch (e: Exception) {
+                return BackupImportResult(success = false, message = appContext.getString(R.string.backup_import_failed, e.message.orEmpty()))
+            }
             return importPlainJson(plainJson, mode, archive.photoBytes)
         }
         val content = readFileContent(uri)
@@ -173,6 +216,8 @@ class BackupManager internal constructor(context: Context, private val database:
     ): String = database.withTransaction {
         val photos = photosForArchive ?: utilityDao.getAllBillPhotosForExport()
         val data = BackupData(
+            balanceLedgerState = dao.getLedgerState()?.copy(kind="adjustment", operationId=""),
+            balanceMovements = dao.getAllBalanceMovements(),
             version = BackupData.CURRENT_VERSION,
             exportedAt = System.currentTimeMillis(),
             budgetProfiles = dao.getAllBudgetProfilesForExport(),
@@ -232,7 +277,11 @@ class BackupManager internal constructor(context: Context, private val database:
             val activeId = database.withTransaction {
                 when (mode) {
                     BackupImportMode.REPLACE -> importData(data, photoBytes)
-                    BackupImportMode.MERGE -> BackupMergeImporter(appContext, dao, utilityDao, autoDao).import(data, photoBytes)
+                    BackupImportMode.MERGE -> {
+                        val active = BackupMergeImporter(appContext, dao, utilityDao, autoDao).import(data, photoBytes)
+                        dao.resetBalanceLedger()
+                        active
+                    }
                 }
             }
             if (mode == BackupImportMode.REPLACE && data.participantNames.isNotEmpty()) {
@@ -241,7 +290,8 @@ class BackupManager internal constructor(context: Context, private val database:
             ActiveBudgetPreferences.setActiveBudgetId(appContext, activeId)
             BackupImportResult(
                 success = true,
-                message = appContext.getString(R.string.backup_import_success_version, data.version),
+                message = appContext.getString(R.string.backup_import_success_version, data.version) +
+                    if (mode==BackupImportMode.MERGE || data.balanceLedgerState==null) "\n" + appContext.getString(R.string.ledger_import_restart) else "",
                 backupVersion = data.version,
             )
         } catch (e: JsonSyntaxException) {
@@ -561,6 +611,23 @@ class BackupManager internal constructor(context: Context, private val database:
             .filter { it.isActive && (it.remindEnabled || it.autoPostEnabled) }
             .forEach { ObligationLinkedSync.sync(repository, it) }
 
+        val historicalState = data.balanceLedgerState
+        if (historicalState == null) {
+            dao.resetBalanceLedger()
+        } else {
+            require(historicalState.startedAt > 0 && historicalState.startedAt <= System.currentTimeMillis()) { "Некорректная граница истории остатков" }
+            val rows = data.balanceMovements.map { row ->
+                require(row.delta.isFinite() && row.budgetDelta.isFinite() && row.createdAt >= historicalState.startedAt && row.createdAt <= System.currentTimeMillis()) { "Некорректное движение остатка" }
+                row.copy(id=0, budgetId=profileIdMap[row.budgetId] ?: -kotlin.math.abs(row.budgetId))
+            }
+            val balances = dao.getAllCategoriesForExport().filter { it.parentId==0 && it.isActive }.groupBy { it.budgetId }.mapValues { (_,cats)->cats.sumOf { it.currentBalance } }
+            val totals = rows.groupBy { it.budgetId }.mapValues { (_,moves)->moves.sumOf { it.budgetDelta } }
+            require((balances.keys + totals.keys).all { kotlin.math.abs((balances[it] ?: 0.0)-(totals[it] ?: 0.0)) < 0.01 }) { "История движений не совпадает с остатками копии" }
+            dao.deleteBalanceMovements()
+            dao.setLedgerState(historicalState.copy(id=1, kind="adjustment", operationId=""))
+            dao.insertBalanceMovements(rows)
+        }
+
         val preferredOldId = data.budgetProfiles.firstOrNull { it.id > 0 }?.id
         return preferredOldId?.let { profileIdMap[it] } ?: fallbackProfileId
     }
@@ -578,7 +645,7 @@ class BackupManager internal constructor(context: Context, private val database:
             photo.photoType,
             photo.sortOrder,
             bytes,
-        ) ?: archivePath
+        ) ?: error("Не удалось восстановить фотографию: $archivePath")
     }
 
     private fun remapId(
@@ -654,6 +721,8 @@ class BackupManager internal constructor(context: Context, private val database:
     }
 
     private fun BackupDataDto.toBackupData(): BackupData = BackupData(
+        balanceLedgerState = balanceLedgerState,
+        balanceMovements = balanceMovements.orEmpty(),
         version = version ?: 1,
         exportedAt = exportedAt ?: System.currentTimeMillis(),
         budgetProfiles = budgetProfiles.orEmpty(),

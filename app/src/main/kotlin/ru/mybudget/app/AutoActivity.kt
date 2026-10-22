@@ -3,22 +3,22 @@ package ru.mybudget.app
 import android.os.Bundle
 import android.content.Intent
 import ru.mybudget.app.auto.AutoEntry
-import ru.mybudget.app.auto.AutoEntryType
 import ru.mybudget.app.auto.AutoPaymentMethod
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.PopupMenu
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.activity.viewModels
+import androidx.activity.OnBackPressedCallback
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -48,6 +48,12 @@ class AutoActivity : AppCompatActivity() {
         abstract val subtitle: String
         abstract val paid: Boolean
         abstract val type: EntryType
+        val isArchived:Boolean get() = when(this) {
+            is Service -> log.isArchived
+            is Insurance -> item.isArchived
+            is Fuel -> log.isArchived
+            is Repair -> log.isArchived
+        }
         val paymentMethod: String get() = when (this) {
             is Service -> AutoPaymentMethod.resolve(log.paymentMethod, log.paidTransactionId)
             is Insurance -> AutoPaymentMethod.resolve(item.paymentMethod, item.paidTransactionId)
@@ -113,6 +119,10 @@ class AutoActivity : AppCompatActivity() {
     private var filter: EntryType? = null
     private var refreshJob: kotlinx.coroutines.Job? = null
     private var loading = true
+    private var showArchivedEvents = false
+    private val journalModel:AutoJournalViewModel by viewModels()
+    private val mutating get() = journalModel.state.value != AutoJournalViewModel.State.Idle
+    private val archivedVehicle get() = vehicles.firstOrNull { it.id == vehicleId }?.isArchived == true
 
     private lateinit var vehicleNameText: TextView
     private lateinit var fuelStatsText: TextView
@@ -120,28 +130,31 @@ class AutoActivity : AppCompatActivity() {
     private lateinit var emptyState: TextView
 
     private val adapter = RecordAdapter(
-        onClick = { showRecordDialog(it) },
+        onClick = { if (!loading && !mutating) showRecordDialog(it) },
     )
-
-    private val dateFormat = DateTimeFormatter.ofPattern("dd.MM.uuuu")
-        .withResolverStyle(java.time.format.ResolverStyle.STRICT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_auto)
         ScreenHeaderHelper.setup(this, getString(R.string.main_menu_auto))
+        onBackPressedDispatcher.addCallback(this,object:OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() { if(!mutating) finish() }
+        })
         vehicleId = savedInstanceState?.getInt("auto_vehicle", 0) ?: 0
+        showArchivedEvents = savedInstanceState?.getBoolean("auto_show_archived") ?: false
         filter = EntryType.entries.firstOrNull { it.key == savedInstanceState?.getString("auto_filter") }
         ScreenHeaderHelper.bindAction(this, R.drawable.ic_nav_more, R.string.design_auto_manage) {
             PopupMenu(this, findViewById(R.id.screenHeaderAction)).apply {
                 menu.add(0, 1, 0, R.string.auto_pick_vehicle)
                 menu.add(0, 2, 1, R.string.auto_add_vehicle)
-                menu.add(0, 3, 2, R.string.auto_delete_vehicle)
+                menu.add(0, 3, 2, if(archivedVehicle) R.string.auto_restore_vehicle else R.string.auto_archive_vehicle)
+                menu.add(0,4,3,R.string.auto_show_archived_events).apply { isCheckable=true;isChecked=showArchivedEvents }
                 setOnMenuItemClickListener {
-                    if (!loading) when (it.itemId) {
+                    if (!loading && !mutating) when (it.itemId) {
                         1 -> showVehiclePicker()
                         2 -> showAddVehicleDialog()
-                        3 -> showDeleteVehicleDialog()
+                        3 -> showArchiveVehicleDialog()
+                        4 -> { showArchivedEvents=!showArchivedEvents;applyFilter() }
                     }
                     true
                 }
@@ -159,15 +172,30 @@ class AutoActivity : AppCompatActivity() {
         recycler.adapter = adapter
         vehicleNameText.setOnClickListener { showVehiclePicker() }
         findViewById<View>(R.id.autoAddEventButton).setOnClickListener {
-            if (!loading) AlertDialog.Builder(this).setTitle(R.string.design_auto_add_event)
+            if (!loading && !mutating && !archivedVehicle) AlertDialog.Builder(this).setTitle(R.string.design_auto_add_event)
                 .setItems(EntryType.entries.map { getString(it.labelRes) }.toTypedArray()) { _, index ->
                     showEntryDialog(EntryType.entries[index])
                 }.setNegativeButton(android.R.string.cancel, null).show()
         }
         findViewById<View>(R.id.autoStatisticsButton).setOnClickListener {
-            if (!loading) startActivity(Intent(this, AutoStatisticsActivity::class.java).putExtra("vehicleId", vehicleId))
+            if (!loading && !mutating) startActivity(Intent(this, AutoStatisticsActivity::class.java).putExtra("vehicleId", vehicleId))
         }
         setupFilterButtons()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                journalModel.state.collect { state ->
+                    findViewById<View>(R.id.autoAddEventButton).isEnabled = !loading && !mutating && !archivedVehicle && vehicleId>0
+                    when(state) {
+                        AutoJournalViewModel.State.Done -> { journalModel.acknowledge();refresh() }
+                        is AutoJournalViewModel.State.Failed -> {
+                            Toast.makeText(this@AutoActivity,getString(R.string.auto_save_failed,state.message),Toast.LENGTH_LONG).show()
+                            journalModel.acknowledge();refresh()
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -177,6 +205,7 @@ class AutoActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putInt("auto_vehicle", vehicleId)
+        outState.putBoolean("auto_show_archived", showArchivedEvents)
         outState.putString("auto_filter", filter?.key)
         super.onSaveInstanceState(outState)
     }
@@ -206,10 +235,11 @@ class AutoActivity : AppCompatActivity() {
     }
 
     private fun applyFilter() {
-        val visible = if (filter == null) records else records.filter { it.type == filter }
+        val visible = records.filter { (filter == null || it.type == filter) && (showArchivedEvents || !it.isArchived) }
         adapter.submit(visible.sortedByDescending { it.dateEpochDay })
         emptyState.visibility = if (visible.isEmpty()) View.VISIBLE else View.GONE
-        emptyState.setText(if (filter == null) R.string.auto_empty else R.string.design_auto_empty_filter)
+        emptyState.setText(if(records.any { it.isArchived } && !showArchivedEvents) R.string.auto_only_archived_events
+            else if (filter == null) R.string.auto_empty else R.string.design_auto_empty_filter)
     }
 
     private fun refresh() {
@@ -234,13 +264,13 @@ class AutoActivity : AppCompatActivity() {
                     repository.ensureDefaultVehicle(getString(R.string.auto_default_vehicle))
                     available = repository.getAllVehicles()
                 }
-                val id = available.firstOrNull { it.id == selectedId }?.id ?: available.first().id
+                val id = available.firstOrNull { it.id == selectedId }?.id ?: available.firstOrNull { !it.isArchived }?.id ?: available.first().id
                 Triple(available, id, loadRecords(id)) to repository.fuelConsumptionPer100Km(id)
             }
             vehicles = loaded.first.first
             vehicleId = loaded.first.second
             records = loaded.first.third
-            vehicleNameText.text = vehicles.firstOrNull { it.id == vehicleId }?.name ?: ""
+            vehicleNameText.text = vehicles.firstOrNull { it.id == vehicleId }?.let { vehicleLabel(it) } ?: ""
             applyFilter()
             val consumption = loaded.second
             fuelStatsText.text = consumption?.let {
@@ -261,7 +291,7 @@ class AutoActivity : AppCompatActivity() {
             status.setText(R.string.auto_stats_load_failed)
           } finally {
             loading = false
-            findViewById<View>(R.id.autoAddEventButton).isEnabled = vehicleId > 0
+            findViewById<View>(R.id.autoAddEventButton).isEnabled = vehicleId > 0 && !archivedVehicle && !mutating
           }
         }
     }
@@ -296,9 +326,9 @@ class AutoActivity : AppCompatActivity() {
     }
 
     private fun showVehiclePicker() {
-        if (loading || vehicles.isEmpty()) return
+        if (loading || mutating || vehicles.isEmpty()) return
         val choices = vehicles.toList()
-        val names = choices.map { it.name }.toTypedArray()
+        val names = choices.map { vehicleLabel(it) }.toTypedArray()
         val checked = choices.indexOfFirst { it.id == vehicleId }
         AlertDialog.Builder(this)
             .setTitle(R.string.auto_pick_vehicle)
@@ -312,240 +342,26 @@ class AutoActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showDeleteVehicleDialog() {
-        val current = vehicles.firstOrNull { it.id == vehicleId } ?: return
-        if (vehicles.size <= 1) {
-            Toast.makeText(this, R.string.auto_last_vehicle, Toast.LENGTH_SHORT).show()
-            return
-        }
+    private fun vehicleLabel(vehicle:ru.mybudget.app.data.VehicleEntity):String =
+        if(vehicle.isArchived) getString(R.string.auto_archived_name,vehicle.name) else vehicle.name
+
+    private fun showArchiveVehicleDialog() {
+        if(loading || mutating) return
+        val current=vehicles.firstOrNull { it.id==vehicleId } ?: return
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.auto_delete_vehicle_title, current.name))
-            .setMessage(R.string.auto_delete_vehicle_message)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                lifecycleScope.launch(Dispatchers.IO) {
-                    repository.deleteVehicle(current.id)
-                    refresh()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .setTitle(if(current.isArchived) R.string.auto_restore_vehicle else R.string.auto_archive_vehicle)
+            .setMessage(getString(if(current.isArchived) R.string.auto_restore_vehicle_message else R.string.auto_archive_vehicle_message,current.name))
+            .setPositiveButton(if(current.isArchived) R.string.auto_restore else R.string.auto_archive) { _,_ ->
+                journalModel.execute(AutoJournalViewModel.Command.VehicleArchive(current.id,!current.isArchived))
+            }.setNegativeButton(android.R.string.cancel,null).show()
     }
 
     private fun showEntryDialog(type: EntryType, existing: Record? = null) {
-        lifecycleScope.launch {
-            val cats = manager.getCategoriesAsync().filter { it.isActive && !manager.hasSubcategories(it.id) }
-            withContext(Dispatchers.Main) { showEntryDialogOnMain(type, cats, existing) }
-        }
-    }
-
-    private fun showEntryDialogOnMain(type: EntryType, cats: List<BudgetCategory>, existing: Record?) {
-        val layout = layoutInflater.inflate(R.layout.dialog_auto_entry, null)
-        val dateInput = layout.findViewById<EditText>(R.id.dateInput)
-        val endDateInput = layout.findViewById<EditText>(R.id.endDateInput)
-        val mileageInput = layout.findViewById<EditText>(R.id.mileageInput)
-        val litersInput = layout.findViewById<EditText>(R.id.litersInput)
-        val priceInput = layout.findViewById<EditText>(R.id.priceInput)
-        val descInput = layout.findViewById<EditText>(R.id.descInput)
-        val amountInput = layout.findViewById<EditText>(R.id.amountInput)
-        val categorySpinner = layout.findViewById<Spinner>(R.id.categorySpinner)
-        val paymentSpinner = layout.findViewById<Spinner>(R.id.paymentMethodSpinner)
-        val itemsContainer = layout.findViewById<LinearLayout>(R.id.itemsContainer)
-        val addItemButton = layout.findViewById<Button>(R.id.addItemButton)
-
-        val itemRows = mutableListOf<Pair<EditText, EditText>>()
-        fun recalcTotal() {
-            if (itemRows.isEmpty()) return
-            val sum = itemRows.sumOf { (_, price) -> MoneyFormat.parseQuantity(price.text) ?: 0.0 }
-            amountInput.setText(MoneyFormat.roundMoney(sum).toString())
-        }
-        fun addRow() {
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(0, resources.getDimensionPixelSize(R.dimen.space_8), 0, 0)
-            }
-            val nameEdit = EditText(this, null, 0, R.style.Widget_MyBudget_OperationInput).apply {
-                hint = getString(R.string.auto_item_name)
-                inputType = android.text.InputType.TYPE_CLASS_TEXT
-                layoutParams = LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT)
-            }
-            val priceEdit = EditText(this, null, 0, R.style.Widget_MyBudget_OperationInput).apply {
-                hint = getString(R.string.auto_item_price)
-                inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-                layoutParams = LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT)
-                addTextChangedListener(object : android.text.TextWatcher {
-                    override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                    override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                    override fun afterTextChanged(s: android.text.Editable?) { recalcTotal() }
-                })
-            }
-            row.addView(nameEdit)
-            row.addView(priceEdit)
-            itemsContainer.addView(row)
-            itemRows.add(nameEdit to priceEdit)
-        }
-        val multiItem = type == EntryType.SERVICE || type == EntryType.REPAIR
-        if (multiItem) {
-            itemsContainer.visibility = View.VISIBLE
-            addItemButton.visibility = View.VISIBLE
-            if (existing == null) addRow()
-            addItemButton.setOnClickListener { addRow() }
-        }
-
-        val fuelAutoCalc = type == EntryType.FUEL
-        if (fuelAutoCalc) {
-            amountInput.hint = getString(R.string.auto_fuel_amount_auto)
-            val watcher = object : android.text.TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun afterTextChanged(s: android.text.Editable?) {
-                    val liters = MoneyFormat.parseQuantity(litersInput.text) ?: 0.0
-                    val price = MoneyFormat.parseQuantity(priceInput.text) ?: 0.0
-                    amountInput.setText(MoneyFormat.roundMoney(liters * price).toString())
-                }
-            }
-            litersInput.addTextChangedListener(watcher)
-            priceInput.addTextChangedListener(watcher)
-        }
-
-        if (existing != null) {
-            dateInput.setText(formatDay(existing.dateEpochDay))
-            amountInput.setText(MoneyFormat.roundMoney(existing.amount).toString())
-            val mileage = when (existing) {
-                is Record.Service -> existing.log.mileageKm
-                is Record.Fuel -> existing.log.mileageKm
-                is Record.Repair -> existing.log.mileageKm
-                else -> null
-            }
-            mileage?.let { mileageInput.setText(it.toString()) }
-            if (multiItem) {
-                val fullDesc = when (existing) {
-                    is Record.Service -> existing.log.workDescription
-                    is Record.Repair -> existing.log.orderDescription
-                    else -> ""
-                } ?: ""
-                val (descLines, itemLines) = fullDesc.lines().partition { !isItemLine(it) }
-                descInput.setText(descLines.joinToString("\n").trim())
-                itemLines.forEach { line ->
-                    addRow()
-                    val (n, p) = splitItemLine(line)
-                    itemRows.last().first.setText(n)
-                    itemRows.last().second.setText(MoneyFormat.formatQuantity(p))
-                }
-            } else {
-                when (existing) {
-                    is Record.Service -> descInput.setText(existing.log.workDescription)
-                    is Record.Repair -> descInput.setText(existing.log.orderDescription)
-                    else -> {}
-                }
-            }
-            if (existing is Record.Insurance) {
-                endDateInput.setText(formatDay(existing.item.endDateEpochDay))
-            }
-            if (existing is Record.Fuel) {
-                litersInput.setText(MoneyFormat.formatQuantity(existing.log.liters))
-                priceInput.setText(MoneyFormat.formatQuantity(existing.log.pricePerLiter))
-            }
-        }
-
-        if (existing == null) dateInput.setText(LocalDate.now().format(dateFormat))
-        when (type) {
-            EntryType.SERVICE -> {
-                mileageInput.visibility = View.VISIBLE
-                descInput.hint = getString(R.string.auto_field_work)
-            }
-            EntryType.INSURANCE -> {
-                endDateInput.visibility = View.VISIBLE
-                if (existing == null) {
-                    endDateInput.setText(LocalDate.now().plusYears(1).format(dateFormat))
-                }
-            }
-            EntryType.FUEL -> {
-                litersInput.visibility = View.VISIBLE
-                priceInput.visibility = View.VISIBLE
-            }
-            EntryType.REPAIR -> {
-                mileageInput.visibility = View.VISIBLE
-                descInput.hint = getString(R.string.auto_field_order)
-            }
-        }
-        categorySpinner.adapter = ArrayAdapter(
-            this,
-            R.layout.item_operation_spinner,
-            listOf(getString(R.string.auto_choose_category)) + cats.map { category ->
-                val parent = manager.getCategories().firstOrNull { it.id == category.parentId }?.name
-                if (parent.isNullOrBlank()) category.name else "$parent → ${category.name}"
-            },
-        )
-        val saved = existing?.toEntry()?.categoryId?.toInt()
-            ?: AutoPreferences.getDefaultCategoryId(this, type.key)
-        val savedIndex = cats.indexOfFirst { it.id == saved }
-        categorySpinner.setSelection(if (savedIndex >= 0) savedIndex + 1 else 0)
-
-        paymentSpinner.adapter = ArrayAdapter(this, R.layout.item_operation_spinner,
-            listOf(getString(R.string.auto_unpaid), getString(R.string.auto_payment_budget),
-                getString(R.string.auto_payment_cash)))
-        paymentSpinner.setSelection(AutoPaymentMethod.options.indexOf(
-            existing?.toEntry()?.paymentMethod ?: AutoPaymentMethod.UNPAID).coerceAtLeast(0))
-        fun updatePaymentFields() {
-            val visible = paymentSpinner.selectedItemPosition == 1
-            categorySpinner.visibility = if (visible) View.VISIBLE else View.GONE
-            layout.findViewById<View>(R.id.autoCategoryLabel).visibility = if (visible) View.VISIBLE else View.GONE
-        }
-        paymentSpinner.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                updatePaymentFields()
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
-        }
-        updatePaymentFields()
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(if (existing != null) R.string.auto_edit else titleFor(type))
-            .setView(layout)
-            .setPositiveButton(R.string.save, null)
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
-        dialog.setOnShowListener {
-            dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-            val saveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            saveButton.setOnClickListener {
-                val items = mutableListOf<Pair<String, Double>>()
-                for ((name, price) in itemRows) {
-                    val label = name.text.toString().trim()
-                    val text = price.text.toString().trim()
-                    if (label.isEmpty() && text.isEmpty()) continue
-                    val sum = MoneyFormat.parse(text)
-                    if (label.isEmpty() || sum == null || !sum.isFinite() || sum < 0.0) {
-                        toast(R.string.auto_invalid_item)
-                        return@setOnClickListener
-                    }
-                    items.add(label to sum)
-                }
-                submitEntry(type, existing, cats, categorySpinner, paymentSpinner,
-                    dateInput, endDateInput, mileageInput, litersInput, priceInput, descInput,
-                    amountInput, items, onBusy = { busy ->
-                        saveButton.isEnabled = !busy
-                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).isEnabled = !busy
-                        dialog.setCancelable(!busy)
-                    }, onSaved = { dialog.dismiss() })
-            }
-        }
-        dialog.show()
-    }
-
-    private fun parseItemPrice(text: String): Double? =
-        MoneyFormat.parseQuantity(text.trim().removeSuffix("₽"))
-
-    private fun isItemLine(line: String): Boolean {
-        val idx = line.lastIndexOf(" — ")
-        if (idx <= 0) return false
-        return parseItemPrice(line.substring(idx + 3)) != null
-    }
-
-    private fun splitItemLine(line: String): Pair<String, Double> {
-        val idx = line.lastIndexOf(" — ")
-        if (idx <= 0) return line.trim() to 0.0
-        val price = parseItemPrice(line.substring(idx + 3)) ?: 0.0
-        return line.substring(0, idx).trim() to price
+        if(loading || mutating || archivedVehicle || existing?.isArchived == true) return
+        startActivity(Intent(this, AutoEntryActivity::class.java)
+            .putExtra(AutoEntryActivity.EXTRA_TYPE, type.name)
+            .putExtra(AutoEntryActivity.EXTRA_ID, existing?.toEntry()?.id ?: 0)
+            .putExtra(AutoEntryActivity.EXTRA_VEHICLE, existing?.toEntry()?.vehicleId ?: vehicleId))
     }
 
     private fun Record.toEntry(): AutoEntry = when (this) {
@@ -555,107 +371,8 @@ class AutoActivity : AppCompatActivity() {
         is Record.Repair -> AutoEntry.from(log)
     }
 
-    private fun submitEntry(
-        type: EntryType, existing: Record?, cats: List<BudgetCategory>,
-        categorySpinner: Spinner, paymentSpinner: Spinner, dateInput: EditText,
-        endDateInput: EditText, mileageInput: EditText, litersInput: EditText,
-        priceInput: EditText, descInput: EditText, amountInput: EditText,
-        items: List<Pair<String, Double>>, onBusy: (Boolean) -> Unit, onSaved: () -> Unit,
-    ) {
-        val date = parseDate(dateInput.text.toString()) ?: return toast(R.string.auto_bad_date)
-        val method = AutoPaymentMethod.options.getOrNull(paymentSpinner.selectedItemPosition) ?: return
-        val category = cats.getOrNull(categorySpinner.selectedItemPosition - 1)
-        if (method == AutoPaymentMethod.BUDGET && category == null) return toast(R.string.auto_no_categories)
-        val mileageText = mileageInput.text.toString().trim()
-        val mileage = mileageText.toIntOrNull()
-        if (type != EntryType.INSURANCE && mileageText.isNotEmpty() && (mileage == null || mileage < 0)) {
-            return toast(R.string.auto_invalid_mileage)
-        }
-        val end = if (type == EntryType.INSURANCE) {
-            parseDate(endDateInput.text.toString()) ?: return toast(R.string.auto_bad_date)
-        } else null
-        if (end != null && end < date) return toast(R.string.auto_invalid_insurance_dates)
-        val liters = if (type == EntryType.FUEL) MoneyFormat.parseQuantity(litersInput.text) else 0.0
-        val price = if (type == EntryType.FUEL) MoneyFormat.parseQuantity(priceInput.text) else 0.0
-        if (liters == null || price == null || !liters.isFinite() || !price.isFinite() ||
-            (type == EntryType.FUEL && (liters <= 0.0 || price < 0.0))) {
-            return toast(R.string.auto_bad_amount)
-        }
-        var description = descInput.text.toString().trim()
-        val amount = when {
-            type == EntryType.FUEL -> MoneyFormat.roundMoney(liters * price)
-            items.isNotEmpty() -> MoneyFormat.roundMoney(items.sumOf { it.second })
-            else -> MoneyFormat.parse(amountInput.text) ?: return toast(R.string.auto_bad_amount)
-        }
-        if (!amount.isFinite() || amount < 0.0 || (method != AutoPaymentMethod.UNPAID && amount <= 0.0)) {
-            return toast(R.string.auto_bad_amount)
-        }
-        if (items.isNotEmpty()) {
-            val lines = items.joinToString("\n") { (name, sum) -> "$name — ${MoneyFormat.formatRub(sum)}" }
-            description = listOf(description, lines).filter { it.isNotBlank() }.joinToString("\n")
-        }
-        val old = existing?.toEntry()
-        val entry = AutoEntry(type = AutoEntryType.valueOf(type.name), id = old?.id ?: 0,
-            vehicleId = old?.vehicleId ?: vehicleId, dateEpochDay = date, amount = amount,
-            categoryId = if (method == AutoPaymentMethod.BUDGET) category!!.id.toLong() else -1,
-            paymentMethod = method, description = description, mileageKm = mileage,
-            endDateEpochDay = end, liters = liters, pricePerLiter = price,
-            createdAt = old?.createdAt ?: System.currentTimeMillis())
-        onBusy(true)
-        lifecycleScope.launch {
-            try {
-                if (method == AutoPaymentMethod.BUDGET) {
-                    val available = withContext(Dispatchers.IO) {
-                        val credit = old?.paidTransactionId?.let {
-                            BudgetDatabase.getInstance(this@AutoActivity).budgetDao().getTransactionById(it.toInt())
-                        }?.takeIf { it.categoryId == category!!.id }?.let {
-                            if (it.type == "expense") it.amount else -it.amount
-                        } ?: 0.0
-                        repository.getCategoryBalance(category!!.id) + credit
-                    }
-                    if (available < amount && !confirmOverspend(amount - available)) return@launch
-                }
-                withContext(Dispatchers.IO) { repository.saveEntry(entry) }
-                onSaved()
-                if (method == AutoPaymentMethod.BUDGET) {
-                    AutoPreferences.setDefaultCategoryId(this@AutoActivity, type.key, category!!.id)
-                }
-                manager.reloadCategoriesFromDatabase()
-                BudgetWidgetProvider.updateAll(this@AutoActivity)
-                if (method == AutoPaymentMethod.BUDGET) {
-                    OverspendNotifier.checkAfterExpense(applicationContext, category!!.id)
-                }
-                refresh()
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Toast.makeText(this@AutoActivity, getString(R.string.auto_save_failed, e.message.orEmpty()),
-                    Toast.LENGTH_LONG).show()
-            } finally {
-                onBusy(false)
-            }
-        }
-    }
-
-    private suspend fun confirmOverspend(shortage: Double): Boolean =
-        kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.auto_negative_title)
-                .setMessage(getString(R.string.auto_negative_message, MoneyFormat.formatRub(shortage)))
-                .setPositiveButton(R.string.save) { _, _ ->
-                    if (continuation.isActive) continuation.resumeWith(Result.success(true))
-                }
-                .setNegativeButton(android.R.string.cancel) { _, _ ->
-                    if (continuation.isActive) continuation.resumeWith(Result.success(false))
-                }
-                .setOnCancelListener {
-                    if (continuation.isActive) continuation.resumeWith(Result.success(false))
-                }
-                .show()
-            continuation.invokeOnCancellation { runOnUiThread { dialog.dismiss() } }
-        }
-
     private fun showRecordDialog(record: Record) {
+        val editable=!archivedVehicle && !record.isArchived
         val view = layoutInflater.inflate(R.layout.dialog_auto_record, null)
         val details = view.findViewById<TextView>(R.id.recordDetails)
         details.text = buildString {
@@ -668,18 +385,24 @@ class AutoActivity : AppCompatActivity() {
             .setView(view)
             .create()
         view.findViewById<Button>(R.id.payButton).visibility =
-            if (record.paid) View.GONE else View.VISIBLE
+            if (record.paid || !editable) View.GONE else View.VISIBLE
         view.findViewById<Button>(R.id.payButton).setOnClickListener {
             dialog.dismiss()
             confirmPay(record)
         }
+        view.findViewById<Button>(R.id.editButton).visibility=if(editable) View.VISIBLE else View.GONE
+        view.findViewById<Button>(R.id.deleteButton).apply {
+            visibility=if(archivedVehicle) View.GONE else View.VISIBLE
+            setText(if(record.isArchived) R.string.auto_restore else R.string.auto_event_actions)
+        }
+        if(archivedVehicle || record.isArchived) details.append("\n"+getString(R.string.auto_archive_read_only))
         view.findViewById<Button>(R.id.editButton).setOnClickListener {
             dialog.dismiss()
             showEntryDialog(record.type, record)
         }
         view.findViewById<Button>(R.id.deleteButton).setOnClickListener {
             dialog.dismiss()
-            confirmDelete(record)
+            confirmArchive(record)
         }
         view.findViewById<Button>(R.id.cancelButton).setOnClickListener { dialog.dismiss() }
         dialog.show()
@@ -695,38 +418,32 @@ class AutoActivity : AppCompatActivity() {
         else -> R.string.auto_unpaid
     })
 
-    private fun confirmDelete(record: Record) {
+    private fun confirmArchive(record:Record) {
+        if(loading || mutating || archivedVehicle) return
+        val entry=record.toEntry()
+        if(entry.isArchived) { confirmEntryArchive(entry,false);return }
         AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(R.string.auto_delete_record_message)
-            .setPositiveButton(R.string.delete) { _, _ ->
-                lifecycleScope.launch(Dispatchers.IO) {
-                    when (record) {
-                        is Record.Service -> repository.deleteServiceLog(record.log.id)
-                        is Record.Insurance -> repository.deleteInsurance(record.item.id)
-                        is Record.Fuel -> repository.deleteFuelLog(record.log.id)
-                        is Record.Repair -> repository.deleteRepair(record.log.id)
-                    }
-                    refresh()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .setTitle(R.string.auto_event_actions)
+            .setItems(arrayOf(getString(R.string.auto_archive),getString(R.string.auto_cancel_event))) { _,index ->
+                if(index==0) confirmEntryArchive(entry,true) else confirmCancelEntry(entry)
+            }.setNegativeButton(android.R.string.cancel,null).show()
     }
 
-    private fun titleFor(type: EntryType): Int = when (type) {
-        EntryType.SERVICE -> R.string.auto_add_service
-        EntryType.INSURANCE -> R.string.auto_add_insurance
-        EntryType.FUEL -> R.string.auto_add_fuel
-        EntryType.REPAIR -> R.string.auto_add_repair
+    private fun confirmEntryArchive(entry:AutoEntry,archived:Boolean) {
+        AlertDialog.Builder(this)
+            .setTitle(if(archived) R.string.auto_archive else R.string.auto_restore)
+            .setMessage(if(archived) R.string.auto_archive_event_message else R.string.auto_restore_event_message)
+            .setPositiveButton(if(archived) R.string.auto_archive else R.string.auto_restore) { _,_ ->
+                journalModel.execute(AutoJournalViewModel.Command.EntryArchive(entry.type,entry.id,archived))
+            }.setNegativeButton(android.R.string.cancel,null).show()
     }
 
-    private fun parseDate(text: String): Long? = runCatching {
-        LocalDate.parse(text.trim(), dateFormat).toEpochDay()
-    }.getOrNull()
-
-    private fun toast(res: Int) {
-        Toast.makeText(this, res, Toast.LENGTH_SHORT).show()
+    private fun confirmCancelEntry(entry:AutoEntry) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.auto_cancel_event).setMessage(R.string.auto_cancel_event_message)
+            .setPositiveButton(R.string.auto_cancel_confirm) { _,_ ->
+                journalModel.execute(AutoJournalViewModel.Command.Cancel(entry))
+            }.setNegativeButton(android.R.string.cancel,null).show()
     }
 
     private class RecordAdapter(
@@ -760,7 +477,9 @@ class AutoActivity : AppCompatActivity() {
             val ctx = holder.itemView.context
             holder.number.text = (position + 1).toString()
             holder.type.text = ctx.getString(record.type.labelRes)
-            holder.title.text = record.title.ifBlank { ctx.getString(record.type.labelRes) }
+            holder.title.text = record.title.ifBlank { ctx.getString(record.type.labelRes) }.let {
+                if(record.isArchived) ctx.getString(R.string.auto_archived_name,it) else it
+            }
             holder.subtitle.text = record.subtitle
             holder.subtitle.visibility = if (record.subtitle.isBlank()) View.GONE else View.VISIBLE
             holder.amount.text = MoneyFormat.formatRub(record.amount)

@@ -11,6 +11,7 @@ data class VehicleEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val sortOrder: Int = 0,
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 @Entity(
@@ -36,6 +37,7 @@ data class VehicleServiceLogEntity(
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 @Entity(
@@ -60,6 +62,7 @@ data class VehicleInsuranceEntity(
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 @Entity(
@@ -86,6 +89,7 @@ data class VehicleFuelLogEntity(
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )
 
 @Entity(
@@ -111,4 +115,5 @@ data class VehicleRepairEntity(
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
+    @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
 )

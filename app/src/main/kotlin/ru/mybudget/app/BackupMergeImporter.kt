@@ -324,7 +324,7 @@ internal class BackupMergeImporter(
             photo.photoType,
             photo.sortOrder,
             bytes,
-        ) ?: archivePath
+        ) ?: error("Не удалось восстановить фотографию: $archivePath")
     }
 
     private fun remapParentId(parentId: Int, categoryIdMap: Map<Int, Int>): Int {

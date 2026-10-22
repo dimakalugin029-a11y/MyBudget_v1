@@ -35,6 +35,10 @@ object UtilityPhotoStorage {
 
     fun deleteStoredPhoto(context: Context, storedUri: String) {
         val uri = runCatching { Uri.parse(storedUri) }.getOrNull() ?: return
+        if (uri.authority == "${context.packageName}.restoredphotos") {
+            runCatching { context.contentResolver.delete(uri, null, null) }
+            return
+        }
         val folderUri = UtilityPhotoPreferences.folderUri(context.applicationContext) ?: return
         val tree = DocumentFile.fromTreeUri(context.applicationContext, folderUri) ?: return
         if (!isUnderTree(tree, uri)) return
@@ -56,8 +60,21 @@ object UtilityPhotoStorage {
     ): String? {
         if (bytes.isEmpty()) return null
         val appContext = context.applicationContext
-        val folderUri = UtilityPhotoPreferences.folderUri(appContext) ?: return null
-        return writeBytesToMonthFolder(appContext, folderUri, bill, photoType, sortOrder, bytes)
+        val folderUri = UtilityPhotoPreferences.folderUri(appContext)
+        if (folderUri != null) {
+            runCatching { writeBytesToMonthFolder(appContext, folderUri, bill, photoType, sortOrder, bytes) }
+                .getOrNull()?.let { return it }
+        }
+        // A clean installation has no SAF permission. Keep restored attachments inside the app.
+        return runCatching {
+            val directory = java.io.File(appContext.filesDir, "restored_photos")
+            check(directory.isDirectory || directory.mkdirs()) { "Не удалось создать папку фотографий" }
+            val file = java.io.File(directory, "${java.util.UUID.randomUUID()}.jpg")
+            try {
+                file.outputStream().use { it.write(bytes) }
+                androidx.core.content.FileProvider.getUriForFile(appContext, "${appContext.packageName}.restoredphotos", file).toString()
+            } catch (e: Exception) { file.delete(); throw e }
+        }.getOrNull()
     }
 
     private fun writeBytesToMonthFolder(

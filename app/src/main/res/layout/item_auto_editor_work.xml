@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_item_name" />
+        <EditText android:id="@+id/autoWorkName" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_item_name" android:inputType="textCapSentences" android:saveEnabled="false" />
+        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_amount" />
+        <EditText android:id="@+id/autoWorkPrice" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_amount" android:inputType="numberDecimal" android:saveEnabled="false" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/autoWorkRemove" style="@style/Widget.MyBudget.Button.Text" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/auto_editor_remove" android:textColor="@color/expense_red" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

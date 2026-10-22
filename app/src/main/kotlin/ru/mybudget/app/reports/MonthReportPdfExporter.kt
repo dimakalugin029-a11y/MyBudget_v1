@@ -27,6 +27,7 @@ object MonthReportPdfExporter {
         val expensesByCategory: Map<String, Double>,
         val transactionCount: Int,
         val currentBalance: Double = 0.0,
+        val balanceCoverageNote: String? = null,
         val balanceStart: Double? = null,
         val balanceEnd: Double? = null,
         val chartMode: ChartMode = ChartMode.BALANCE,
@@ -48,6 +49,7 @@ object MonthReportPdfExporter {
             val balance = data.totalIncome - data.totalExpense
             writer.drawBody(context.getString(R.string.report_pdf_balance, MoneyFormat.formatRub(balance)))
             writer.drawBody(context.getString(R.string.report_pdf_current_balance, MoneyFormat.formatRub(data.currentBalance)))
+            data.balanceCoverageNote?.let { writer.drawMuted(it) }
             if (data.balanceStart != null && data.balanceEnd != null) {
                 writer.drawBody(
                     context.getString(

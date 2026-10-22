@@ -195,6 +195,14 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/coverOverspendIncomeButton"
+                style="@style/Widget.MyBudget.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:layout_marginBottom="@dimen/space_8"
+                android:text="@string/income_cover_overspend" />
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/distributeIncomeButton"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"

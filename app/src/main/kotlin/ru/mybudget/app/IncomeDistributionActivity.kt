@@ -39,11 +39,19 @@ class IncomeDistributionActivity : AppCompatActivity() {
     private var receiptRequest = java.util.UUID.randomUUID().toString()
     private var submitting = false
     private var distributionBudgetId = 1
+    private val coverageDraft = OverspendCoverageDialog.Draft()
+    private var coverageIds = mutableSetOf<Int>()
+    private var coverageLoading = false
+    private var categoriesReady = false
+    private var coverageOpenedInitially = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_income_distribution)
         manager = BudgetManager.getInstance(this)
+        coverageDraft.restore(savedInstanceState)
+        coverageIds.addAll(savedInstanceState?.getIntArray("coverage_applied_ids")?.toList().orEmpty())
+        coverageOpenedInitially = savedInstanceState?.getBoolean("coverage_initial_opened") ?: false
         val pending = PendingDistributionPreferences.getPending(this)
         distributionBudgetId = savedInstanceState?.getInt("distribution_budget")
             ?: intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
@@ -82,6 +90,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
             onRemove = { id ->
                 selectedIds.remove(id)
                 amounts.remove(id)
+                coverageIds.remove(id)
                 refreshList()
             },
             onAmountFocused = { collapseActionsSheet() },
@@ -92,6 +101,10 @@ class IncomeDistributionActivity : AppCompatActivity() {
         }
         findViewById<View>(R.id.addCategoryButton).setOnClickListener { pickCategories() }
         submitButton.setOnClickListener { submit() }
+        findViewById<View>(R.id.coverOverspendButton).apply {
+            isEnabled = false
+            setOnClickListener { showCoverage() }
+        }
         bindActionRow(R.id.incomeDistributionPlanRow, "📊", R.string.income_distribution_by_plan) {
             fillByPlan()
         }
@@ -118,7 +131,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 return@launch
             }
             manager.getCategoriesAsync()
-            leaves = manager.getCategoriesForExpenses()
+            leaves = manager.getCategoriesForExpenses().filter { it.isActive }
             parents = manager.getRootCategories().associate { it.id to it.name }
             applyPrefill()
             savedInstanceState?.getIntArray("distribution_ids")?.let { ids ->
@@ -127,11 +140,73 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 amounts.clear()
                 ids.forEachIndexed { index, id -> values.getOrNull(index)?.let { amounts[id] = it } }
             }
-            applySavedTemplateIfEmpty()
+            if (!intent.getBooleanExtra(EXTRA_OPEN_COVERAGE, false)) applySavedTemplateIfEmpty()
             if (totalIncome <= 0.0) {
                 Toast.makeText(this@IncomeDistributionActivity, R.string.income_enter_total_amount, Toast.LENGTH_LONG).show()
             }
+            categoriesReady = true
+            findViewById<View>(R.id.coverOverspendButton).isEnabled = true
+            if (coverageIds.isNotEmpty()) findViewById<TextView>(R.id.distributionModeHint).setText(R.string.overspend_mode)
             refreshList()
+            if (coverageDraft.open || (!coverageOpenedInitially && intent.getBooleanExtra(EXTRA_OPEN_COVERAGE, false))) {
+                coverageOpenedInitially = true
+                showCoverage(restoreDraft = coverageDraft.open)
+            }
+        }
+    }
+
+    private fun showCoverage(restoreDraft: Boolean = false) {
+        if (submitting || coverageLoading || !categoriesReady) return
+        if (!totalIncome.isFinite() || totalIncome <= 0.0) {
+            Toast.makeText(this, R.string.income_enter_total_amount, Toast.LENGTH_LONG).show()
+            return
+        }
+        collapseActionsSheet()
+        coverageLoading = true
+        updateTotals()
+        lifecycleScope.launch {
+            try {
+                require(distributionBudgetId == manager.getActiveBudgetId())
+                manager.reloadCategoriesFromDatabase()
+                require(distributionBudgetId == manager.getActiveBudgetId())
+                val candidates = OverspendCoverage.candidates(manager.getCategories(), distributionBudgetId)
+                leaves = manager.getCategoriesForExpenses().filter { it.isActive }
+                parents = manager.getRootCategories().associate { it.id to it.name }
+                if (candidates.isEmpty()) {
+                    coverageDraft.open = false
+                    Toast.makeText(this@IncomeDistributionActivity, R.string.overspend_empty, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val ids = candidates.map { it.id }.toSet()
+                if (!restoreDraft) {
+                    coverageDraft.selected.clear()
+                    coverageDraft.raw.clear()
+                    candidates.forEach { category ->
+                        val existing = amounts[category.id] ?: 0.0
+                        if (existing > 0.0) {
+                            coverageDraft.selected.add(category.id)
+                            coverageDraft.raw[category.id] = MoneyFormat.format(existing)
+                        }
+                    }
+                }
+                val other = amounts.filterKeys { it !in ids }.values.sum()
+                OverspendCoverageDialog.show(this@IncomeDistributionActivity, candidates, parents,
+                    totalIncome, other, coverageDraft, onClose = { updateTotals() }) { allocation ->
+                    ids.forEach { id -> amounts.remove(id); selectedIds.remove(id); coverageIds.remove(id) }
+                    allocation.forEach { (id, value) ->
+                        selectedIds.add(id); amounts[id] = value; coverageIds.add(id)
+                    }
+                    findViewById<TextView>(R.id.distributionModeHint).setText(R.string.overspend_mode)
+                    refreshList()
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (_: Exception) {
+                coverageDraft.open = false
+                Toast.makeText(this@IncomeDistributionActivity, R.string.overspend_refresh_error, Toast.LENGTH_LONG).show()
+            } finally {
+                coverageLoading = false
+                updateTotals()
+            }
         }
     }
 
@@ -177,6 +252,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
         }
         selectedIds = scaled.keys.toMutableList()
         amounts.clear()
+        coverageIds.clear()
         scaled.forEach { (id, amount) -> amounts[id] = amount }
         findViewById<TextView>(R.id.distributionModeHint).setText(R.string.income_distribution_mode_template)
         refreshList()
@@ -240,6 +316,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
         if (visible.isEmpty()) return
         val totalPlan = visible.sumOf { max(it.plannedAmount, 0.0) }
         amounts.clear()
+        coverageIds.clear()
         if (totalPlan <= 0.0) {
             val part = MoneyFormat.roundMoney(totalIncome / visible.size)
             visible.forEach { amounts[it.id] = part }
@@ -315,6 +392,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
         val knownIds = leaves.map { it.id }.toSet()
         selectedIds = byCategory.keys.filter { it in knownIds }.toMutableList()
         amounts.clear()
+        coverageIds.clear()
         var remaining = totalIncome
         for (id in selectedIds) {
             val suggested = byCategory[id] ?: 0.0
@@ -336,6 +414,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
         }
         selectedIds = withDefaults.map { it.id }.toMutableList()
         amounts.clear()
+        coverageIds.clear()
         withDefaults.forEach { amounts[it.id] = it.defaultIncomeAmount }
         findViewById<TextView>(R.id.distributionModeHint).setText(R.string.income_distribution_mode_defaults)
         refreshList()
@@ -350,6 +429,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 title = CategoryMultiPicker.leafLabel(category, parents),
                 balanceHint = getString(R.string.subcategory_balance_hint, MoneyFormat.formatRub(category.currentBalance)),
                 amountText = if (amount != null && amount > 0.0) MoneyFormat.format(amount) else "",
+                startingBalance = category.currentBalance.takeIf { id in coverageIds },
             )
         }
         adapter.submit(lines)
@@ -364,7 +444,12 @@ class IncomeDistributionActivity : AppCompatActivity() {
     private fun updateTotals() {
         val distributed = distributed()
         val remaining = remaining()
-        if (totalIncome > 0.0 && remaining > 0.01) {
+        if (coverageIds.isNotEmpty()) {
+            val covered = amounts.filterKeys { it in coverageIds }.values.sum()
+            totalText.text = getString(R.string.overspend_summary, MoneyFormat.formatRub(totalIncome),
+                MoneyFormat.formatRub(distributed - covered), MoneyFormat.formatRub(covered), MoneyFormat.formatRub(remaining))
+            totalText.setTextColor(ContextCompat.getColor(this, if (remaining < -0.01) R.color.expense_red else R.color.text_primary))
+        } else if (totalIncome > 0.0 && remaining > 0.01) {
             totalText.text = getString(R.string.income_distribution_undistributed_warning, MoneyFormat.format(remaining))
             totalText.setTextColor(ContextCompat.getColor(this, R.color.expense_red))
         } else {
@@ -376,7 +461,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
             totalText.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         }
         submitButton.isEnabled = selectedIds.isNotEmpty() &&
-            !submitting &&
+            !submitting && !coverageLoading && !coverageDraft.open &&
             distributed > 0.0 &&
             (totalIncome <= 0.0 || distributed <= totalIncome + 0.01)
     }
@@ -407,7 +492,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
     }
 
     private fun submit() {
-        if (submitting) return
+        if (submitting || coverageLoading || coverageDraft.open) return
         val items = amounts.filter { it.value > 0.0 }.map { it.key to it.value }
         if (items.isEmpty()) {
             Toast.makeText(this, R.string.income_distribution_empty, Toast.LENGTH_SHORT).show()
@@ -436,7 +521,10 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 }
                 manager.reloadCategoriesFromDatabase()
                 BudgetWidgetProvider.updateAll(this@IncomeDistributionActivity)
-            } else manager.applyTransactionGroup(items, "income", note)
+            } else {
+                manager.applyTransactionGroup(items, "income", note, requestId = receiptRequest)
+                credited = manager.database.budgetDao().getTransactionsByGroupId(receiptRequest).sumOf { it.amount }
+            }
             IncomeDistributionTemplatePreferences.save(
                 this@IncomeDistributionActivity,
                 manager.getActiveBudgetId(),
@@ -470,6 +558,9 @@ class IncomeDistributionActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        coverageDraft.save(outState)
+        outState.putIntArray("coverage_applied_ids", coverageIds.toIntArray())
+        outState.putBoolean("coverage_initial_opened", coverageOpenedInitially)
         outState.putString("receipt_request", receiptRequest)
         outState.putInt("plan_source", plannedSourceId ?: 0)
         outState.putString("plan_month", plannedMonth.toString())
@@ -481,6 +572,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
     }
 
     companion object {
+        const val EXTRA_OPEN_COVERAGE = "open_overspend_coverage"
         const val EXTRA_RECEIPT_REQUEST = "receipt_request"
         const val EXTRA_REPLACE_GROUP = "replace_income_group"
         const val EXTRA_INCOME_NOTE = "income_note"

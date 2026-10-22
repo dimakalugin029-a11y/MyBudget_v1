@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.activity.viewModels
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 import ru.mybudget.app.setup.ExpenseShortcut
@@ -29,6 +30,7 @@ class QuickExpenseActivity : AppCompatActivity() {
     private var selectedCategoryId: Int = -1
     private var prefilledApplied = false
     private var availableCategories: List<BudgetCategory> = emptyList()
+    private val moneyModel:MoneySaveViewModel by viewModels()
     private var saving = false
     private var requestId = java.util.UUID.randomUUID().toString()
     private var categoriesJob: kotlinx.coroutines.Job? = null
@@ -39,6 +41,7 @@ class QuickExpenseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_quick_expense)
         manager = BudgetManager.getInstance(this)
+        saving = moneyModel.state.value is MoneySaveViewModel.State.Saving
         selectedCategoryId = savedInstanceState?.getInt("quick_category", -1) ?: -1
         prefilledApplied = savedInstanceState?.getBoolean("quick_prefill") ?: false
         requestId = savedInstanceState?.getString("quick_request") ?: requestId
@@ -67,6 +70,20 @@ class QuickExpenseActivity : AppCompatActivity() {
             finish()
         }
         findViewById<MaterialButton>(R.id.quickExpenseSaveButton).setOnClickListener { save() }
+        MoneySaveUi.bind(this,moneyModel,{ saving }) { state ->
+            setSaving(state is MoneySaveViewModel.State.Saving)
+            when(state) {
+                is MoneySaveViewModel.State.Done -> {
+                    val result=state.result;val command=result.command
+                    if(result.outcome==SingleMoneyCommandExecutor.Outcome.SAVED) Toast.makeText(this,
+                        getString(R.string.quick_expense_saved,MoneyFormat.format(command.amount),command.label),Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(this,R.string.money_already_processed,Toast.LENGTH_LONG).show()
+                    finish()
+                }
+                is MoneySaveViewModel.State.Failed -> { Toast.makeText(this,R.string.operation_save_error,Toast.LENGTH_LONG).show();moneyModel.acknowledge() }
+                else -> Unit
+            }
+        }
         findViewById<MaterialButton>(R.id.quickExpenseSaveShortcutButton).setOnClickListener { saveShortcut() }
         repeatButton.setOnClickListener { applyRepeatLast() }
         OperationFormUi.bindAmount(this, amountInput) { chooseCategory() }
@@ -86,7 +103,7 @@ class QuickExpenseActivity : AppCompatActivity() {
         findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = false
         categoriesJob = lifecycleScope.launch {
           try {
-            manager.getCategoriesAsync()
+            manager.getCategoriesAsync(forceReload = true)
             val activeId = manager.getActiveBudgetId()
             val profiles = manager.getBudgetProfilesAsync()
             if (activeId != manager.getActiveBudgetId()) return@launch
@@ -279,32 +296,18 @@ class QuickExpenseActivity : AppCompatActivity() {
         val description = descriptionInput.text.toString().trim().ifBlank {
             getString(R.string.transaction_expense)
         }
-        saving = true
-        amountInput.isEnabled = false
-        descriptionInput.isEnabled = false
-        findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = false
-        lifecycleScope.launch {
-          try {
-            val participant = ParticipantPreferences.getDefaultParticipant(this@QuickExpenseActivity)
-            manager.recordTransaction(categoryId, amount, "expense", description, participant, requestId)
-            QuickExpensePreferences.saveLastExpense(this@QuickExpenseActivity, categoryId, amount, description)
-            val category = manager.getCategoryById(categoryId)
-            val label = category?.let { formatCategoryLabel(it) } ?: getString(R.string.transaction_expense)
-            Toast.makeText(
-                this@QuickExpenseActivity,
-                getString(R.string.quick_expense_saved, MoneyFormat.format(amount), label),
-                Toast.LENGTH_SHORT,
-            ).show()
-            finish()
-          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
-          } catch (_: Exception) {
-            Toast.makeText(this@QuickExpenseActivity, R.string.operation_save_error, Toast.LENGTH_LONG).show()
-          } finally {
-            saving = false
-            amountInput.isEnabled = true
-            descriptionInput.isEnabled = true
-            findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = !categoriesLoading && availableCategories.isNotEmpty()
-          }
+        val category=availableCategories.first { it.id==categoryId }
+        setSaving(true)
+        moneyModel.save(SingleMoneyCommand(requestId,category.budgetId,categoryId,amount,"expense",description,
+            ParticipantPreferences.getDefaultParticipant(this),label=formatCategoryLabel(category)))
+    }
+
+    private fun setSaving(value:Boolean) {
+        saving=value
+        amountInput.isEnabled=!value;descriptionInput.isEnabled=!value
+        findViewById<MaterialButton>(R.id.quickExpenseSaveButton).apply {
+            isEnabled=!value && !categoriesLoading && availableCategories.isNotEmpty()
+            setText(if(value) R.string.money_saving else R.string.operation_save_expense)
         }
     }
 

@@ -23,7 +23,7 @@ class PaymentExecutionTest {
     private val due = LocalDate.of(2026, 10, 21)
 
     @Before fun prepare() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         payments = PaymentExecution(db)
         val dao = db.budgetDao()
         dao.insertBudgetProfile(BudgetProfileEntity(id = 1, name = "Test"))

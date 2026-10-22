@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:fitsSystemWindows="true" android:background="@color/background_light" android:paddingHorizontal="16dp" android:paddingTop="12dp" android:paddingBottom="8dp">
+    <include layout="@layout/include_screen_header" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <TextView android:id="@+id/autoEditorVehicle" style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingBottom="12dp" android:text="@string/auto_editor_loading" />
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true" android:id="@+id/autoEditorScroll">
+        <LinearLayout android:id="@+id/autoEntryForm" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="invisible">
+            <androidx.cardview.widget.CardView style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                    <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_event" />
+                    <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_field_date" android:labelFor="@id/dateInput" />
+                    <EditText android:id="@+id/dateInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_field_date" android:inputType="text" android:saveEnabled="false" android:focusable="false" android:clickable="true" />
+                    <LinearLayout android:id="@+id/autoEndDateGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_field_end_date" android:labelFor="@id/endDateInput" />
+                        <EditText android:id="@+id/endDateInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_field_end_date" android:inputType="text" android:saveEnabled="false" android:focusable="false" android:clickable="true" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/autoMileageGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_mileage" android:labelFor="@id/mileageInput" />
+                        <EditText android:id="@+id/mileageInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_mileage" android:inputType="number" android:saveEnabled="false" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/autoFuelGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_liters" android:labelFor="@id/litersInput" />
+                        <EditText android:id="@+id/litersInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_liters" android:inputType="numberDecimal" android:saveEnabled="false" />
+                        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_price" android:labelFor="@id/priceInput" />
+                        <EditText android:id="@+id/priceInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_price" android:inputType="numberDecimal" android:saveEnabled="false" />
+                    </LinearLayout>
+                    <LinearLayout android:id="@+id/autoCommentGroup" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_comment" android:labelFor="@id/descInput" />
+                        <EditText android:id="@+id/descInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_comment" android:inputType="textCapSentences|textMultiLine" android:saveEnabled="false" android:minLines="2" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                    <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_amount" android:labelFor="@id/amountInput" />
+                    <EditText android:id="@+id/amountInput" style="@style/Widget.MyBudget.OperationInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/auto_editor_amount" android:inputType="numberDecimal" android:saveEnabled="false" />
+                    <TextView android:id="@+id/autoAmountExplanation" style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_manual_total" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <LinearLayout android:id="@+id/autoWorksSection" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_works" />
+                <LinearLayout android:id="@+id/itemsContainer" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/addItemButton" style="@style/Widget.MyBudget.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/auto_add_item" />
+            </LinearLayout>
+            <androidx.cardview.widget.CardView style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+                    <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_payment_label" />
+                    <Spinner android:id="@+id/paymentMethodSpinner" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:background="@drawable/operation_input_bg" android:saveEnabled="false" />
+                    <TextView android:id="@+id/autoCategoryLabel" style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_budget_category" />
+                    <Spinner android:id="@+id/categorySpinner" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:background="@drawable/operation_input_bg" android:saveEnabled="false" />
+                    <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_payment_hint" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+    <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:layout_marginBottom="4dp" android:text="@string/auto_editor_total" />
+    <TextView android:id="@+id/autoEditorTotal" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="26sp" android:textStyle="bold" android:textColor="@color/text_primary" android:accessibilityLiveRegion="polite" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/saveAutoEntryButton" style="@style/Widget.MyBudget.Button" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:text="@string/save" />
+</LinearLayout>

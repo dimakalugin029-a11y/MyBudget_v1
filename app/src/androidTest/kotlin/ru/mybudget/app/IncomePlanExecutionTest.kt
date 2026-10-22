@@ -16,7 +16,7 @@ class IncomePlanExecutionTest {
     private lateinit var db: BudgetDatabase
     private val month = YearMonth.of(2026, 10)
     @Before fun prepare() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         val dao = db.budgetDao()
         dao.insertBudgetProfile(BudgetProfileEntity(id = 1, name = "Основной"))
         dao.insertCategory(BudgetCategoryEntity(1, "Продукты", 0))
@@ -35,6 +35,15 @@ class IncomePlanExecutionTest {
         assertEquals(1000.0, db.budgetDao().getIncomePlanTransactions(1).sumOf { it.amount }, 0.001)
         assertEquals(600.0, db.budgetDao().getCategoryById(1)!!.currentBalance, 0.001)
         assertEquals(400.0, db.budgetDao().getCategoryById(2)!!.currentBalance, 0.001)
+    }
+
+    @Test fun cancelledReceiptCannotBeReplayedWithOldRequest() = runBlocking {
+        val service=IncomePlanExecution(db)
+        assertTrue(service.receive(7,month,listOf(1 to 400.0),"","cancelled"))
+        db.budgetDao().cancelTransactionGroup("cancelled")
+        assertFalse(service.receive(7,month,listOf(1 to 400.0),"","cancelled"))
+        assertEquals(0.0,db.budgetDao().getCategoryById(1)!!.currentBalance,0.0)
+        assertTrue(service.receive(7,month,listOf(1 to 400.0),"","new-receipt"))
     }
 
     @Test fun concurrentFullReceiptsDoNotDoubleCredit() = runBlocking {

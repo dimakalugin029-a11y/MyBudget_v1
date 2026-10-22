@@ -48,10 +48,10 @@
                 android:padding="6dp"
                 android:layout_marginStart="2dp"
                 android:layout_marginEnd="2dp"
-                android:text="@string/delete"
+                android:text="@string/auto_event_actions"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:minHeight="@dimen/touch_min_size"
-                android:textColor="@color/expense_red" />
+                android:textColor="@color/text_primary" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/cancelButton"
                 android:layout_width="match_parent"

@@ -47,3 +47,7 @@ secrets.properties
 # JVM crash logs
 hs_err_pid*.log
 replay_pid*.log
+
+# Python check caches
+__pycache__/
+*.py[cod]

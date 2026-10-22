@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auto_event_actions">Действия с событием</string>
+    <string name="auto_archive">В архив</string>
+    <string name="auto_restore">Вернуть из архива</string>
+    <string name="auto_archive_vehicle">Архивировать автомобиль</string>
+    <string name="auto_restore_vehicle">Вернуть автомобиль из архива</string>
+    <string name="auto_archived_name">%1$s · архив</string>
+    <string name="auto_show_archived_events">Показывать архивные события</string>
+    <string name="auto_only_archived_events">Здесь есть архивные события. Включите их показ в меню управления.</string>
+    <string name="auto_archive_vehicle_message">«%1$s» будет доступен для просмотра. История, расходы и статистика сохранятся. Новые события и напоминания будут отключены. Автомобиль можно вернуть из архива через меню управления.</string>
+    <string name="auto_restore_vehicle_message">Вернуть «%1$s» в работу? Добавление событий и напоминания ОСАГО снова станут доступны. Архивные события останутся в архиве.</string>
+    <string name="auto_archive_event_message">Событие будет скрыто из обычного списка. Оплата, пробег и вклад в статистику сохранятся. Вернуть событие можно, включив показ архивных событий в меню.</string>
+    <string name="auto_restore_event_message">Событие снова появится в обычном списке. Повторного списания денег не будет.</string>
+    <string name="auto_archive_read_only">Автомобиль или событие в архиве. Для редактирования сначала верните их из архива.</string>
+    <string name="auto_cancel_event">Отменить событие и оплату</string>
+    <string name="auto_cancel_event_message">Это действие для ошибочных записей. Событие будет удалено из журнала и статистики. Если есть связанный расход бюджета, он будет отменён, а сумма вернётся в статью. При оплате наличными остатки статей не меняются.</string>
+    <string name="auto_cancel_confirm">Отменить событие</string>
+    <string name="auto_stats_archive_note">Архивные автомобили и события включены в статистику. Архив сохраняет историю расходов.</string>
+</resources>

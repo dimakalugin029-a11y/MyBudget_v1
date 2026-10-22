@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import ru.mybudget.app.BudgetApplication
 import ru.mybudget.app.security.PinHasher
+import ru.mybudget.app.security.PinAttemptController
 
 object AppLockPreferences {
     private const val KEY_ENABLED = "app_lock_enabled"
@@ -38,11 +39,11 @@ object AppLockPreferences {
     fun setPin(context: Context, pin: String) {
         val salt = PinHasher.generateSalt()
         val hash = PinHasher.hashPin(pin, salt)
-        prefs(context).edit()
+        val editor = prefs(context).edit()
             .putString(KEY_PIN_SALT, encodeBytes(salt))
             .putString(KEY_PIN_HASH, encodeBytes(hash))
             .remove(KEY_PIN_HASH_LEGACY)
-            .apply()
+        check(PinAttemptController.clear(editor).commit()) { "Не удалось сохранить PIN" }
     }
 
     fun verifyPin(context: Context, pin: String): Boolean {
@@ -62,8 +63,11 @@ object AppLockPreferences {
         return false
     }
 
-    fun markUnlocked(context: Context) {
-        prefs(context).edit().putLong(KEY_LAST_UNLOCK_MS, System.currentTimeMillis()).apply()
+    fun markUnlocked(context: Context, durable: Boolean = false): Boolean {
+        val editor=PinAttemptController.clear(prefs(context).edit()).putLong(KEY_LAST_UNLOCK_MS,System.currentTimeMillis())
+        if (durable) return editor.commit()
+        editor.apply()
+        return true
     }
 
     fun shouldLock(context: Context, backgroundSinceMs: Long): Boolean {
@@ -75,7 +79,7 @@ object AppLockPreferences {
     }
 
     private fun clearPin(context: Context) {
-        prefs(context).edit()
+        PinAttemptController.clear(prefs(context).edit())
             .remove(KEY_PIN_HASH_LEGACY)
             .remove(KEY_PIN_SALT)
             .remove(KEY_PIN_HASH)

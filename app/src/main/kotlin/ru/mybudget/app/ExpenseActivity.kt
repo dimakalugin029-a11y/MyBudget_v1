@@ -11,6 +11,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.activity.viewModels
 import kotlinx.coroutines.launch
 import ru.mybudget.app.setup.QuickExpensePreferences
 
@@ -22,6 +23,7 @@ class ExpenseActivity : AppCompatActivity() {
     private lateinit var selectedBalanceText: TextView
     private lateinit var budgetNameText: TextView
     private var leafOptions: List<LeafOption> = emptyList()
+    private val moneyModel:MoneySaveViewModel by viewModels()
     private var saving = false
     private var requestId = java.util.UUID.randomUUID().toString()
     private var selectedCategoryId = -1
@@ -33,6 +35,7 @@ class ExpenseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_expense)
         manager = BudgetManager.getInstance(this)
+        saving = moneyModel.state.value is MoneySaveViewModel.State.Saving
         requestId = savedInstanceState?.getString("expense_request")
             ?: intent.getStringExtra(BudgetIntentExtras.OPERATION_REQUEST_ID) ?: requestId
         selectedCategoryId = savedInstanceState?.getInt("expense_category", -1)
@@ -58,6 +61,23 @@ class ExpenseActivity : AppCompatActivity() {
             if (!saving && !categoriesLoading) BudgetPicker.show(this, onSwitched = { selectedCategoryId = -1; loadCategories() })
         }
         findViewById<View>(R.id.saveExpenseButton).setOnClickListener { save() }
+        MoneySaveUi.bind(this,moneyModel,{ saving }) { state ->
+            setSaving(state is MoneySaveViewModel.State.Saving)
+            when(state) {
+                is MoneySaveViewModel.State.Done -> {
+                    val result=state.result;val command=result.command
+                    if(result.outcome==SingleMoneyCommandExecutor.Outcome.SAVED) Toast.makeText(this,
+                        getString(R.string.expense_saved_toast,MoneyFormat.format(command.amount),command.parentName,
+                            command.categoryName,MoneyFormat.formatRub(result.categoryBalance)),Toast.LENGTH_LONG).show()
+                    else Toast.makeText(this,R.string.money_already_processed,Toast.LENGTH_LONG).show()
+                    amountInput.text.clear();descriptionInput.text.clear()
+                    requestId=java.util.UUID.randomUUID().toString()
+                    moneyModel.acknowledge();loadCategories()
+                }
+                is MoneySaveViewModel.State.Failed -> { Toast.makeText(this,R.string.operation_save_error,Toast.LENGTH_LONG).show();moneyModel.acknowledge() }
+                else -> Unit
+            }
+        }
         findViewById<View>(R.id.distributeExpenseButton).setOnClickListener { openDistribution() }
         categorySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -81,7 +101,7 @@ class ExpenseActivity : AppCompatActivity() {
         findViewById<View>(R.id.distributeExpenseButton).isEnabled = false
         categoriesJob = lifecycleScope.launch {
           try {
-            manager.getCategoriesAsync()
+            manager.getCategoriesAsync(forceReload = true)
             val profiles = manager.getBudgetProfilesAsync()
             val activeId = manager.getActiveBudgetId()
             budgetNameText.text = profiles.firstOrNull { it.id == activeId }?.name
@@ -107,7 +127,7 @@ class ExpenseActivity : AppCompatActivity() {
                 R.layout.item_operation_spinner,
                 leafOptions.map { it.label },
             ).apply { setDropDownViewResource(R.layout.item_operation_spinner_dropdown) }
-            categorySpinner.isEnabled = true
+            categorySpinner.isEnabled = !saving
             val index = leafOptions.indexOfFirst { it.category.id == preferredId }.takeIf { it >= 0 } ?: 0
             categorySpinner.setSelection(index)
             updateBalanceHint()
@@ -148,49 +168,19 @@ class ExpenseActivity : AppCompatActivity() {
         val description = descriptionInput.text.toString().trim().ifBlank {
             getString(R.string.transaction_expense)
         }
-        saving = true
-        categorySpinner.isEnabled = false
-        amountInput.isEnabled = false
-        descriptionInput.isEnabled = false
-        findViewById<View>(R.id.saveExpenseButton).isEnabled = false
-        lifecycleScope.launch {
-          try {
-            manager.recordTransaction(option.category.id, amount, "expense", description, requestId = requestId)
-            QuickExpensePreferences.saveLastExpense(
-                this@ExpenseActivity,
-                option.category.id,
-                amount,
-                description,
-            )
-            val updated = manager.getCategoryById(option.category.id)
-            val parentName = manager.getCategories().firstOrNull { it.id == option.category.parentId }?.name
-                ?: option.category.name
-            Toast.makeText(
-                this@ExpenseActivity,
-                getString(
-                    R.string.expense_saved_toast,
-                    MoneyFormat.format(amount),
-                    parentName,
-                    option.category.name,
-                    MoneyFormat.formatRub(updated?.currentBalance ?: 0.0),
-                ),
-                Toast.LENGTH_LONG,
-            ).show()
-            amountInput.text.clear()
-            descriptionInput.text.clear()
-            requestId = java.util.UUID.randomUUID().toString()
-            loadCategories()
-          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
-          } catch (error: Exception) {
-            Toast.makeText(this@ExpenseActivity, R.string.operation_save_error, Toast.LENGTH_LONG).show()
-          } finally {
-            saving = false
-            categorySpinner.isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
-            amountInput.isEnabled = true
-            descriptionInput.isEnabled = true
-            findViewById<View>(R.id.saveExpenseButton).isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
-          }
-        }
+        setSaving(true)
+        val parentName=manager.getCategories().firstOrNull { it.id==option.category.parentId }?.name ?: option.category.name
+        moneyModel.save(SingleMoneyCommand(requestId,option.category.budgetId,option.category.id,amount,"expense",description,
+            categoryName=option.category.name,parentName=parentName))
+    }
+
+    private fun setSaving(value:Boolean) {
+        saving=value
+        categorySpinner.isEnabled=!value && !categoriesLoading && leafOptions.isNotEmpty()
+        amountInput.isEnabled=!value;descriptionInput.isEnabled=!value
+        findViewById<View>(R.id.saveExpenseButton).isEnabled=!value && !categoriesLoading && leafOptions.isNotEmpty()
+        findViewById<View>(R.id.distributeExpenseButton).isEnabled=!value && !categoriesLoading
+        findViewById<android.widget.Button>(R.id.saveExpenseButton).setText(if(value) R.string.money_saving else R.string.operation_save_expense)
     }
 
     private fun selectedOption(): LeafOption? = leafOptions.getOrNull(categorySpinner.selectedItemPosition)

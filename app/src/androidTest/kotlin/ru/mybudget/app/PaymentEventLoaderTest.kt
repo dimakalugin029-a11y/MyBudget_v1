@@ -19,7 +19,7 @@ class PaymentEventLoaderTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
     private val today = LocalDate.of(2026, 10, 21)
     @Before fun prepare() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         for (id in 1..2) {
             db.budgetDao().insertBudgetProfile(BudgetProfileEntity(id = id, name = "Budget $id"))
             db.budgetDao().insertCategory(BudgetCategoryEntity(id, "Category $id", 0, budgetId = id))

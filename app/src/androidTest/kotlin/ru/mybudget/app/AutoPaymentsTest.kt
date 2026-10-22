@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -22,7 +23,7 @@ class AutoPaymentsTest {
     private var vehicle = 0
 
     @Before fun prepare() = runBlocking {
-        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         repository = AutoRepository(db)
         db.budgetDao().insertBudgetProfile(BudgetProfileEntity(id = 1, name = "Test"))
         db.budgetDao().insertCategory(BudgetCategoryEntity(1, "Parent", 0, currentBalance = 1000.0))
@@ -89,6 +90,50 @@ class AutoPaymentsTest {
         assertEquals(AutoPaymentMethod.CASH, restored.paymentMethod)
         assertTrue(restored.paid)
         assertNull(restored.paidTransactionId)
+        assertTrue(db.budgetDao().getAllTransactionsOnce().isEmpty())
+    }
+
+    @Test fun repeatedCommandsNeverDuplicateAnyEventTypeOrPayment() = runBlocking {
+        for (type in AutoEntryType.entries) {
+            val request = "create-${type.name}"
+            val draft = entry(type).copy(paymentMethod = AutoPaymentMethod.BUDGET, categoryId = 2)
+            val id = repository.saveEntry(draft, request)
+            assertEquals(id, repository.saveEntry(draft.copy(amount = 999.0), request))
+            assertEquals(1, repository.getEntries().count { it.type == type })
+            assertEquals(100.0, repository.getEntries().single { it.type == type }.amount, 0.0)
+        }
+        assertEquals(4, db.budgetDao().getAllTransactionsOnce().size)
+        assertEquals(600.0, db.budgetDao().getCategoryById(2)!!.currentBalance, 0.0)
+    }
+
+    @Test fun failedCommandRollsBackAndCanBeRetried() = runBlocking {
+        val draft = entry(AutoEntryType.REPAIR).copy(paymentMethod = AutoPaymentMethod.BUDGET, categoryId = 999)
+        assertTrue(runCatching { repository.saveEntry(draft, "retry") }.isFailure)
+        assertNull(db.autoDao().getSaveCommand("retry"))
+        assertTrue(repository.getEntries().isEmpty())
+        repository.saveEntry(draft.copy(categoryId = 2), "retry")
+        assertEquals(1, db.budgetDao().getAllTransactionsOnce().size)
+        assertEquals(900.0, db.budgetDao().getCategoryById(2)!!.currentBalance, 0.0)
+    }
+
+    @Test fun retryDoesNotReapplyAnOldEditAfterALaterEdit() = runBlocking {
+        val id = repository.saveEntry(entry(AutoEntryType.REPAIR))
+        val original = repository.getEntries().single()
+        repository.saveEntry(original.copy(amount = 150.0), "edit-1")
+        repository.saveEntry(original.copy(amount = 200.0), "edit-2")
+        assertEquals(id, repository.saveEntry(original.copy(amount = 150.0), "edit-1"))
+        assertEquals(200.0, repository.getEntries().single().amount, 0.0)
+    }
+
+    @Test fun concurrentDuplicateRequestsProduceOneCashEvent() = runBlocking {
+        val draft = entry(AutoEntryType.SERVICE).copy(paymentMethod = AutoPaymentMethod.CASH)
+        val ids = kotlinx.coroutines.coroutineScope {
+            List(4) { async(kotlinx.coroutines.Dispatchers.IO) {
+                repository.saveEntry(draft, "concurrent")
+            } }.map { it.await() }
+        }
+        assertEquals(1, ids.distinct().size)
+        assertEquals(1, repository.getEntries().size)
         assertTrue(db.budgetDao().getAllTransactionsOnce().isEmpty())
     }
 }

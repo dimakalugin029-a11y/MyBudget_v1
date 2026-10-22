@@ -84,10 +84,10 @@ class AutoStatisticsActivity : AppCompatActivity() {
                 val data = withContext(Dispatchers.IO) { repository.getAllVehicles() to repository.getEntries() }
                 entries = data.second
                 val vehicles = data.first
-                vehicleNames = vehicles.associate { it.id to it.name }
+                vehicleNames = vehicles.associate { it.id to if(it.isArchived) getString(R.string.auto_archived_name,it.name) else it.name }
                 vehicleSpinner.adapter = ArrayAdapter(this@AutoStatisticsActivity,
                     R.layout.item_operation_spinner,
-                    listOf(getString(R.string.auto_stats_all_vehicles)) + vehicles.map { it.name })
+                    listOf(getString(R.string.auto_stats_all_vehicles)) + vehicles.map { vehicleNames.getValue(it.id) })
                 val initial = savedInstanceState?.getInt("auto_stats_vehicle", 0) ?: intent.getIntExtra("vehicleId", 0)
                 val index = vehicles.indexOfFirst { it.id == initial }
                 vehicleSpinner.setSelection(if (index >= 0) index + 1 else 0)
@@ -167,6 +167,7 @@ class AutoStatisticsActivity : AppCompatActivity() {
             MoneyFormat.formatRub(summary.fromBudget), MoneyFormat.formatRub(summary.cash), MoneyFormat.formatRub(summary.unpaid))
         results.addView(overview)
         results.addView(label(getString(R.string.auto_stats_date_hint)))
+        results.addView(label(getString(R.string.auto_stats_archive_note)))
         if (summary.entries.isEmpty()) {
             results.addView(label(getString(R.string.auto_stats_empty)))
             return
@@ -249,7 +250,7 @@ class AutoStatisticsActivity : AppCompatActivity() {
                 else -> R.string.auto_unpaid
             })
             "${vehicleNames[it.vehicleId].orEmpty()} · ${LocalDate.ofEpochDay(it.dateEpochDay).format(dateFormat)} · ${MoneyFormat.formatRub(it.amount)}\n" +
-                "$payment${if (it.description.isBlank()) "" else "\n${it.description}"}"
+                "${if(it.isArchived) getString(R.string.auto_archived_name,payment) else payment}${if (it.description.isBlank()) "" else "\n${it.description}"}"
         }
         AlertDialog.Builder(this).setTitle(title).setItems(rows.toTypedArray(), null)
             .setPositiveButton(android.R.string.ok, null).show()

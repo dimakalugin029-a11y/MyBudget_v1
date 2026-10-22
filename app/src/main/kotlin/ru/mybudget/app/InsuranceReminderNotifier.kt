@@ -19,9 +19,11 @@ object InsuranceReminderNotifier {
         todayEpochDay: Long,
     ): List<Pair<VehicleInsuranceEntity, VehicleEntity?>> {
         return insurances.mapNotNull { insurance ->
+            val vehicle=vehicles.firstOrNull { it.id == insurance.vehicleId }
+            if (insurance.isArchived || vehicle == null || vehicle.isArchived) return@mapNotNull null
             val days = AutoRepository.daysUntil(insurance.endDateEpochDay, todayEpochDay)
             if (days in REMIND_DAYS) {
-                insurance to vehicles.firstOrNull { it.id == insurance.vehicleId }
+                insurance to vehicle
             } else {
                 null
             }

@@ -25,7 +25,7 @@ class DataIntegrityTest {
     @Before
     fun setUp() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java).build()
+        db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         backup = BackupManager(context, db)
         dao.insertBudgetProfile(BudgetProfileEntity(id = 1, name = "Test"))
         dao.insertCategory(BudgetCategoryEntity(1, "Root", 0, currentBalance = 1000.0))

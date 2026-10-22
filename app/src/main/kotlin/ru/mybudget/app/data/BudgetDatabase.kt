@@ -34,6 +34,9 @@ import ru.mybudget.app.data.migration.Migration27To28
 @Database(
     entities = [
         MoneyCommandEntity::class,
+        BalanceMovementEntity::class,
+        BalanceLedgerStateEntity::class,
+        AutoSaveCommandEntity::class,
         BudgetProfileEntity::class,
         BudgetCategoryEntity::class,
         TransactionEntity::class,
@@ -64,8 +67,8 @@ import ru.mybudget.app.data.migration.Migration27To28
         VehicleFuelLogEntity::class,
         VehicleRepairEntity::class,
     ],
-    version = 45,
-    exportSchema = false,
+    version = 48,
+    exportSchema = true,
 )
 abstract class BudgetDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
@@ -449,6 +452,9 @@ abstract class BudgetDatabase : RoomDatabase() {
             Migration42To43.MIGRATION,
             ru.mybudget.app.data.migration.Migration43To44.MIGRATION,
             ru.mybudget.app.data.migration.Migration44To45.MIGRATION,
+            ru.mybudget.app.data.migration.Migration45To46.MIGRATION,
+            ru.mybudget.app.data.migration.Migration46To47.MIGRATION,
+            ru.mybudget.app.data.migration.Migration47To48.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {
@@ -459,6 +465,7 @@ abstract class BudgetDatabase : RoomDatabase() {
                     "budget_database",
                 )
                     .addMigrations(*ALL_MIGRATIONS)
+                    .addCallback(BalanceLedgerSchema.callback)
                     .build()
                     .also { INSTANCE = it }
             }

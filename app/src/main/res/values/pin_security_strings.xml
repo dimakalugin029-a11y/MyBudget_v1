@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pin_checking">Проверка PIN…</string>
+<string name="pin_wait">Слишком много попыток. Повторите через %1$d с.</string>
+<string name="pin_check_unavailable">Не удалось проверить PIN. Попробуйте ещё раз.</string>
+<string name="pin_new_hint">Новый PIN: 4–12 цифр</string>
+<string name="pin_setting">Сохранение PIN…</string>
+<string name="money_already_processed">Эта операция уже была обработана.</string>
+<string name="money_saving">Сохранение…</string></resources>

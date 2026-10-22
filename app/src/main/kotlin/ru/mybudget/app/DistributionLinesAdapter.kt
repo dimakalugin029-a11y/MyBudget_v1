@@ -22,6 +22,7 @@ class DistributionLinesAdapter(
         val title: String,
         val balanceHint: String,
         val amountText: String,
+        val startingBalance: Double? = null,
     )
 
     fun submit(newItems: List<Line>) {
@@ -46,10 +47,18 @@ class DistributionLinesAdapter(
         private val amount: EditText = view.findViewById(R.id.amountInput)
         private val remove: ImageButton = view.findViewById(R.id.removeCategoryButton)
         private var boundId = 0
+        private var startingBalance: Double? = null
+        private fun updateCoveragePreview(value: Double) {
+            val before = startingBalance ?: return
+            balance.text = balance.context.getString(R.string.overspend_preview, MoneyFormat.formatRub(before),
+                MoneyFormat.formatRub(value), MoneyFormat.formatRub(MoneyFormat.roundMoney(before + value)))
+        }
         private val watcher = object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
                 if (boundId == 0) return
-                onAmountChanged(boundId, MoneyFormat.parse(s) ?: 0.0)
+                val value = MoneyFormat.parse(s)?.takeIf { it.isFinite() && it >= 0.0 } ?: 0.0
+                onAmountChanged(boundId, value)
+                updateCoveragePreview(value)
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -78,7 +87,9 @@ class DistributionLinesAdapter(
             boundId = 0
             name.text = line.title
             amount.contentDescription = amount.context.getString(R.string.operation_amount_for_category, line.title)
+            startingBalance = line.startingBalance
             balance.text = line.balanceHint
+            updateCoveragePreview(MoneyFormat.parse(line.amountText) ?: 0.0)
             if (amount.text.toString() != line.amountText) {
                 amount.setText(line.amountText)
                 amount.setSelection(amount.text.length)

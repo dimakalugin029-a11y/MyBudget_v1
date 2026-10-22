@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.activity.viewModels
 import kotlinx.coroutines.launch
 import ru.mybudget.app.setup.PendingDistributionPreferences
 
@@ -29,6 +30,7 @@ class IncomeActivity : AppCompatActivity() {
     private var plannedSourceId: Int? = null
     private var plannedMonth = java.time.YearMonth.now()
     private var requestId = java.util.UUID.randomUUID().toString()
+    private val moneyModel:MoneySaveViewModel by viewModels()
     private var saving = false
     private var categoriesJob: kotlinx.coroutines.Job? = null
     private var categoriesLoading = false
@@ -39,6 +41,7 @@ class IncomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_income)
         manager = BudgetManager.getInstance(this)
+        saving = moneyModel.state.value is MoneySaveViewModel.State.Saving
         plannedSourceId = if (savedInstanceState != null) savedInstanceState.getInt("plan_source", 0).takeIf { it > 0 }
             else intent.getIntExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, 0).takeIf { it > 0 }
         plannedMonth = runCatching { java.time.YearMonth.parse(savedInstanceState?.getString("plan_month")
@@ -69,7 +72,30 @@ class IncomeActivity : AppCompatActivity() {
             if (!saving && !categoriesLoading) BudgetPicker.show(this, onSwitched = { selectedCategoryId = -1; clearPlan(); loadCategories() })
         }
         findViewById<View>(R.id.saveIncomeButton).setOnClickListener { save() }
+        MoneySaveUi.bind(this,moneyModel,{ saving }) { state ->
+            setSaving(state is MoneySaveViewModel.State.Saving)
+            when(state) {
+                is MoneySaveViewModel.State.Done -> {
+                    val result=state.result;val command=result.command
+                    when(result.outcome) {
+                        SingleMoneyCommandExecutor.Outcome.SAVED -> Toast.makeText(this,
+                            getString(R.string.income_saved_toast,MoneyFormat.format(command.amount),command.parentName,
+                                command.categoryName,MoneyFormat.formatRub(result.categoryBalance)),Toast.LENGTH_LONG).show()
+                        SingleMoneyCommandExecutor.Outcome.PLAN_CHANGED -> Toast.makeText(this,R.string.income_plan_changed,Toast.LENGTH_LONG).show()
+                        SingleMoneyCommandExecutor.Outcome.ALREADY_PROCESSED -> Toast.makeText(this,R.string.money_already_processed,Toast.LENGTH_LONG).show()
+                    }
+                    amountInput.text.clear();descriptionInput.text.clear();planPrefillApplied=false
+                    requestId=java.util.UUID.randomUUID().toString()
+                    intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT)
+                    intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_NAME)
+                    moneyModel.acknowledge();loadCategories()
+                }
+                is MoneySaveViewModel.State.Failed -> { Toast.makeText(this,getString(R.string.income_plan_error,state.message),Toast.LENGTH_LONG).show();moneyModel.acknowledge() }
+                else -> Unit
+            }
+        }
         findViewById<View>(R.id.distributeIncomeButton).setOnClickListener { openDistribution() }
+        findViewById<View>(R.id.coverOverspendIncomeButton).setOnClickListener { openDistribution(coverOverspend = true) }
         categorySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 selectedCategoryId = leafOptions.getOrNull(position)?.category?.id ?: -1
@@ -90,9 +116,10 @@ class IncomeActivity : AppCompatActivity() {
         categoriesLoading = true
         findViewById<View>(R.id.saveIncomeButton).isEnabled = false
         findViewById<View>(R.id.distributeIncomeButton).isEnabled = false
+        findViewById<View>(R.id.coverOverspendIncomeButton).isEnabled = false
         categoriesJob = lifecycleScope.launch {
           try {
-            manager.getCategoriesAsync()
+            manager.getCategoriesAsync(forceReload = true)
             val profiles = manager.getBudgetProfilesAsync()
             val activeId = manager.getActiveBudgetId()
             val boundSource = plannedSourceId?.let { manager.database.budgetDao().getIncomeSourceById(it) }
@@ -121,7 +148,7 @@ class IncomeActivity : AppCompatActivity() {
                 R.layout.item_operation_spinner,
                 leafOptions.map { it.label },
             ).apply { setDropDownViewResource(R.layout.item_operation_spinner_dropdown) }
-            categorySpinner.isEnabled = true
+            categorySpinner.isEnabled = !saving
             val index = leafOptions.indexOfFirst { it.category.id == preferredId }.takeIf { it >= 0 } ?: 0
             categorySpinner.setSelection(index)
             updateBalanceHint()
@@ -137,6 +164,7 @@ class IncomeActivity : AppCompatActivity() {
                 categoriesLoading = false
                 findViewById<View>(R.id.saveIncomeButton).isEnabled = !saving && leafOptions.isNotEmpty()
                 findViewById<View>(R.id.distributeIncomeButton).isEnabled = !saving
+                findViewById<View>(R.id.coverOverspendIncomeButton).isEnabled = !saving
             }
           }
         }
@@ -191,6 +219,7 @@ class IncomeActivity : AppCompatActivity() {
                 )
                 setTextAppearance(R.style.Chip_MyBudget_Filter)
                 setOnClickListener {
+                    if (saving || categoriesLoading) return@setOnClickListener
                     plannedSourceId = source.id
                     plannedMonth = month
                     requestId = java.util.UUID.randomUUID().toString()
@@ -235,76 +264,36 @@ class IncomeActivity : AppCompatActivity() {
         val description = descriptionInput.text.toString().trim().ifBlank {
             getString(R.string.transaction_income)
         }
-        saving = true
-        categorySpinner.isEnabled = false
-        amountInput.isEnabled = false
-        descriptionInput.isEnabled = false
-        findViewById<View>(R.id.saveIncomeButton).isEnabled = false
-        findViewById<View>(R.id.distributeIncomeButton).isEnabled = false
-        lifecycleScope.launch {
-          try {
-            val sourceId = plannedSourceId
-            if (sourceId != null) {
-                val applied = IncomePlanExecution(manager.database).receive(sourceId, plannedMonth,
-                    listOf(option.category.id to amount), description, requestId)
-                if (!applied) {
-                    Toast.makeText(this@IncomeActivity, R.string.income_plan_changed, Toast.LENGTH_LONG).show()
-                    amountInput.text.clear()
-                    intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT)
-                    requestId = java.util.UUID.randomUUID().toString()
-                    loadCategories()
-                    return@launch
-                }
-                manager.reloadCategoriesFromDatabase()
-                BudgetWidgetProvider.updateAll(this@IncomeActivity)
-            } else manager.recordTransaction(option.category.id, amount, "income", description, requestId = requestId)
-            val updated = manager.getCategoryById(option.category.id)
-            val parentName = manager.getCategories().firstOrNull { it.id == option.category.parentId }?.name
-                ?: option.category.name
-            Toast.makeText(
-                this@IncomeActivity,
-                getString(
-                    R.string.income_saved_toast,
-                    MoneyFormat.format(amount),
-                    parentName,
-                    option.category.name,
-                    MoneyFormat.formatRub(updated?.currentBalance ?: 0.0),
-                ),
-                Toast.LENGTH_LONG,
-            ).show()
-            amountInput.text.clear()
-            descriptionInput.text.clear()
-            planPrefillApplied = false
-            // The next receipt is an explicit new action; the plan's remaining amount is rechecked atomically.
-            requestId = java.util.UUID.randomUUID().toString()
-            intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT)
-            intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_NAME)
-            loadCategories()
-          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
-          } catch (error: Exception) {
-            Toast.makeText(this@IncomeActivity, getString(R.string.income_plan_error, error.message.orEmpty()), Toast.LENGTH_LONG).show()
-          } finally {
-            saving = false
-            categorySpinner.isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
-            amountInput.isEnabled = true
-            descriptionInput.isEnabled = true
-            findViewById<View>(R.id.saveIncomeButton).isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
-            findViewById<View>(R.id.distributeIncomeButton).isEnabled = !categoriesLoading
-          }
+        setSaving(true)
+        val parentName=manager.getCategories().firstOrNull { it.id==option.category.parentId }?.name ?: option.category.name
+        moneyModel.save(SingleMoneyCommand(requestId,option.category.budgetId,option.category.id,amount,"income",description,
+            categoryName=option.category.name,parentName=parentName,plannedSourceId=plannedSourceId,plannedMonth=plannedMonth))
+    }
+
+    private fun setSaving(value:Boolean) {
+        saving=value
+        categorySpinner.isEnabled=!value && !categoriesLoading && leafOptions.isNotEmpty()
+        amountInput.isEnabled=!value;descriptionInput.isEnabled=!value
+        findViewById<android.widget.Button>(R.id.saveIncomeButton).apply {
+            isEnabled=!value && !categoriesLoading && leafOptions.isNotEmpty()
+            setText(if(value) R.string.money_saving else R.string.operation_save_income)
         }
+        findViewById<View>(R.id.distributeIncomeButton).isEnabled=!value && !categoriesLoading
+        findViewById<View>(R.id.coverOverspendIncomeButton).isEnabled=!value && !categoriesLoading
     }
 
     private fun selectedOption(): LeafOption? = leafOptions.getOrNull(categorySpinner.selectedItemPosition)
 
-    private fun openDistribution() {
+    private fun openDistribution(coverOverspend: Boolean = false) {
         if (saving || categoriesLoading) return
         val amount = MoneyFormat.parse(amountInput.text)
-        if (amount == null || amount <= 0.0) {
+        if (amount == null || !amount.isFinite() || amount <= 0.0) {
             Toast.makeText(this, R.string.income_enter_total_amount, Toast.LENGTH_SHORT).show()
             return
         }
         val intent = Intent(this, IncomeDistributionActivity::class.java)
             .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, amount)
+            .putExtra(IncomeDistributionActivity.EXTRA_OPEN_COVERAGE, coverOverspend)
             .putExtra(IncomeDistributionActivity.EXTRA_RECEIPT_REQUEST, requestId)
             .putExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
         val note = descriptionInput.text.toString().trim()

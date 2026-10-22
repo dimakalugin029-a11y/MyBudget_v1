@@ -16,6 +16,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.room.withTransaction
+import ru.mybudget.app.data.BalanceMovementEntity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.mikephil.charting.charts.BarChart
@@ -395,31 +397,20 @@ class StatisticsActivity : AppCompatActivity() {
     private suspend fun computeSnapshot(range: Pair<Long, Long>? = null): StatsSnapshot = withContext(Dispatchers.IO) {
         val (from, to) = range ?: rangeMillis()
         val budgetId = selectedBudgetId
-        manager.getCategoriesAsync()
-        val allTx = manager.repository.getAllTransactions().first()
-        val categories = manager.database.budgetDao().getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
-        val allowedIds = if (budgetId == null) {
-            categories.map { it.id }.toSet()
-        } else {
-            categories.filter { it.budgetId == budgetId }.map { it.id }.toSet()
+        manager.database.withTransaction {
+            val dao = manager.database.budgetDao()
+            val categories = dao.getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
+            val allowed = categories.filter { budgetId == null || it.budgetId == budgetId }.map { it.id }.toSet()
+            val inBudget = dao.getAllTransactionsOnce().filter { it.categoryId in allowed }
+            val inPeriod = inBudget.filter { it.date >= from && it.date < to }
+            val currentBalance = categories.filter { it.parentId==0 && it.isActive && (budgetId==null || it.budgetId==budgetId) }.sumOf { it.currentBalance }
+            val now = System.currentTimeMillis()
+            val ledger = dao.getBalanceMovements(budgetId, now + 1)
+            val state = dao.getLedgerState()
+            val consistent = state != null && kotlin.math.abs(ledger.sumOf { it.budgetDelta } - currentBalance) < 0.01
+            StatsSnapshot(inBudget, inPeriod, categories, from, to, currentBalance, budgetId,
+                ledger, state?.startedAt, consistent, now)
         }
-        val inBudget = allTx.filter { it.categoryId in allowedIds }
-        val inPeriod = inBudget.filter { it.date >= from && it.date < to }
-        val currentBalance = if (budgetId == null) {
-            manager.getTotalBalanceAll()
-        } else {
-            manager.getTotalBalance(budgetId)
-        }
-        val fromDay = StatisticsChartHelper.dayKey(from)
-        val toDay = StatisticsChartHelper.dayKey(to - 1)
-        val snapshotsByDay = if (budgetId == null) {
-            // A sparse set of budget snapshots cannot be summed into an aggregate daily balance.
-            emptyMap()
-        } else {
-            manager.repository.getBalanceSnapshotsForBudget(budgetId, fromDay, toDay)
-                .associate { it.dayKey to it.totalBalance }
-        }
-        StatsSnapshot(inBudget, inPeriod, categories, from, to, currentBalance, snapshotsByDay, budgetId)
     }
 
     private fun launchCsvExport() {
@@ -488,6 +479,7 @@ class StatisticsActivity : AppCompatActivity() {
                     chartMode = chartExport.mode,
                     chartValues = chartExport.values,
                     comparison = comparison,
+                    balanceCoverageNote = if (chartMode==ChartMode.BALANCE) balanceNote(snapshot, balanceSeries(snapshot)) else null,
                 )
                 contentResolver.openOutputStream(uri)?.use { stream ->
                     MonthReportPdfExporter.write(this@StatisticsActivity, data, stream)
@@ -512,13 +504,7 @@ class StatisticsActivity : AppCompatActivity() {
 
     private fun buildChartExport(snapshot: StatsSnapshot): ChartExportData {
         return if (chartMode == ChartMode.BALANCE) {
-            val series = StatisticsChartHelper.buildBalanceSeries(
-                transactions = snapshot.allInBudget,
-                fromMs = snapshot.from,
-                toMs = snapshot.to,
-                currentBalance = snapshot.currentBalance,
-                snapshotsByDay = snapshot.snapshotsByDay,
-            )
+            val series = balanceSeries(snapshot)
             ChartExportData(
                 mode = MonthReportPdfExporter.ChartMode.BALANCE,
                 values = series.points.map { it.value },
@@ -686,19 +672,31 @@ class StatisticsActivity : AppCompatActivity() {
         }
     }
 
+    private fun balanceSeries(snapshot: StatsSnapshot): LedgerBalanceHelper.Series =
+        if (!snapshot.ledgerConsistent) LedgerBalanceHelper.Series(emptyList(), null, null)
+        else LedgerBalanceHelper.build(snapshot.ledger, snapshot.ledgerStartedAt, snapshot.from, snapshot.to, snapshot.capturedAt)
+
+    private fun balanceNote(snapshot: StatsSnapshot, series: LedgerBalanceHelper.Series): String {
+        val start = snapshot.ledgerStartedAt ?: return getString(R.string.ledger_unavailable)
+        if (!snapshot.ledgerConsistent) return getString(R.string.ledger_mismatch)
+        val date = dateBtnFormat.format(Date(start))
+        if (series.endBalance == null) return getString(R.string.ledger_no_history) + "\n" + getString(R.string.ledger_coverage, date)
+        return if (series.startBalance == null) getString(R.string.ledger_partial, MoneyFormat.formatRub(series.endBalance), date)
+            else getString(R.string.ledger_range, MoneyFormat.formatRub(series.startBalance), MoneyFormat.formatRub(series.endBalance))
+    }
+
     private fun bindBalanceChart(snapshot: StatsSnapshot) {
-        val series = StatisticsChartHelper.buildBalanceSeries(
-            transactions = snapshot.allInBudget,
-            fromMs = snapshot.from,
-            toMs = snapshot.to,
-            currentBalance = snapshot.currentBalance,
-            snapshotsByDay = snapshot.snapshotsByDay,
-        )
-        findViewById<TextView>(R.id.statsBalanceChartSubtitle).text = getString(
-            R.string.analysis_balance_range,
-            MoneyFormat.formatRub(series.startBalance),
-            MoneyFormat.formatRub(series.endBalance),
-        )
+        val series = balanceSeries(snapshot)
+        findViewById<TextView>(R.id.statsBalanceChartSubtitle).text = balanceNote(snapshot, series)
+        if (series.points.isEmpty()) {
+            lineChart.clear()
+            lineChart.visibility = View.GONE
+            findViewById<TextView>(R.id.statisticsEmptyText).apply {
+                text = balanceNote(snapshot, series)
+                visibility = View.VISIBLE
+            }
+            return
+        }
         val dayKeys = series.points.map { it.dayKey }
         val entries = series.points.mapIndexed { index, point ->
             Entry(index.toFloat(), point.value.toFloat())
@@ -850,8 +848,11 @@ class StatisticsActivity : AppCompatActivity() {
         val from: Long,
         val to: Long,
         val currentBalance: Double,
-        val snapshotsByDay: Map<Long, Double>,
         val budgetId: Int?,
+        val ledger: List<BalanceMovementEntity>,
+        val ledgerStartedAt: Long?,
+        val ledgerConsistent: Boolean,
+        val capturedAt: Long,
     )
 
     private data class CategorySlice(

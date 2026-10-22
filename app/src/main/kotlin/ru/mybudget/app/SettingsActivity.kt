@@ -14,6 +14,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -46,6 +47,7 @@ import java.util.Date
 import java.util.Locale
 
 class SettingsActivity : AppCompatActivity() {
+    private val pinSettingsModel: PinSettingsViewModel by viewModels()
     private lateinit var backupManager: BackupManager
     private var loadingDialog: AlertDialog? = null
     private var pendingExportPassword: String? = null
@@ -73,7 +75,7 @@ class SettingsActivity : AppCompatActivity() {
             if (ok) {
                 Toast.makeText(this@SettingsActivity, R.string.settings_backup_export_done, Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(this@SettingsActivity, R.string.settings_backup_export_failed, Toast.LENGTH_LONG).show()
+                Toast.makeText(this@SettingsActivity, backupManager.lastExportError ?: getString(R.string.settings_backup_export_failed), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -148,6 +150,25 @@ class SettingsActivity : AppCompatActivity() {
         setupThemeSelector()
         setupCompactUi()
         setupAppLockSettings()
+        lifecycleScope.launch {
+            pinSettingsModel.state.collect { state ->
+                findViewById<View>(R.id.setPinButton).isEnabled=state!=PinSettingsViewModel.State.SAVING
+                findViewById<View>(R.id.appLockSwitch).isEnabled=state!=PinSettingsViewModel.State.SAVING
+                when(state) {
+                    PinSettingsViewModel.State.SAVED -> {
+                        findViewById<SwitchCompat>(R.id.appLockSwitch).isChecked=true
+                        findViewById<Button>(R.id.setPinButton).setText(R.string.lock_change_pin)
+                        Toast.makeText(this@SettingsActivity,R.string.lock_pin_set_done,Toast.LENGTH_SHORT).show()
+                        pinSettingsModel.acknowledge()
+                    }
+                    PinSettingsViewModel.State.FAILED -> {
+                        Toast.makeText(this@SettingsActivity,R.string.pin_check_unavailable,Toast.LENGTH_LONG).show()
+                        pinSettingsModel.acknowledge()
+                    }
+                    else -> Unit
+                }
+            }
+        }
         setupBackupButtons()
         setupAutoBackup()
         setupWebDavBackup()
@@ -282,17 +303,21 @@ class SettingsActivity : AppCompatActivity() {
         val first = EditText(this).apply {
             inputType = android.text.InputType.TYPE_CLASS_NUMBER or
                 android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-            hint = getString(R.string.lock_pin_hint)
+            hint = getString(R.string.pin_new_hint)
+            filters=arrayOf(android.text.InputFilter.LengthFilter(12))
+            isSaveEnabled=false
         }
         AlertDialog.Builder(this)
             .setTitle(R.string.lock_set_pin_title)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val pin1 = first.text.toString()
-                if (pin1.length < 4) {
+                if (pin1.length !in 4..12 || !pin1.all { it in '0'..'9' }) {
                     Toast.makeText(this, R.string.lock_pin_too_short, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val confirm = EditText(this).apply {
+                    filters = arrayOf(android.text.InputFilter.LengthFilter(12))
+                    isSaveEnabled = false
                     inputType = android.text.InputType.TYPE_CLASS_NUMBER or
                         android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
                 }
@@ -303,11 +328,7 @@ class SettingsActivity : AppCompatActivity() {
                             Toast.makeText(this, R.string.lock_pin_mismatch, Toast.LENGTH_SHORT).show()
                             return@setPositiveButton
                         }
-                        AppLockPreferences.setPin(this, pin1)
-                        AppLockPreferences.setEnabled(this, true)
-                        findViewById<SwitchCompat>(R.id.appLockSwitch).isChecked = true
-                        findViewById<Button>(R.id.setPinButton).setText(R.string.lock_change_pin)
-                        Toast.makeText(this, R.string.lock_pin_set_done, Toast.LENGTH_SHORT).show()
+                        pinSettingsModel.save(applicationContext,pin1)
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .showWithIme(confirm)
@@ -483,6 +504,8 @@ class SettingsActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 val confirm = EditText(this).apply {
+                    filters = arrayOf(android.text.InputFilter.LengthFilter(12))
+                    isSaveEnabled = false
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or
                         android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
                 }
@@ -607,14 +630,14 @@ class SettingsActivity : AppCompatActivity() {
             .setTitle(R.string.settings_export_mode_title)
             .setItems(
                 arrayOf(
-                    getString(R.string.settings_export_mode_plain),
-                    getString(R.string.settings_export_mode_encrypted),
-                    getString(R.string.settings_export_mode_archive),
+                    getString(R.string.backup_data_only),
+                    getString(R.string.backup_full_encrypted),
+                    getString(R.string.backup_full_plain),
                 ),
             ) { _, which ->
                 when (which) {
                     0 -> launchExport(null, encrypted = false, archive = false)
-                    1 -> showExportPasswordDialog(archive = false)
+                    1 -> showExportPasswordDialog(archive = true)
                     2 -> launchExport(null, encrypted = false, archive = true)
                 }
             }
@@ -638,6 +661,8 @@ class SettingsActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 val confirm = EditText(this).apply {
+                    filters = arrayOf(android.text.InputFilter.LengthFilter(12))
+                    isSaveEnabled = false
                     inputType = android.text.InputType.TYPE_CLASS_TEXT or
                         android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
                 }
@@ -664,7 +689,7 @@ class SettingsActivity : AppCompatActivity() {
         val date = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         val suffix = if (encrypted) "_encrypted" else ""
         if (archive) {
-            exportLauncher.launch("MyBudget_backup_${date}$suffix.zip")
+            exportLauncher.launch("MyBudget_backup_${date}$suffix.mybudget")
         } else {
             exportLauncher.launch("MyBudget_backup_${date}$suffix.json")
         }
@@ -703,7 +728,7 @@ class SettingsActivity : AppCompatActivity() {
                     return@setPositiveButton
                 }
                 pendingImportUri = null
-                confirmImport(uri, password, BackupImportMode.REPLACE)
+                chooseImportMode(uri, password)
             }
             .setNegativeButton(android.R.string.cancel) { _, _ ->
                 pendingImportUri = null

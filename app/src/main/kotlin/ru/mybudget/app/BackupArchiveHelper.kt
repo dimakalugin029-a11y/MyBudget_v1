@@ -39,12 +39,18 @@ object BackupArchiveHelper {
         photos: List<UtilityBillPhotoEntity>,
     ): ByteArray {
         val output = ByteArrayOutputStream()
+        require(plainJson.toByteArray(Charsets.UTF_8).size <= MAX_ENTRY_BYTES) { "Данные копии слишком большие" }
+        var totalBytes = plainJson.toByteArray(Charsets.UTF_8).size.toLong()
         ZipOutputStream(output).use { zip ->
             zip.putNextEntry(ZipEntry(DATA_ENTRY))
             zip.write(plainJson.toByteArray(Charsets.UTF_8))
             zip.closeEntry()
             photos.forEachIndexed { index, photo ->
-                val bytes = readPhotoBytes(context, photo.storedUri) ?: return@forEachIndexed
+                val bytes = readPhotoBytes(context, photo.storedUri)
+                    ?: error("Не удалось прочитать фотографию №${index + 1}; полная копия не создана")
+                require(bytes.isNotEmpty() && bytes.size <= MAX_ENTRY_BYTES) { "Некорректный размер фотографии №${index + 1}" }
+                totalBytes += bytes.size
+                require(totalBytes <= MAX_ARCHIVE_BYTES) { "Архив слишком большой" }
                 zip.putNextEntry(ZipEntry(photoEntryName(index)))
                 zip.write(bytes)
                 zip.closeEntry()
@@ -66,8 +72,10 @@ object BackupArchiveHelper {
         var json: String? = null
         var total = 0L
         ZipInputStream(ByteArrayInputStream(input)).use { zip ->
+            val names = mutableSetOf<String>()
             var entry = zip.nextEntry
             while (entry != null) {
+                require(names.add(entry.name)) { "Повторяющийся файл в архиве" }
                 val bytes = readBounded(zip, MAX_ENTRY_BYTES)
                 total += bytes.size
                 require(total <= MAX_ARCHIVE_BYTES) { "Архив слишком большой" }
@@ -79,6 +87,7 @@ object BackupArchiveHelper {
                 entry = zip.nextEntry
             }
         }
+        require(!json.isNullOrBlank()) { "В архиве отсутствуют данные" }
         return ArchiveContent(
             json = json.orEmpty(),
             photoBytes = photoBytes,
@@ -101,7 +110,7 @@ object BackupArchiveHelper {
         if (storedUri.isBlank() || storedUri.startsWith(PHOTOS_PREFIX)) return null
         val uri = runCatching { Uri.parse(storedUri) }.getOrNull() ?: return null
         return runCatching {
-            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            context.contentResolver.openInputStream(uri)?.use { readBounded(it, MAX_ENTRY_BYTES) }
         }.getOrNull()
     }
 }

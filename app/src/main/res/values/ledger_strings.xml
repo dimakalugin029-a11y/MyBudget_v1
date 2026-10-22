@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="ledger_no_history">За этот период нет достоверной истории остатка.</string>
+<string name="ledger_coverage">Учёт изменений с %1$s. Старые остатки не восстанавливаются предположениями.</string>
+<string name="ledger_range">Начало: %1$s · Конец: %2$s
+По времени изменения денег, включая переводы и корректировки.</string>
+<string name="ledger_partial">Начало периода неизвестно · Конец: %1$s
+Учёт с %2$s, по времени изменения денег.</string>
+<string name="ledger_unavailable">История остатка пока недоступна.</string>
+<string name="ledger_mismatch">Остаток не совпадает с журналом изменений. Требуется проверка; точный график скрыт.</string>
+<string name="ledger_import_restart">История остатка начинается с восстановления этой копии.</string>
+</resources>

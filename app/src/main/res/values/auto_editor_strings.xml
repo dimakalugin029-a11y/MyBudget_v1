@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<string name="auto_editor_edit">Редактирование: %1$s</string>
+<string name="auto_editor_add">Добавить: %1$s</string>
+<string name="auto_editor_service">ТО</string><string name="auto_editor_repair">ремонт</string>
+<string name="auto_editor_fuel">бензин</string><string name="auto_editor_insurance">ОСАГО</string>
+<string name="auto_editor_save_changes">Сохранить изменения</string>
+<string name="auto_editor_missing">Автомобиль или событие уже удалены</string>
+<string name="auto_editor_event">Событие</string><string name="auto_editor_works">Работы и запчасти</string>
+<string name="auto_editor_comment">Комментарий</string><string name="auto_editor_total">Итого</string>
+<string name="auto_editor_items_total">Рассчитано по работам и запчастям</string>
+<string name="auto_editor_fuel_total">Рассчитано: литры × цена за литр</string>
+<string name="auto_editor_manual_total">Укажите общую сумму или добавьте позиции ниже</string>
+<string name="auto_editor_mileage">Пробег, км</string><string name="auto_editor_liters">Объём, л</string>
+<string name="auto_editor_price">Цена, ₽/л</string><string name="auto_editor_amount">Сумма, ₽</string>
+<string name="auto_editor_remove">Удалить позицию</string>
+<string name="auto_editor_enter_total">Укажите общую стоимость полиса</string>
+<string name="auto_editor_loading">Загрузка события…</string>
+</resources>

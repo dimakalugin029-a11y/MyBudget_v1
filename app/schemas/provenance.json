@@ -1,0 +1,25 @@
+{
+  "historicalSchemas": [
+    {
+      "version": 41,
+      "commit": "d7c53afca4428eee61f26ef51b663ed039ec28d9",
+      "sha256": "708ca2b2fa858bc0933d0b6c784c9ed6d8ac44484a2c1fc9bb5f17a2aef8d653"
+    },
+    {
+      "version": 45,
+      "commit": "e1bbff43e982da44d801eb1f63c8b520da021a5c",
+      "sha256": "1aa38bf7e391eef6740eeeebd7edd0018ae2607608ef0a69aa03d5f49e217860"
+    },
+    {
+      "version": 46,
+      "origin": "Actual exported working schema before migration 46->47",
+      "sha256": "6f271ccfab477a36dbf3a8abcd3e9a854ef5d922a9aab4564da4318ca4b67be9"
+    },
+    {
+      "version": 47,
+      "origin": "Actual exported working schema before migration 47->48",
+      "sha256": "927bbe7a5042ab181e0b8eb9e335eecb24bb19c181df5b4ae45d366fb5ac954b"
+    }
+  ],
+  "hashFormat": "SHA-256 of canonical JSON: sorted keys, compact separators, UTF-8, Unicode unescaped"
+}

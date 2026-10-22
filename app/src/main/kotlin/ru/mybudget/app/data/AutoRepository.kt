@@ -12,16 +12,19 @@ class AutoRepository(private val database: BudgetDatabase) {
 
     suspend fun getVehicleCount(): Int = autoDao.getVehicleCount()
     suspend fun getAllVehicles() = autoDao.getAllVehicles()
-    suspend fun ensureDefaultVehicle(name: String): VehicleEntity {
+    suspend fun ensureDefaultVehicle(name: String): VehicleEntity = database.withTransaction {
         val existing = autoDao.getAllVehicles()
-        if (existing.isNotEmpty()) return existing.first()
+        if (existing.isNotEmpty()) return@withTransaction existing.first()
         autoDao.insertVehicle(VehicleEntity(name = name))
-        return autoDao.getAllVehicles().first()
+        autoDao.getAllVehicles().first()
     }
     suspend fun insertVehicle(name: String): Int =
         autoDao.insertVehicle(VehicleEntity(name = name, sortOrder = autoDao.getMaxVehicleSortOrder() + 1)).toInt()
     suspend fun updateVehicle(vehicle: VehicleEntity) = autoDao.updateVehicle(vehicle)
-    suspend fun deleteVehicle(id: Int) = autoDao.deleteVehicle(id)
+    suspend fun setVehicleArchived(id:Int, archived:Boolean) = database.withTransaction {
+        requireNotNull(autoDao.getVehicleById(id)) { "Автомобиль уже удалён" }
+        autoDao.setVehicleArchived(id,archived)
+    }
     suspend fun getServiceLogs(vehicleId: Int) = autoDao.getServiceLogs(vehicleId)
     suspend fun getInsurances(vehicleId: Int) = autoDao.getInsurances(vehicleId)
     suspend fun getAllInsurances() = autoDao.getAllInsurances()
@@ -44,13 +47,22 @@ class AutoRepository(private val database: BudgetDatabase) {
     }
 
     /** The event, its payment link and category balances commit or roll back together. */
-    suspend fun saveEntry(entry: AutoEntry): Int = database.withTransaction {
+    suspend fun saveEntry(entry: AutoEntry, requestId: String? = null): Int = database.withTransaction {
+        if (requestId != null) {
+            require(requestId.isNotBlank())
+            autoDao.getSaveCommand(requestId)?.let { previous ->
+                require(previous.entryType == entry.type.name && previous.vehicleId == entry.vehicleId &&
+                    (entry.id == 0 || entry.id == previous.entryId)) { "Несовместимый повтор команды" }
+                return@withTransaction previous.entryId
+            }
+        }
         require(entry.amount.isFinite() && entry.amount >= 0.0) { "Укажите корректную сумму" }
         require(entry.paymentMethod in AutoPaymentMethod.options) { "Выберите способ оплаты" }
         val amount = MoneyFormat.roundMoney(entry.amount)
         require(amount.isFinite()) { "Слишком большая сумма" }
         if (entry.paid) require(amount > 0.0) { "Для оплаты укажите сумму больше нуля" }
-        requireNotNull(autoDao.getVehicleById(entry.vehicleId)) { "Автомобиль уже удалён" }
+        val vehicle=requireNotNull(autoDao.getVehicleById(entry.vehicleId)) { "Автомобиль уже удалён" }
+        require(!vehicle.isArchived && !entry.isArchived) { "Сначала верните автомобиль и событие из архива" }
         if (entry.type == AutoEntryType.INSURANCE) {
             require(entry.endDateEpochDay != null && entry.endDateEpochDay >= entry.dateEpochDay) {
                 "Дата окончания ОСАГО должна быть не раньше даты начала"
@@ -63,6 +75,7 @@ class AutoRepository(private val database: BudgetDatabase) {
         val current = if (entry.id == 0) null else requireNotNull(getEntry(entry.type, entry.id)) {
             "Запись уже удалена. Обновите список"
         }
+        require(current?.isArchived != true) { "Сначала верните событие из архива" }
         require(current == null || current.vehicleId == entry.vehicleId) { "Автомобиль записи изменился" }
         val previousTransaction = current?.paidTransactionId?.let { budgetDao.getTransactionById(it.toInt()) }
         val transactionId: Long?
@@ -88,7 +101,7 @@ class AutoRepository(private val database: BudgetDatabase) {
                 transactionId = budgetDao.insertTransaction(TransactionEntity(categoryId = category.id,
                     amount = amount, type = "expense", description = description,
                     date = entry.dateEpochDay * MILLIS_PER_DAY))
-                budgetDao.applyBalanceDelta(category.id, -amount)
+                budgetDao.applyBalanceDelta(category.id, -amount, "expense", "auto-tx-$transactionId")
             }
         } else {
             if (previousTransaction != null) budgetDao.revertAndDeleteTransaction(previousTransaction)
@@ -97,7 +110,7 @@ class AutoRepository(private val database: BudgetDatabase) {
         val saved = entry.copy(amount = amount, paidTransactionId = transactionId,
             categoryId = if (entry.paymentMethod == AutoPaymentMethod.BUDGET) entry.categoryId else -1,
             createdAt = current?.createdAt ?: entry.createdAt)
-        when (saved.type) {
+        val savedId = when (saved.type) {
             AutoEntryType.SERVICE -> {
                 val log = VehicleServiceLogEntity(id = saved.id, vehicleId = saved.vehicleId,
                     dateEpochDay = saved.dateEpochDay, amount = saved.amount, categoryId = saved.categoryId,
@@ -127,13 +140,43 @@ class AutoRepository(private val database: BudgetDatabase) {
                 if (saved.id == 0) autoDao.insertRepair(log).toInt() else { autoDao.updateRepair(log); saved.id }
             }
         }
+        if (requestId != null) autoDao.insertSaveCommand(AutoSaveCommandEntity(requestId, entry.type.name, savedId, entry.vehicleId))
+        savedId
     }
 
-    // Removing a journal record retains the actual expense in budget history, as before.
-    suspend fun deleteServiceLog(id: Int) = autoDao.deleteServiceLog(id)
-    suspend fun deleteInsurance(id: Int) = autoDao.deleteInsurance(id)
-    suspend fun deleteFuelLog(id: Int) = autoDao.deleteFuelLog(id)
-    suspend fun deleteRepair(id: Int) = autoDao.deleteRepair(id)
+    /** Archive preserves payments, mileage and statistical contribution. */
+    suspend fun setEntryArchived(type:AutoEntryType,id:Int,archived:Boolean) = database.withTransaction {
+        val entry=requireNotNull(getEntry(type,id)) { "Запись уже удалена. Обновите список" }
+        require(autoDao.getVehicleById(entry.vehicleId)?.isArchived == false) { "Сначала верните автомобиль из архива" }
+        when(type) {
+            AutoEntryType.SERVICE -> autoDao.setServiceArchived(id,archived)
+            AutoEntryType.INSURANCE -> autoDao.setInsuranceArchived(id,archived)
+            AutoEntryType.FUEL -> autoDao.setFuelArchived(id,archived)
+            AutoEntryType.REPAIR -> autoDao.setRepairArchived(id,archived)
+        }
+    }
+
+    /** A stale confirmation must not cancel a subsequently corrected payment. */
+    suspend fun cancelEntry(expected:AutoEntry) = database.withTransaction {
+        val current=getEntry(expected.type,expected.id) ?: return@withTransaction
+        require(current == expected) { "Запись изменилась. Откройте её заново" }
+        require(!current.isArchived && autoDao.getVehicleById(current.vehicleId)?.isArchived == false) {
+            "Сначала верните автомобиль и событие из архива"
+        }
+        current.paidTransactionId?.let { id ->
+            budgetDao.getTransactionById(id.toInt())?.let { transaction ->
+                require(transaction.type == "expense") { "Связанная операция не является расходом" }
+                budgetDao.revertAndDeleteTransaction(transaction)
+            }
+        }
+        when(current.type) {
+            AutoEntryType.SERVICE -> autoDao.deleteServiceLog(current.id)
+            AutoEntryType.INSURANCE -> autoDao.deleteInsurance(current.id)
+            AutoEntryType.FUEL -> autoDao.deleteFuelLog(current.id)
+            AutoEntryType.REPAIR -> autoDao.deleteRepair(current.id)
+        }
+    }
+
     suspend fun getCategoryBalance(categoryId: Int): Double =
         budgetDao.getCategoryById(categoryId)?.currentBalance ?: 0.0
 

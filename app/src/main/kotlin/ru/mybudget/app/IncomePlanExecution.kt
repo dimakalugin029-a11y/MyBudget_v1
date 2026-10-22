@@ -12,6 +12,7 @@ class IncomePlanExecution(private val database: BudgetDatabase) {
         val dao = database.budgetDao()
         require(requestId.isNotBlank())
         if (dao.getTransactionsByGroupId(requestId).isNotEmpty()) return@withTransaction false
+        if (dao.claimMoneyCommand(ru.mybudget.app.data.MoneyCommandEntity(requestId)) == -1L) return@withTransaction false
         val source = requireNotNull(dao.getIncomeSourceById(sourceId)) { "Источник дохода удалён" }
         require(source.isActive) { "Источник дохода отключён" }
         if (replaceGroupId != null) {
@@ -44,7 +45,7 @@ class IncomePlanExecution(private val database: BudgetDatabase) {
             dao.insertTransaction(TransactionEntity(categoryId = id, amount = amount, type = "income",
                 description = description, groupId = requestId, plannedIncomeSourceId = sourceId,
                 plannedIncomeMonth = month.toString()))
-            dao.applyBalanceDelta(id, amount)
+            dao.applyBalanceDelta(id, amount, "income", requestId)
         }
         true
     }

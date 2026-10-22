@@ -1,5 +1,7 @@
 package ru.mybudget.app
 
+import ru.mybudget.app.data.BalanceMovementEntity
+import ru.mybudget.app.data.BalanceLedgerStateEntity
 import ru.mybudget.app.data.MonthlyIncomePlanEntity
 import ru.mybudget.app.data.ForecastSnapshotEntity
 import ru.mybudget.app.data.VehicleEntity
@@ -32,6 +34,8 @@ import ru.mybudget.app.data.UtilityTemplateLineEntity
 import ru.mybudget.app.data.UtilityTemplateSectionEntity
 
 internal data class BackupDataDto(
+    @SerializedName("balanceLedgerState") val balanceLedgerState: BalanceLedgerStateEntity? = null,
+    @SerializedName("balanceMovements") val balanceMovements: List<BalanceMovementEntity>? = null,
     @SerializedName("monthlyIncomePlans") val monthlyIncomePlans: List<MonthlyIncomePlanEntity>? = null,
     @SerializedName("forecastSnapshots") val forecastSnapshots: List<ForecastSnapshotEntity>? = null,
     @SerializedName("vehicles") val vehicles: List<VehicleEntity>? = null,
@@ -67,6 +71,8 @@ internal data class BackupDataDto(
 )
 
 data class BackupData(
+    @SerializedName("balanceLedgerState") val balanceLedgerState: BalanceLedgerStateEntity? = null,
+    @SerializedName("balanceMovements") val balanceMovements: List<BalanceMovementEntity> = emptyList(),
     @SerializedName("monthlyIncomePlans") val monthlyIncomePlans: List<MonthlyIncomePlanEntity> = emptyList(),
     @SerializedName("forecastSnapshots") val forecastSnapshots: List<ForecastSnapshotEntity> = emptyList(),
     @SerializedName("vehicles") val vehicles: List<VehicleEntity> = emptyList(),
@@ -101,7 +107,7 @@ data class BackupData(
     @SerializedName("participantNames") val participantNames: List<String> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 24
+        const val CURRENT_VERSION = 26
     }
 }
 
