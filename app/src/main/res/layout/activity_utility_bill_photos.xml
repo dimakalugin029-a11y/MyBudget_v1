@@ -26,7 +26,6 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:textColor="@color/text_secondary"
-        android:textSize="12sp"
         android:visibility="gone"
         style="@style/Text.MyBudget.Subtitle"/>
     <TextView
@@ -52,7 +51,6 @@
         android:layout_marginTop="@dimen/space_8"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/utility_photo_add"
-        app:backgroundTint="@color/utilities_cyan"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button"/>
 </LinearLayout>

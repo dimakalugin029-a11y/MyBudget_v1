@@ -1,62 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_6"
-    android:foreground="?attr/selectableItemBackground"
-    style="@style/Card.MyBudget.Surface">
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <View
-            android:layout_width="4dp"
-            android:layout_height="match_parent"
-            android:background="@drawable/utility_month_accent" />
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="@dimen/space_12"
-            android:paddingVertical="@dimen/space_10">
-            <TextView
-                android:id="@+id/meterGroupTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="15sp"
-                style="@style/Text.MyBudget.Section" />
-            <TextView
-                android:id="@+id/meterGroupSubtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:textSize="12sp"
-                style="@style/Text.MyBudget.Subtitle" />
-            <TextView
-                android:id="@+id/meterGroupLastReading"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                android:textColor="@color/utilities_cyan"
-                android:textSize="13sp"
-                style="@style/Text.MyBudget.Subtitle" />
-            <TextView
-                android:id="@+id/meterGroupProgress"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:textColor="@color/settings_orange"
-                android:textSize="11sp"
-                android:visibility="gone"
-                style="@style/Text.MyBudget.Subtitle" />
-            <TextView
-                android:id="@+id/meterGroupVerification"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                android:textSize="11sp"
-                android:visibility="gone"
-                style="@style/Text.MyBudget.Subtitle" />
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_6" android:foreground="?attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <View android:layout_width="4dp" android:layout_height="match_parent" android:background="@drawable/utility_month_accent" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="@dimen/space_12" android:paddingVertical="@dimen/space_10">
+            <TextView android:id="@+id/meterGroupTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="15sp" style="@style/Text.MyBudget.Section" />
+            <TextView android:id="@+id/meterGroupSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:textSize="14sp" style="@style/Text.MyBudget.Subtitle" />
+            <TextView android:id="@+id/meterGroupLastReading" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:textColor="@color/text_primary" android:textSize="14sp" style="@style/Text.MyBudget.Subtitle" />
+            <TextView android:id="@+id/meterGroupProgress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:textColor="@color/settings_orange" android:textSize="14sp" android:visibility="gone" style="@style/Text.MyBudget.Subtitle" />
+            <TextView android:id="@+id/meterGroupVerification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:textSize="14sp" android:visibility="gone" style="@style/Text.MyBudget.Subtitle" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

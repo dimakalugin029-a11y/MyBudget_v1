@@ -25,7 +25,6 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1">
                 <TextView
-                    android:textSize="12sp"
                     android:textColor="@color/budget_blue"
                     android:id="@+id/paymentCalendarDate"
                     android:layout_width="match_parent"
@@ -39,7 +38,6 @@
                     android:layout_marginTop="@dimen/space_4"
                     style="@style/Text.MyBudget.Section"/>
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/paymentCalendarSubtitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -67,9 +65,9 @@
                 android:text="@string/reminder_mark_paid"
                 android:layout_marginStart="@dimen/space_8"
                 android:paddingHorizontal="@dimen/space_8"
-                app:cornerRadius="@dimen/radius_10"
+                app:cornerRadius="@dimen/radius_12"
                 app:strokeColor="@color/income_green"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                style="@style/Widget.MyBudget.Button.Outlined"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

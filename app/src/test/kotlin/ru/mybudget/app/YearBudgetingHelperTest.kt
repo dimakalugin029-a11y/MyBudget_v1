@@ -59,13 +59,13 @@ class YearBudgetingHelperTest {
     @Test
     fun quarterlyBonusFullAmountOnlyInPayoutMonths() {
         val bonus = source(2, amount = 30000.0, sourceType = PlannedIncomeHelper.TYPE_BONUS, periodType = PlannedIncomeHelper.PERIOD_QUARTERLY, dueMonth = 2)
-        val payout = YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 4)!!
+        val payout = YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 2)!!
         assertEquals(30000.0, payout.amount, 0.001)
         assertFalse(payout.isOverride)
-        assertNull(YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 5))
+        assertNull(YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 4))
         assertNull(YearBudgetingHelper.incomeLineFor(bonus, emptyMap(), month = 3))
         val payouts = PlannedIncomeHelper.bonusPayoutMonths(2)
-        assertEquals(setOf(4, 7, 10, 1), payouts)
+        assertEquals(setOf(2, 5, 8, 11), payouts)
         val year = YearBudgetingHelper.buildYear(
             year = 2026,
             sources = listOf(bonus),
@@ -75,8 +75,8 @@ class YearBudgetingHelperTest {
             factByMonth = emptyMap(),
         )
         assertEquals(30000.0 * 4, year.incomeTotal, 0.001)
-        assertEquals(30000.0, year.months[3].incomeTotal, 0.001)
-        assertEquals(0.0, year.months[4].incomeTotal, 0.001)
+        assertEquals(30000.0, year.months[1].incomeTotal, 0.001)
+        assertEquals(0.0, year.months[3].incomeTotal, 0.001)
     }
 
     @Test

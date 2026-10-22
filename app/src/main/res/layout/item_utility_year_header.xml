@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginTop="@dimen/space_12"
@@ -40,14 +42,15 @@
                     android:layout_marginTop="@dimen/space_2"
                     style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
-            <TextView
+            <ImageButton
                 android:id="@+id/yearHeaderExpandIcon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="@dimen/touch_min_size"
+                android:layout_height="@dimen/touch_min_size"
                 android:layout_marginStart="@dimen/space_8"
-                android:textColor="@color/utilities_cyan"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_budget_expand"
+                android:padding="@dimen/space_12"
+                app:tint="@color/md_theme_primary" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -157,6 +157,7 @@ object BudgetTransferDialog {
             refreshToSubcategories()
         }
 
+        val requestId = java.util.UUID.randomUUID().toString()
         AlertDialog.Builder(activity)
             .setTitle(R.string.budget_transfer_title)
             .setPositiveButton(R.string.budget_transfer_confirm, null)
@@ -178,7 +179,7 @@ object BudgetTransferDialog {
                         }
                         else -> {
                             activity.lifecycleScope.launch(Dispatchers.IO) {
-                                val ok = budgetManager.transferSubcategoryBalance(from.id, to.id, amount)
+                                val ok = budgetManager.transferSubcategoryBalance(from.id, to.id, amount, requestId)
                                 withContext(Dispatchers.Main) {
                                     if (ok) {
                                         dialog.dismiss()

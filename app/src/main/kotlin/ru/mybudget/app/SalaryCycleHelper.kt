@@ -20,9 +20,17 @@ object SalaryCycleHelper {
         incomeSources: List<PlannedIncomeSourceEntity>,
         paymentEntries: List<PaymentCalendarHelper.Entry>,
         today: LocalDate = LocalDate.now(),
+        useCalendarIncome: Boolean = false,
     ): SafeToSpendInfo? {
         val todayEpoch = today.toEpochDay()
-        val next = PlannedIncomeHelper.occurrencesInHorizon(incomeSources, todayEpoch, horizonDays = 45)
+        val occurrences = if (useCalendarIncome) paymentEntries.filter { it.isIncome && it.sourceRef.incomeSourceId != null }
+            .mapNotNull { entry ->
+                incomeSources.firstOrNull { it.id == entry.sourceRef.incomeSourceId }?.let {
+                    PlannedIncomeHelper.Occurrence(it, LocalDate.ofEpochDay(entry.epochDay), entry.epochDay)
+                }
+            }.sortedBy { it.epochDay }
+        else PlannedIncomeHelper.occurrencesInHorizon(incomeSources, todayEpoch, horizonDays = 45)
+        val next = occurrences
             .firstOrNull { it.epochDay >= todayEpoch }
             ?: return null
 

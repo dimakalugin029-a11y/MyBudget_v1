@@ -52,5 +52,5 @@
         android:layout_height="@dimen/touch_min_size"
         android:src="@android:drawable/ic_menu_search"
         android:contentDescription="@string/transactions_search_submit"
-        app:tint="@color/budget_blue"/>
+        app:tint="@color/md_theme_primary"/>
 </LinearLayout>

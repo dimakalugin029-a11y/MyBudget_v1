@@ -1,208 +1,179 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/expenseRoot"
-    android:background="@color/background_light"
-    android:paddingLeft="@dimen/space_16"
-    android:paddingTop="@dimen/space_12"
-    android:paddingRight="@dimen/space_16"
-    android:paddingBottom="@dimen/space_8"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingHorizontal="@dimen/space_16">
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:fitsSystemWindows="true"
+    android:paddingHorizontal="@dimen/space_16"
+    android:paddingTop="@dimen/space_12"
+    android:paddingBottom="@dimen/space_8">
     <include
+        layout="@layout/include_screen_header"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        layout="@layout/include_screen_header"/>
-    <include
-        android:id="@+id/expenseHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        layout="@layout/include_dismissible_hint"/>
+        android:layout_height="wrap_content" />
     <androidx.core.widget.NestedScrollView
         android:id="@+id/expenseScroll"
-        android:clipToPadding="false"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_weight="1"
         android:fillViewport="true"
-        android:layout_weight="1">
+        android:clipToPadding="false">
         <LinearLayout
-            android:orientation="vertical"
-            android:paddingBottom="@dimen/space_16"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <androidx.cardview.widget.CardView
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="@dimen/space_8"
+            android:paddingBottom="@dimen/space_16">
+            <include
+                android:id="@+id/expenseHint"
+                layout="@layout/include_dismissible_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_12"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardElevation="0dp">
+                android:layout_marginBottom="@dimen/space_12" />
+            <androidx.cardview.widget.CardView
+                style="@style/Card.MyBudget.Surface"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/transaction_hero_card_bg_expense"
                     android:orientation="vertical"
                     android:padding="@dimen/space_16">
                     <TextView
-                        android:layout_width="wrap_content"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:letterSpacing="0.06"
-                        android:text="@string/transaction_budget_label"
-                        android:textAllCaps="true"
-                        android:textColor="@color/transaction_hero_expense_text_secondary"
-                        android:textSize="11sp" />
-                    <LinearLayout
-                        android:id="@+id/transactionBudgetPicker"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_6"
-                        android:background="@drawable/main_hero_profile_chip"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingHorizontal="@dimen/space_12"
-                        android:paddingVertical="@dimen/space_6">
-                        <TextView
-                            android:id="@+id/transactionBudgetNameText"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/budget_profiles_default_name"
-                            android:textColor="@color/transaction_hero_text_primary"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/space_4"
-                            android:text="@string/ui_chevron_down"
-                            android:textColor="@color/transaction_hero_expense_text_secondary"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_16"
-                        android:letterSpacing="0.06"
-                        android:text="@string/expense_amount_label"
-                        android:textAllCaps="true"
-                        android:textColor="@color/transaction_hero_expense_text_secondary"
-                        android:textSize="11sp" />
+                        android:text="@string/operation_expense_amount"
+                        android:labelFor="@id/expenseAmount" />
                     <EditText
                         android:id="@+id/expenseAmount"
+                        style="@style/Widget.MyBudget.OperationAmount"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_8"
-                        android:background="@drawable/transaction_hero_amount_field"
-                        android:hint="@string/expense_amount_hint"
+                        android:hint="@string/operation_amount_hint"
                         android:inputType="numberDecimal"
+                        android:singleLine="true"
+                        android:imeOptions="actionNext" />
+                    <TextView
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/transaction_budget_label"
+                        android:layout_marginTop="@dimen/space_12" />
+                    <LinearLayout
+                        android:id="@+id/transactionBudgetPicker"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_min_size"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
                         android:padding="@dimen/space_12"
-                        android:textColor="@color/transaction_hero_text_primary"
-                        android:textColorHint="@color/transaction_hero_text_hint"
-                        android:textSize="28sp"
-                        android:textStyle="bold" />
+                        android:background="@drawable/operation_input_bg"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <TextView
+                            android:id="@+id/transactionBudgetNameText"
+                            style="@style/Text.MyBudget.Section"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/budget_profiles_default_name" />
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_budget_expand"
+                            android:importantForAccessibility="no"
+                            app:tint="@color/md_theme_primary" />
+                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_8"
-                android:text="@string/expense_category_label"
-                style="@style/Text.MyBudget.SectionLabel" />
             <androidx.cardview.widget.CardView
+                style="@style/Card.MyBudget.Surface"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_12"
-                style="@style/Card.MyBudget.Surface">
+                android:layout_marginBottom="@dimen/space_16">
                 <LinearLayout
-                    android:orientation="vertical"
-                    android:padding="@dimen/space_16"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <TextView
+                        style="@style/Text.MyBudget.Section"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/expense_category_label"
+                        android:layout_marginBottom="@dimen/space_8"
+                        android:labelFor="@id/expenseCategory" />
                     <Spinner
                         android:id="@+id/expenseCategory"
-                        android:padding="@dimen/space_8"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        android:minHeight="56dp"
+                        android:background="@drawable/operation_input_bg"
+                        android:padding="@dimen/space_4" />
                     <TextView
-                        android:textSize="14sp"
                         android:id="@+id/selectedBalanceText"
-                        android:visibility="gone"
+                        style="@style/Text.MyBudget.Subtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_8"
-                        style="@style/Text.MyBudget.Subtitle"/>
+                        android:visibility="gone" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_8"
-                android:text="@string/expense_description_label"
-                style="@style/Text.MyBudget.SectionLabel"/>
             <androidx.cardview.widget.CardView
+                style="@style/Card.MyBudget.Surface"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_16"
-                style="@style/Card.MyBudget.Surface">
+                android:layout_marginBottom="@dimen/space_16">
                 <LinearLayout
-                    android:orientation="vertical"
-                    android:padding="@dimen/space_16"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <EditText
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"
-                        android:id="@+id/expenseDescription"
-                        android:background="@drawable/edittext_border"
-                        android:padding="@dimen/space_8"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <TextView
+                        style="@style/Text.MyBudget.Subtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/expense_description_hint"/>
+                        android:text="@string/operation_comment_optional"
+                        android:layout_marginBottom="@dimen/space_8"
+                        android:labelFor="@id/expenseDescription" />
+                    <EditText
+                        android:id="@+id/expenseDescription"
+                        style="@style/Widget.MyBudget.OperationInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/operation_comment_hint"
+                        android:inputType="textCapSentences|textMultiLine"
+                        android:minLines="2"
+                        android:maxLines="4" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/distributeExpenseButton"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:text="@string/operation_distribute_expense" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
     <LinearLayout
-        android:orientation="horizontal"
-        android:paddingTop="@dimen/space_12"
-        android:paddingBottom="@dimen/space_8"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="0.1"/>
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="@dimen/space_8">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/saveExpenseButton"
+            style="@style/Widget.MyBudget.Button"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.8">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/saveExpenseButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/expense_save_single"
-                app:backgroundTint="@color/expense_red"
-                app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button"/>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/distributeExpenseButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_8"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/expense_distribute_multi"
-                app:cornerRadius="@dimen/radius_10"
-                app:strokeColor="@color/expense_red"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        </LinearLayout>
-        <Space
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="0.1"/>
+            android:minHeight="56dp"
+            android:text="@string/operation_save_expense" />
     </LinearLayout>
 </LinearLayout>

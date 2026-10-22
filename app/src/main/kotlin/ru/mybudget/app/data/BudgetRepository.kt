@@ -4,7 +4,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import ru.mybudget.app.BudgetApplication
 import ru.mybudget.app.BudgetCategory
-import ru.mybudget.app.MoneyFormat
 import ru.mybudget.app.OverspendNotifier
 
 class BudgetRepository(private val budgetDao: BudgetDao) {
@@ -196,19 +195,13 @@ class BudgetRepository(private val budgetDao: BudgetDao) {
         newDescription: String,
         newParticipantLabel: String = original.participantLabel,
     ) {
-        val rounded = MoneyFormat.roundMoney(newAmount)
-        val revert = if (original.type == "income") -original.amount else original.amount
-        budgetDao.applyBalanceDelta(original.categoryId, revert)
-        val apply = if (newType == "income") rounded else -rounded
-        budgetDao.applyBalanceDelta(newCategoryId, apply)
-        budgetDao.updateTransaction(
-            original.copy(
-                categoryId = newCategoryId,
-                amount = rounded,
-                type = newType,
-                description = newDescription,
-                participantLabel = newParticipantLabel.trim(),
-            ),
+        budgetDao.correctTransaction(
+            original.id,
+            newCategoryId,
+            newAmount,
+            newType,
+            newDescription,
+            newParticipantLabel,
         )
     }
 

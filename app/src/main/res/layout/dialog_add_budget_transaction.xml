@@ -11,12 +11,12 @@
         android:text="@string/transaction_edit_amount"
         android:textSize="14sp"
         style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:id="@+id/addTransactionAmount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_16"
-        android:background="@drawable/edittext_border"
+        android:background="@drawable/operation_input_bg"
         android:hint="@string/budget_amount_hint"
         android:inputType="numberDecimal"
         android:padding="@dimen/space_12"
@@ -30,11 +30,11 @@
         android:text="@string/income_description_label"
         android:textSize="14sp"
         style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:id="@+id/addTransactionDescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/edittext_border"
+        android:background="@drawable/operation_input_bg"
         android:hint="@string/income_description_hint"
         android:inputType="textCapSentences|textMultiLine"
         android:maxLines="3"

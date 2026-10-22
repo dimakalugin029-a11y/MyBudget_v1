@@ -43,7 +43,7 @@
                         android:text="@string/help_title"
                         android:textAllCaps="true"
                         android:textColor="@color/main_hero_text_secondary"
-                        android:textSize="11sp" />
+                        android:textSize="14sp" />
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

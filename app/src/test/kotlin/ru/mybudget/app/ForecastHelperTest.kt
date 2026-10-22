@@ -25,7 +25,7 @@ class ForecastHelperTest {
         budgetId = 1,
         name = name,
         amount = amount,
-        sourceType = "salary",
+        sourceType = if (periodType == "monthly") "salary" else "bonus",
         periodType = periodType,
         dueMonth = dueMonth,
     )
@@ -189,14 +189,14 @@ class ForecastHelperTest {
     }
 
     @Test
-    fun `monthly plan overrides obligation`() {
+    fun `smaller monthly plan cannot hide obligation`() {
         val result = ForecastHelper.build(
             inputs(monthlyPlans = listOf(plan(2026, 11, 10, 8000.0))),
         )
         val first = result.months[0]
-        assertEquals(8000.0, first.mandatoryExpense, 0.01)
+        assertEquals(10000.0, first.mandatoryExpense, 0.01)
         val line = first.expenseLines.first { it.categoryId == 10 }
-        assertEquals(ForecastHelper.ExpenseSource.PLAN, line.source)
+        assertEquals(ForecastHelper.ExpenseSource.OBLIGATION, line.source)
         val second = result.months[1]
         assertEquals(10000.0, second.mandatoryExpense, 0.01)
         assertEquals(ForecastHelper.ExpenseSource.OBLIGATION, second.expenseLines.first { it.categoryId == 10 }.source)

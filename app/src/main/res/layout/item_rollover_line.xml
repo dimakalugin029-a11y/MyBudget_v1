@@ -36,13 +36,11 @@
                     android:layout_height="wrap_content"
                     style="@style/Text.MyBudget.Section"/>
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/rolloverBalance"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     style="@style/Text.MyBudget.Subtitle"/>
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/rolloverReservePreview"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

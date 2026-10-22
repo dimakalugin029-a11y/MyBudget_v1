@@ -36,7 +36,8 @@ class PlanFactActivity : AppCompatActivity() {
         setContentView(R.layout.activity_plan_fact)
         ScreenHeaderHelper.setup(this, getString(R.string.plan_fact_title), getString(R.string.main_icon_statistics))
         manager = BudgetManager.getInstance(this)
-        selectedBudgetId = manager.getActiveBudgetId()
+        selectedBudgetId = savedInstanceState?.getInt("plan_fact_budget")
+            ?: intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
         emptyView = findViewById(R.id.planFactEmpty)
         recycler = findViewById(R.id.planFactRecycler)
         adapter = PlanFactAdapter()
@@ -56,11 +57,16 @@ class PlanFactActivity : AppCompatActivity() {
         loadRows()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("plan_fact_budget", selectedBudgetId)
+        super.onSaveInstanceState(outState)
+    }
+
     private fun loadRows() {
         lifecycleScope.launch {
             val rows = withContext(Dispatchers.IO) {
                 val dao = BudgetDatabase.getInstance(this@PlanFactActivity).budgetDao()
-                val all = manager.getCategoriesAsync()
+                val all = dao.getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
                 val monthKey = MonthlyPlanHelper.currentMonth()
                 val monthlyPlans = dao.getMonthlyPlansForBudgetMonth(
                     selectedBudgetId,
@@ -72,13 +78,15 @@ class PlanFactActivity : AppCompatActivity() {
                 val obligationPlan = PlannedObligationHelper.monthlyPlanByCategory(obligations)
                 val parents = all.associate { it.id to it.name }
                 val leaves = all.filter { cat ->
-                    cat.budgetId == selectedBudgetId && cat.isActive && !manager.hasSubcategories(cat.id)
+                    cat.budgetId == selectedBudgetId
                 }
                 leaves.mapNotNull { cat ->
                     val spent = dao.getExpenseSumForCategoryInRange(cat.id, startMs, endMs)
+                    val isLeaf = all.none { it.parentId == cat.id }
+                    if (!isLeaf && spent <= 0.0) return@mapNotNull null
                     val obligationMonthly = obligationPlan[cat.id] ?: 0.0
                     val monthly = MonthlyPlanHelper.effectivePlannedAmount(cat, monthlyPlans[cat.id])
-                    val planned = if (monthly > 0.0) {
+                    val planned = if (!isLeaf || !cat.isActive && !monthlyPlans.containsKey(cat.id)) 0.0 else if (monthlyPlans.containsKey(cat.id)) {
                         monthly
                     } else {
                         PlannedObligationHelper.effectivePlan(cat.plannedAmount, obligationMonthly)

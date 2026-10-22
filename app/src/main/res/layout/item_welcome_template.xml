@@ -30,7 +30,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_6"
-                android:textSize="13sp"
                 style="@style/Text.MyBudget.Subtitle" />
             <TextView
                 android:id="@+id/templateStats"
@@ -38,7 +37,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_6"
                 android:textColor="@color/utilities_cyan"
-                android:textSize="12sp"
                 style="@style/Text.MyBudget.Subtitle" />
         </LinearLayout>
     </LinearLayout>

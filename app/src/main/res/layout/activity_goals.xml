@@ -39,27 +39,26 @@
         android:layout_marginBottom="@dimen/space_8"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/goals_add"
-        app:backgroundTint="@color/income_green"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button"/>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/whatIfButton"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/Widget.MyBudget.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/goals_what_if_btn"
-        app:cornerRadius="@dimen/radius_10"/>
+        app:cornerRadius="@dimen/radius_12"/>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/toggleArchiveButton"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/Widget.MyBudget.Button.Outlined"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/goals_archived_show"
-        app:cornerRadius="@dimen/radius_10"/>
+        app:cornerRadius="@dimen/radius_12"/>
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

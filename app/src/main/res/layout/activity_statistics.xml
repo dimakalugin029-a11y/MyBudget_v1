@@ -1,441 +1,462 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/background_light"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="@dimen/space_16"
+    android:background="@color/background_light"
+    android:fitsSystemWindows="true">
+    <include
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <include
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            layout="@layout/include_screen_header"/>
-        <include
-            android:id="@+id/statisticsHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_10"
-            layout="@layout/include_dismissible_hint"/>
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="0dp"
+        layout="@layout/include_screen_header"
+        android:layout_marginStart="@dimen/space_16"
+        android:layout_marginEnd="@dimen/space_16"
+        android:layout_marginTop="@dimen/space_8" />
+    <ScrollView
+        android:background="@color/background_light"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:layout_weight="1"
+        android:id="@+id/analysisScroll">
         <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8">
+            android:orientation="vertical"
+            android:id="@+id/analysisContent"
+            android:padding="@dimen/space_16">
             <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:ellipsize="end"
+                android:textSize="14sp"
                 android:id="@+id/statsBudgetChip"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="@dimen/touch_min_size"
                 android:text="@string/stats_budget_all"
-                android:maxLines="1"
-                android:layout_weight="1"
                 android:layout_marginEnd="@dimen/space_6"
-                app:icon="@android:drawable/arrow_down_float"
+                app:icon="@drawable/ic_budget_expand"
                 app:iconGravity="end"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        </LinearLayout>
-        <HorizontalScrollView
-            android:scrollbars="none"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12">
-            <LinearLayout
-                android:orientation="horizontal"
-                android:id="@+id/statsPeriodChipGroup"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:id="@+id/statsPeriodWeek"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_filter_7d"
-                    android:layout_marginEnd="@dimen/space_6"
-                    style="@style/Chip.MyBudget.Filter"/>
-                <TextView
-                    android:id="@+id/statsPeriodMonth"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_filter_30d"
-                    android:layout_marginEnd="@dimen/space_6"
-                    style="@style/Chip.MyBudget.Filter"/>
-                <TextView
-                    android:id="@+id/statsPeriodQuarter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_filter_3m"
-                    android:layout_marginEnd="@dimen/space_6"
-                    style="@style/Chip.MyBudget.Filter"/>
-                <TextView
-                    android:id="@+id/statsPeriodYear"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_filter_12m"
-                    android:layout_marginEnd="@dimen/space_6"
-                    style="@style/Chip.MyBudget.Filter"/>
-                <TextView
-                    android:id="@+id/statsPeriodCustom"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_custom_range"
-                    android:layout_marginEnd="@dimen/space_6"
-                    style="@style/Chip.MyBudget.Filter"/>
-                <TextView
-                    android:id="@+id/statsCompareChip"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_compare_chip"
-                    style="@style/Chip.MyBudget.Filter"/>
-            </LinearLayout>
-        </HorizontalScrollView>
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12">
-            <androidx.cardview.widget.CardView
-                android:id="@+id/statsKpiIncomeCard"
-                android:layout_width="0dp"
+                style="@style/Widget.MyBudget.Button.Outlined" />
+            <HorizontalScrollView
+                android:scrollbars="none"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="@dimen/space_4"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                style="@style/Card.MyBudget.Surface">
+                android:layout_marginBottom="@dimen/space_12">
                 <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="match_parent"
+                    android:orientation="horizontal"
+                    android:id="@+id/statsPeriodChipGroup"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content">
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="3dp"
-                        android:background="@drawable/stats_kpi_income_accent" />
-                    <LinearLayout
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="@dimen/space_12"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
                     <TextView
+                        android:id="@+id/statsPeriodWeek"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_kpi_income"
-                        style="@style/Text.MyBudget.SectionLabel"/>
+                        android:text="@string/stats_filter_7d"
+                        android:layout_marginEnd="@dimen/space_6"
+                        style="@style/Chip.MyBudget.Filter" />
                     <TextView
-                        android:textSize="16sp"
-                        android:textColor="@color/income_green"
-                        android:id="@+id/statsKpiIncome"
+                        android:id="@+id/statsPeriodMonth"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_4"
-                        android:text="@string/stats_kpi_zero"
-                        style="@style/Text.MyBudget.Amount"/>
-                    </LinearLayout>
+                        android:text="@string/stats_filter_30d"
+                        android:layout_marginEnd="@dimen/space_6"
+                        style="@style/Chip.MyBudget.Filter" />
+                    <TextView
+                        android:id="@+id/statsPeriodQuarter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_filter_3m"
+                        android:layout_marginEnd="@dimen/space_6"
+                        style="@style/Chip.MyBudget.Filter" />
+                    <TextView
+                        android:id="@+id/statsPeriodYear"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_filter_12m"
+                        android:layout_marginEnd="@dimen/space_6"
+                        style="@style/Chip.MyBudget.Filter" />
+                    <TextView
+                        android:id="@+id/statsPeriodCustom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_custom_range"
+                        android:layout_marginEnd="@dimen/space_6"
+                        style="@style/Chip.MyBudget.Filter" />
+                    <TextView
+                        android:id="@+id/statsCompareChip"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_compare_chip"
+                        style="@style/Chip.MyBudget.Filter" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
-            <androidx.cardview.widget.CardView
-                android:id="@+id/statsKpiExpenseCard"
-                android:layout_width="0dp"
+            </HorizontalScrollView>
+            <TextView
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginLeft="@dimen/space_4"
-                android:layout_marginRight="@dimen/space_4"
-                android:layout_marginHorizontal="@dimen/space_4"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
+                android:id="@+id/summaryText"
+                style="@style/Text.MyBudget.Subtitle" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/statsStatus"
+                style="@style/Text.MyBudget.Subtitle"
+                android:text="@string/analysis_loading"
+                android:layout_marginBottom="@dimen/space_8" />
+            <com.google.android.material.button.MaterialButton
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/analysis_retry"
+                android:visibility="gone"
+                android:id="@+id/statsRetryButton"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
                 style="@style/Card.MyBudget.Surface">
                 <LinearLayout
-                    android:orientation="vertical"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="3dp"
-                        android:background="@drawable/stats_kpi_expense_accent" />
-                    <LinearLayout
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="@dimen/space_12"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stats_kpi_expense"
-                        style="@style/Text.MyBudget.SectionLabel"/>
-                    <TextView
-                        android:textSize="16sp"
-                        android:textColor="@color/expense_red"
-                        android:id="@+id/statsKpiExpense"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_4"
-                        android:text="@string/stats_kpi_zero"
-                        style="@style/Text.MyBudget.Amount"/>
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="@dimen/space_4"
-                style="@style/Card.MyBudget.Surface">
-                <LinearLayout
+                    android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="3dp"
-                        android:background="@drawable/stats_kpi_balance_accent" />
-                    <LinearLayout
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:padding="@dimen/space_12"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                    android:padding="@dimen/space_16">
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_kpi_balance"
-                        style="@style/Text.MyBudget.SectionLabel"/>
+                        style="@style/Text.MyBudget.Section"
+                        android:text="@string/analysis_period_net" />
                     <TextView
-                        android:textSize="16sp"
-                        android:textColor="@color/budget_blue"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
                         android:id="@+id/statsKpiBalance"
-                        android:layout_width="wrap_content"
+                        style="@style/Text.MyBudget.Title"
+                        android:text="@string/analysis_value_pending"
+                        android:textSize="28sp"
+                        android:layout_marginTop="@dimen/space_8" />
+                    <TextView
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_4"
-                        android:text="@string/stats_kpi_zero"
-                        style="@style/Text.MyBudget.Amount"/>
+                        android:id="@+id/statsInsightText"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_marginTop="@dimen/space_8" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
+                style="@style/Card.MyBudget.Surface">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:id="@+id/statsKpiIncomeCard"
+                        android:minHeight="72dp"
+                        android:paddingVertical="@dimen/space_8"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Text.MyBudget.Subtitle"
+                            android:text="@string/stats_kpi_income" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/statsKpiIncome"
+                            style="@style/Text.MyBudget.Title"
+                            android:text="@string/analysis_value_pending"
+                            android:textSize="22sp"
+                            android:textColor="@color/income_green" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Text.MyBudget.Subtitle"
+                            android:text="@string/analysis_open_operations" />
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:id="@+id/statsKpiExpenseCard"
+                        android:minHeight="72dp"
+                        android:paddingVertical="@dimen/space_8"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Text.MyBudget.Subtitle"
+                            android:text="@string/stats_kpi_expense" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:id="@+id/statsKpiExpense"
+                            style="@style/Text.MyBudget.Title"
+                            android:text="@string/analysis_value_pending"
+                            android:textSize="22sp"
+                            android:textColor="@color/expense_red" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Text.MyBudget.Subtitle"
+                            android:text="@string/analysis_open_operations" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-        </LinearLayout>
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="@dimen/space_12"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_kpi_current_balance"
-                    style="@style/Text.MyBudget.SectionLabel"/>
-                <TextView
-                    android:textSize="20sp"
-                    android:textColor="@color/budget_blue"
-                    android:id="@+id/statsCurrentBalance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:text="@string/stats_kpi_zero"
-                    style="@style/Text.MyBudget.Amount"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/statsComparisonCard"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_12"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_compare_title"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:textSize="11sp"
-                    android:id="@+id/statsComparePeriodLabel"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_8"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:id="@+id/statsCompareIncome"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_4"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:id="@+id/statsCompareExpense"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_4"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:id="@+id/statsCompareSaldo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-        <TextView
-            android:textSize="13sp"
-            android:gravity="center"
-            android:id="@+id/summaryText"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
-            android:text="@string/stats_summary_default"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_12"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
+                style="@style/Card.MyBudget.Surface">
                 <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8">
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_balance_chart_title"
-                        android:layout_weight="1"
-                        style="@style/Text.MyBudget.Section"/>
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:text="@string/stats_kpi_current_balance" />
                     <TextView
-                        android:id="@+id/statsBalanceModeBalance"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_chart_mode_balance"
-                        android:layout_marginEnd="@dimen/space_4"
-                        style="@style/Chip.MyBudget.Filter"/>
+                        android:id="@+id/statsCurrentBalance"
+                        style="@style/Text.MyBudget.Title"
+                        android:text="@string/analysis_value_pending"
+                        android:textSize="22sp" />
                     <TextView
-                        android:id="@+id/statsBalanceModeFlow"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_chart_mode_flow"
-                        style="@style/Chip.MyBudget.Filter"/>
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:text="@string/analysis_current_balance_note" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="11sp"
-                    android:id="@+id/statsBalanceChartSubtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <com.github.mikephil.charting.charts.LineChart
-                    android:id="@+id/balanceLineChart"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"/>
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/flowBarChart"
-                    android:visibility="gone"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:gravity="center"
-                    android:id="@+id/statisticsEmptyText"
-                    android:paddingTop="@dimen/space_20"
-                    android:paddingBottom="@dimen/space_20"
-                    android:visibility="gone"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_no_operations"
-                    android:paddingVertical="@dimen/space_20"
-                    style="@style/Text.MyBudget.Subtitle"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_12"
+            </androidx.cardview.widget.CardView>
+            <androidx.cardview.widget.CardView
+                android:id="@+id/statsComparisonCard"
+                android:visibility="gone"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_12"
+                style="@style/Card.MyBudget.Surface">
                 <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_12"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_compare_title"
+                        style="@style/Text.MyBudget.Section" />
+                    <TextView
+                        android:textSize="14sp"
+                        android:id="@+id/statsComparePeriodLabel"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:layout_marginBottom="@dimen/space_8"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <TextView
+                        android:textSize="14sp"
+                        android:id="@+id/statsCompareIncome"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/space_4" />
+                    <TextView
+                        android:textSize="14sp"
+                        android:id="@+id/statsCompareExpense"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/space_4" />
+                    <TextView
+                        android:textSize="14sp"
+                        android:id="@+id/statsCompareSaldo"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Text.MyBudget.Section"
+                android:text="@string/analysis_dynamics"
+                android:layout_marginBottom="@dimen/space_8" />
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
+                style="@style/Card.MyBudget.Surface">
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8">
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
                     <LinearLayout
-                        android:orientation="vertical"
-                        android:layout_width="0dp"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1">
+                        android:orientation="horizontal">
                         <TextView
+                            android:id="@+id/statsBalanceModeBalance"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/stats_category_chart_title"
-                            style="@style/Text.MyBudget.Section"/>
+                            android:text="@string/stats_chart_mode_balance"
+                            android:layout_marginEnd="@dimen/space_4"
+                            style="@style/Chip.MyBudget.Filter" />
                         <TextView
-                            android:textSize="11sp"
-                            android:id="@+id/statsPieChartSubtitle"
+                            android:id="@+id/statsBalanceModeFlow"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="@dimen/space_2"
-                            android:text="@string/stats_pie_expenses_only"
-                            style="@style/Text.MyBudget.Subtitle"/>
+                            android:text="@string/stats_chart_mode_flow"
+                            style="@style/Chip.MyBudget.Filter" />
                     </LinearLayout>
                     <TextView
-                        android:id="@+id/statsPieGroupParent"
-                        android:layout_width="wrap_content"
+                        android:textSize="14sp"
+                        android:id="@+id/statsBalanceChartSubtitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_pie_group_parent"
-                        android:layout_marginEnd="@dimen/space_4"
-                        style="@style/Chip.MyBudget.Filter"/>
+                        android:layout_marginBottom="@dimen/space_8"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <com.github.mikephil.charting.charts.LineChart
+                        android:id="@+id/balanceLineChart"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp" />
+                    <com.github.mikephil.charting.charts.BarChart
+                        android:id="@+id/flowBarChart"
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="200dp" />
                     <TextView
-                        android:id="@+id/statsPieGroupLeaf"
+                        android:textSize="14sp"
+                        android:gravity="center"
+                        android:id="@+id/statisticsEmptyText"
+                        android:paddingTop="@dimen/space_20"
+                        android:paddingBottom="@dimen/space_20"
+                        android:visibility="gone"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_no_operations"
+                        android:paddingVertical="@dimen/space_20"
+                        style="@style/Text.MyBudget.Subtitle" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Text.MyBudget.Section"
+                android:text="@string/analysis_expenses_title"
+                android:layout_marginBottom="@dimen/space_8" />
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
+                style="@style/Card.MyBudget.Surface">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <TextView
+                        android:textSize="14sp"
+                        android:id="@+id/statsPieChartSubtitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/stats_pie_group_leaf"
-                        style="@style/Chip.MyBudget.Filter"/>
+                        android:layout_marginTop="@dimen/space_2"
+                        android:text="@string/stats_pie_expenses_only"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="@dimen/space_8">
+                        <TextView
+                            android:id="@+id/statsPieGroupParent"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stats_pie_group_parent"
+                            android:layout_marginEnd="@dimen/space_4"
+                            style="@style/Chip.MyBudget.Filter" />
+                        <TextView
+                            android:id="@+id/statsPieGroupLeaf"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/stats_pie_group_leaf"
+                            style="@style/Chip.MyBudget.Filter" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:id="@+id/statsExpenseEmptyText"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:text="@string/analysis_no_expenses"
+                        android:visibility="gone"
+                        android:paddingVertical="@dimen/space_16" />
+                    <com.github.mikephil.charting.charts.PieChart
+                        android:id="@+id/pieChart"
+                        android:layout_width="match_parent"
+                        android:layout_height="240dp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:text="@string/analysis_category_hint" />
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/statsCategoryList"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_12"
+                        android:nestedScrollingEnabled="false" />
                 </LinearLayout>
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/statsPlanFactButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/plan_fact_open"
-                    app:cornerRadius="@dimen/radius_10"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
-                <com.github.mikephil.charting.charts.PieChart
-                    android:id="@+id/pieChart"
+            </androidx.cardview.widget.CardView>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                style="@style/Text.MyBudget.Section"
+                android:text="@string/analysis_plans_reports"
+                android:layout_marginBottom="@dimen/space_8" />
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_16"
+                style="@style/Card.MyBudget.Surface">
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="240dp"/>
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/statsCategoryList"
-                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:nestedScrollingEnabled="false"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-    </LinearLayout>
-</ScrollView>
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <com.google.android.material.button.MaterialButton
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:id="@+id/statsForecastButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/stats_forecast"
+                        android:layout_marginBottom="@dimen/space_12" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/statsPlanFactButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="@dimen/space_8"
+                        android:text="@string/analysis_plan_fact_current"
+                        app:cornerRadius="@dimen/radius_12"
+                        style="@style/Widget.MyBudget.Button.Text" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <include
+                android:id="@+id/statisticsHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_10"
+                layout="@layout/include_dismissible_hint" />
+        </LinearLayout>
+    </ScrollView>
+    <include layout="@layout/include_main_navigation" />
+</LinearLayout>

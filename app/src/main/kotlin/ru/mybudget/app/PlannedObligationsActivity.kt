@@ -87,6 +87,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
             onEdit = { showEditDialog(it) },
             onDelete = { showDeleteDialog(it) },
             onPay = { payObligation(it) },
+            onPayments = { showPaymentHistory(it) },
         )
         findViewById<RecyclerView>(R.id.obligationsRecycler).apply {
             layoutManager = LinearLayoutManager(this@PlannedObligationsActivity)
@@ -178,6 +179,30 @@ class PlannedObligationsActivity : AppCompatActivity() {
             } else {
                 visibility = View.GONE
             }
+        }
+    }
+
+    private fun showPaymentHistory(obligation: PlannedObligationEntity) {
+        lifecycleScope.launch {
+            val payments = manager.repository.getObligationPaymentsByBudget(budgetId)
+                .filter { it.obligationId == obligation.id }.sortedWith(compareByDescending<ru.mybudget.app.data.ObligationPaymentEntity> { it.periodYear }.thenByDescending { it.periodMonth })
+            if (payments.isEmpty()) {
+                Toast.makeText(this@PlannedObligationsActivity, "Отметок оплаты пока нет", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+            AlertDialog.Builder(this@PlannedObligationsActivity).setTitle("Оплаты · ${obligation.name}")
+                .setItems(payments.map { "${it.periodMonth}.${it.periodYear} · ${MoneyFormat.formatRub(it.amount)}" }.toTypedArray()) { _, index ->
+                    val payment = payments[index]
+                    AlertDialog.Builder(this@PlannedObligationsActivity).setTitle("Отменить отметку оплаты?")
+                        .setMessage(if (payment.transactionId != null) "Связанный расход будет отменён, деньги вернутся в бюджет, период станет неоплаченным."
+                            else "Снимется только отметка. Связь с расходом отсутствует; деньги не изменятся. Если расход ещё записан в истории, отмените его отдельно.")
+                        .setPositiveButton("Отменить оплату") { _, _ -> lifecycleScope.launch {
+                            manager.database.budgetDao().reopenObligationPayment(payment.id)
+                            manager.reloadCategoriesFromDatabase()
+                            BudgetWidgetProvider.updateAll(this@PlannedObligationsActivity)
+                            reload()
+                        } }.setNegativeButton(android.R.string.cancel, null).show()
+                }.setNegativeButton(android.R.string.cancel, null).show()
         }
     }
 
@@ -478,6 +503,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
                     dueMonth = if (isYearly) dueMonthSpinner.selectedItemPosition + 1 else 1,
                     dueDay = PlannedObligationHelper.dueDayFromSpinnerPosition(dueDaySpinner.selectedItemPosition),
                     createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                    attentionStartMonth = existing?.attentionStartMonth ?: java.time.YearMonth.now().toString(),
                     remindEnabled = remindSwitch.isChecked && categoryId > 0,
                     autoPostEnabled = autoPostSwitch.isChecked && categoryId > 0,
                     obligationKind = PlannedObligationHelper.kindFromSpinnerPosition(kindSpinner.selectedItemPosition),
@@ -544,6 +570,7 @@ class PlannedObligationsActivity : AppCompatActivity() {
         private val onEdit: (PlannedObligationEntity) -> Unit,
         private val onDelete: (PlannedObligationEntity) -> Unit,
         private val onPay: (PlannedObligationEntity) -> Unit,
+        private val onPayments: (PlannedObligationEntity) -> Unit,
     ) : RecyclerView.Adapter<ObligationAdapter.Holder>() {
         private var items: List<PlannedObligationEntity> = emptyList()
 
@@ -636,11 +663,13 @@ class PlannedObligationsActivity : AppCompatActivity() {
                         arrayOf(
                             ctx.getString(R.string.obligations_edit),
                             ctx.getString(R.string.budget_delete_selected),
+                            "История оплат / отмена",
                         ),
                     ) { _, which ->
                         when (which) {
                             0 -> onEdit(item)
                             1 -> onDelete(item)
+                            2 -> onPayments(item)
                         }
                     }
                     .show()

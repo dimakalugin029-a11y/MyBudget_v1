@@ -7,7 +7,6 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.BudgetCategoryEntity
@@ -41,11 +40,13 @@ import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import kotlin.io.use
 
-class BackupManager(context: Context) {
+class BackupManager internal constructor(context: Context, private val database: BudgetDatabase) {
+    constructor(context: Context) : this(context, BudgetDatabase.getInstance(context.applicationContext))
+
     private val appContext = context.applicationContext
-    private val database = BudgetDatabase.getInstance(appContext)
     private val dao = database.budgetDao()
     private val utilityDao = database.utilityDao()
+    private val autoDao = database.autoDao()
     private val gson: Gson = GsonBuilder().serializeNulls().create()
 
     suspend fun exportToArchiveFile(uri: Uri, password: String? = null): Boolean = withContext(Dispatchers.IO) {
@@ -82,7 +83,7 @@ class BackupManager(context: Context) {
     suspend fun readFileContent(uri: Uri): String? = withContext(Dispatchers.IO) {
         runCatching {
             appContext.contentResolver.openInputStream(uri)?.use { input ->
-                BufferedReader(InputStreamReader(input, Charsets.UTF_8)).readText()
+                BackupArchiveHelper.readBounded(input, 32 * 1024 * 1024).toString(Charsets.UTF_8)
             }
         }.getOrNull()
     }
@@ -169,18 +170,20 @@ class BackupManager(context: Context) {
 
     private suspend fun buildPlainJson(
         photosForArchive: List<UtilityBillPhotoEntity>? = null,
-    ): String {
+    ): String = database.withTransaction {
         val photos = photosForArchive ?: utilityDao.getAllBillPhotosForExport()
         val data = BackupData(
             version = BackupData.CURRENT_VERSION,
             exportedAt = System.currentTimeMillis(),
             budgetProfiles = dao.getAllBudgetProfilesForExport(),
             categories = dao.getAllCategoriesForExport(),
-            transactions = dao.getAllTransactions().first(),
+            transactions = dao.getAllTransactionsOnce(),
             reminders = dao.getAllRemindersForExport(),
             savingsGoals = dao.getAllSavingsGoalsForExport(),
             recurringTransactions = dao.getAllRecurringForExport(),
-            plannedObligations = dao.getAllPlannedObligationsForExport(),
+            plannedObligations = dao.getAllPlannedObligationsForExport().map {
+                it.copy(attentionStartMonth = PaymentTracking.startMonth(it, java.time.LocalDate.now()).toString())
+            },
             obligationPayments = dao.getAllObligationPaymentsForExport(),
             balanceSnapshots = dao.getAllBalanceSnapshotsForExport(),
             plannedIncomeSources = dao.getAllPlannedIncomeSourcesForExport(),
@@ -197,8 +200,15 @@ class BackupManager(context: Context) {
             monthlyCategoryPlans = dao.getAllMonthlyPlansForExport(),
             auditActions = dao.getAllAuditActionsForExport(),
             participantNames = ParticipantPreferences.getNames(appContext),
+            monthlyIncomePlans = dao.getAllMonthlyIncomePlansForExport(),
+            forecastSnapshots = dao.getAllForecastSnapshotsForExport(),
+            vehicles = autoDao.getAllVehicles(),
+            vehicleServiceLogs = autoDao.getAllServiceLogsForExport(),
+            vehicleInsurances = autoDao.getAllInsurances(),
+            vehicleFuelLogs = autoDao.getAllFuelLogsForExport(),
+            vehicleRepairs = autoDao.getAllRepairsForExport(),
         )
-        return gson.toJson(data)
+        gson.toJson(data)
     }
 
     private suspend fun importPlainJson(
@@ -222,7 +232,7 @@ class BackupManager(context: Context) {
             val activeId = database.withTransaction {
                 when (mode) {
                     BackupImportMode.REPLACE -> importData(data, photoBytes)
-                    BackupImportMode.MERGE -> BackupMergeImporter(appContext, dao, utilityDao).import(data, photoBytes)
+                    BackupImportMode.MERGE -> BackupMergeImporter(appContext, dao, utilityDao, autoDao).import(data, photoBytes)
                 }
             }
             if (mode == BackupImportMode.REPLACE && data.participantNames.isNotEmpty()) {
@@ -260,6 +270,9 @@ class BackupManager(context: Context) {
         data: BackupData,
         photoBytes: Map<String, ByteArray> = emptyMap(),
     ): Int {
+        autoDao.deleteAllVehicles()
+        dao.deleteAllMonthlyIncomePlans()
+        dao.deleteAllForecastSnapshots()
         dao.deleteAllTransactions()
         dao.deleteAllReminders()
         dao.deleteAllSavingsGoals()
@@ -316,9 +329,10 @@ class BackupManager(context: Context) {
             dao.insertCategory(normalized)
             insertedCategoryIds.add(normalized.id)
         }
+        val transactionIdMap = mutableMapOf<Long, Long>()
         for (transaction in data.transactions) {
             if (transaction.categoryId in insertedCategoryIds) {
-                dao.insertTransaction(normalizeTransaction(transaction))
+                transactionIdMap[transaction.id.toLong()] = dao.insertTransaction(normalizeTransaction(transaction))
             }
         }
         val obligationIdMap = mutableMapOf<Int, Int>()
@@ -329,6 +343,10 @@ class BackupManager(context: Context) {
             val newId = dao.insertPlannedIncomeSource(incomeSource.copy(id = 0, budgetId = budgetId)).toInt()
             if (sourceId > 0) incomeSourceIdMap[sourceId] = newId
         }
+        BackupAdditionalDataImporter.import(
+            data, dao, autoDao, profileIdMap, fallbackProfileId,
+            insertedCategoryIds.associateWith { it }, transactionIdMap, incomeSourceIdMap,
+        )
         for (obligation in data.plannedObligations) {
             val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
             val sourceId = obligation.id
@@ -341,6 +359,7 @@ class BackupManager(context: Context) {
                     budgetId = budgetId,
                     obligationKind = PlannedObligationHelper.normalizeKind(obligation.obligationKind),
                     linkedIncomeSourceId = linkedIncomeSourceId,
+                    attentionStartMonth = PaymentTracking.importedStartMonth(obligation.attentionStartMonth),
                 ),
             ).toInt()
             if (sourceId > 0) obligationIdMap[sourceId] = newId
@@ -351,7 +370,7 @@ class BackupManager(context: Context) {
         }
         for (payment in data.obligationPayments) {
             val obligationId = remapObligationId(payment.obligationId) ?: continue
-            dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId))
+            dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId, transactionId = payment.transactionId?.let { transactionIdMap[it.toLong()]?.toInt() }))
         }
         for (snapshot in data.balanceSnapshots) {
             val budgetId = remapId(snapshot.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
@@ -660,6 +679,13 @@ class BackupManager(context: Context) {
         monthlyCategoryPlans = monthlyCategoryPlans.orEmpty(),
         auditActions = auditActions.orEmpty(),
         participantNames = participantNames.orEmpty(),
+        monthlyIncomePlans = monthlyIncomePlans.orEmpty(),
+        forecastSnapshots = forecastSnapshots.orEmpty(),
+        vehicles = vehicles.orEmpty(),
+        vehicleServiceLogs = vehicleServiceLogs.orEmpty(),
+        vehicleInsurances = vehicleInsurances.orEmpty(),
+        vehicleFuelLogs = vehicleFuelLogs.orEmpty(),
+        vehicleRepairs = vehicleRepairs.orEmpty(),
     )
 
     private fun validateBackupContent(content: String): BackupImportResult? {

@@ -17,12 +17,12 @@
         android:layout_marginBottom="@dimen/space_4"
         android:text="@string/budget_article_name_label"
 style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:textSize="16sp"
         android:textColor="@color/text_primary"
         android:id="@+id/categoryNameEdit"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:background="@drawable/operation_input_bg"
+        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_16"
@@ -34,12 +34,12 @@ style="@style/Text.MyBudget.SectionLabel"/>
         android:layout_marginBottom="@dimen/space_4"
         android:text="@string/budget_planned_amount_label"
 style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:textSize="16sp"
         android:textColor="@color/text_primary"
         android:id="@+id/plannedAmountEdit"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:background="@drawable/operation_input_bg"
+        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_20"
@@ -58,14 +58,13 @@ style="@style/Text.MyBudget.SectionLabel"/>
             android:layout_weight="1"
             android:layout_marginEnd="@dimen/space_8"/>
         <Button
-            android:textColor="@color/white"
+            android:textColor="@color/md_theme_onPrimary"
             android:id="@+id/saveButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:minHeight="@dimen/touch_min_size"
             android:text="@string/save"
             android:layout_weight="1"
-            android:layout_marginStart="@dimen/space_8"
-            android:backgroundTint="@color/income_green"/>
+            android:layout_marginStart="@dimen/space_8"/>
     </LinearLayout>
 </LinearLayout>

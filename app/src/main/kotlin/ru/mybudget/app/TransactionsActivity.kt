@@ -3,6 +3,7 @@ package ru.mybudget.app
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.room.withTransaction
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -199,6 +200,9 @@ class TransactionsActivity : AppCompatActivity() {
             manager.getCategoriesAsync()
             loadAuditActions()
             manager.repository.getAllTransactions().collectLatest { list ->
+                historyCategories = withContext(Dispatchers.IO) {
+                    manager.database.budgetDao().getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
+                }
                 allTransactions = list
                 render()
             }
@@ -248,9 +252,10 @@ class TransactionsActivity : AppCompatActivity() {
         )
     }
 
+    private var historyCategories: List<BudgetCategory> = emptyList()
     private fun render() {
-        val names = manager.getCategories().associate { it.id to it.name }
-        val budgetIds = manager.getCategoryIdsForBudget()
+        val names = historyCategories.associate { it.id to it.name }
+        val budgetIds = historyCategories.filter { it.budgetId == manager.getActiveBudgetId() }.map { it.id }.toSet()
         val categoryFilter = filterCategoryIds?.toSet()
         val filtered = allTransactions.filter { tx ->
             val inBudget = categoryFilter?.contains(tx.categoryId) ?: budgetIds.contains(tx.categoryId)
@@ -410,7 +415,7 @@ class TransactionsActivity : AppCompatActivity() {
                 }
                 val all = manager.getCategoriesAsync()
                 val parents = all.associate { it.id to it.name }
-                val leaf = all.filter { it.isActive && !manager.hasSubcategories(it.id) }
+                val leaf = all.filter { it.isActive && it.budgetId == manager.getActiveBudgetId() && !manager.hasSubcategories(it.id) }
                 if (leaf.isEmpty()) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@TransactionsActivity, R.string.utility_pay_no_categories, Toast.LENGTH_SHORT).show()
@@ -421,6 +426,7 @@ class TransactionsActivity : AppCompatActivity() {
                 val budgetId = manager.getActiveBudgetId()
                 val rules = ImportCategoryMappingPreferences.getRules(this@TransactionsActivity, budgetId)
                 val existingKeys = manager.repository.getAllTransactionsOnce()
+                    .filter { tx -> all.any { it.id == tx.categoryId && it.budgetId == budgetId } }
                     .map { CsvTransactionImporter.duplicateKey(it.date, it.type, it.amount, it.description) }
                     .toSet()
                 val resolvedCount = parsed.rows.count { row ->
@@ -470,10 +476,25 @@ class TransactionsActivity : AppCompatActivity() {
             .setTitle(R.string.transactions_import_csv)
             .setMessage(message)
             .setPositiveButton(R.string.transactions_import_confirm) { _, _ ->
-                if (needsDefault) {
-                    pickDefaultCategoryAndImport(parsed.rows, leaf, labels, parents, rules, budgetId, existingKeys)
-                } else {
-                    importRows(parsed.rows, labels, rules, null, budgetId, existingKeys)
+                fun proceed(rows: List<CsvTransactionImporter.ParsedRow>) {
+                    if (rows.isEmpty()) return
+                    if (needsDefault) pickDefaultCategoryAndImport(rows, leaf, labels, parents, rules, budgetId, existingKeys)
+                    else importRows(rows, labels, rules, null, budgetId, existingKeys)
+                }
+                val candidates = parsed.rows.filter { CsvTransactionImporter.duplicateKey(it.dateMillis, it.type, it.amount,
+                    it.description.ifBlank { it.categoryName }) in existingKeys }
+                if (candidates.isEmpty()) proceed(parsed.rows)
+                else {
+                    val selected = BooleanArray(candidates.size)
+                    AlertDialog.Builder(this)
+                        .setTitle("Возможные совпадения: отметьте операции, которые нужно добавить")
+                        .setMultiChoiceItems(candidates.map { "${java.text.SimpleDateFormat("dd.MM.yyyy", Locale("ru")).format(java.util.Date(it.dateMillis))} · ${MoneyFormat.formatRub(it.amount)} · ${it.description}" }.toTypedArray(), selected) { _, index, checked -> selected[index] = checked }
+                        .setPositiveButton("Импортировать выбранное") { _, _ ->
+                            val chosen = candidates.filterIndexed { index, _ -> selected[index] }.toMutableList()
+                            proceed(parsed.rows.filter { row ->
+                                if (row !in candidates) true else if (row in chosen) { chosen.remove(row); true } else false
+                            })
+                        }.setNegativeButton(android.R.string.cancel, null).show()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -513,20 +534,19 @@ class TransactionsActivity : AppCompatActivity() {
                 var skippedDuplicates = 0
                 val keys = existingKeys.toMutableSet()
                 val activeRules = rules.toMutableList()
+                val remembered = mutableListOf<Pair<String, Int>>()
+                val affectedExpenseIds = mutableSetOf<Int>()
+                manager.database.withTransaction {
                 for (row in rows) {
                     val description = row.description.ifBlank { row.categoryName }
                     val key = CsvTransactionImporter.duplicateKey(row.dateMillis, row.type, row.amount, description)
-                    if (key in keys) {
-                        skippedDuplicates++
-                        continue
-                    }
                     val categoryId = CsvTransactionImporter.resolveCategoryId(
                         row.categoryName,
                         labels,
                         row.description,
                         activeRules,
                     ) ?: defaultCategoryId ?: continue
-                    manager.repository.recordTransaction(
+                    manager.database.budgetDao().recordTransaction(
                         categoryId = categoryId,
                         amount = MoneyFormat.roundMoney(row.amount),
                         type = row.type,
@@ -534,23 +554,23 @@ class TransactionsActivity : AppCompatActivity() {
                         date = row.dateMillis,
                     )
                     keys.add(key)
+                    if (row.type == "expense") affectedExpenseIds += categoryId
                     if (
                         defaultCategoryId != null &&
                         categoryId == defaultCategoryId &&
                         row.description.isNotBlank() &&
                         CsvTransactionImporter.resolveCategoryId(row.categoryName, labels, row.description, rules) == null
                     ) {
-                        ImportCategoryMappingPreferences.remember(
-                            this@TransactionsActivity,
-                            budgetId,
-                            row.description,
-                            categoryId,
-                        )
+                        remembered += row.description to categoryId
                         ImportCategoryMappingPreferences.ruleFor(row.description, categoryId)
                             ?.let { activeRules.add(0, it) }
                     }
                     imported++
                 }
+                }
+                remembered.forEach { (description, categoryId) -> ImportCategoryMappingPreferences.remember(
+                    this@TransactionsActivity, budgetId, description, categoryId) }
+                affectedExpenseIds.forEach { OverspendNotifier.checkAfterExpense(this@TransactionsActivity, it) }
                 manager.reloadCategoriesFromDatabase()
                 withContext(Dispatchers.Main) {
                     BudgetWidgetProvider.updateAll(this@TransactionsActivity)
@@ -724,6 +744,11 @@ class TransactionsActivity : AppCompatActivity() {
 
     private fun redistributeGroup(transactions: List<TransactionEntity>) {
         val groupId = transactions.firstOrNull()?.groupId ?: return
+        val plannedSource = transactions.firstOrNull()?.plannedIncomeSourceId
+        val plannedMonth = transactions.firstOrNull()?.plannedIncomeMonth
+        val linked = plannedSource != null && plannedMonth != null && transactions.all {
+            it.type == "income" && it.plannedIncomeSourceId == plannedSource && it.plannedIncomeMonth == plannedMonth
+        }
         val type = transactions.firstOrNull()?.type ?: "income"
         val total = transactions.sumOf { it.amount }
         val note = transactions.firstOrNull()?.description.orEmpty()
@@ -735,7 +760,7 @@ class TransactionsActivity : AppCompatActivity() {
             .setPositiveButton(R.string.transaction_group_redistribute) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
                     try {
-                        manager.repository.cancelTransactionGroup(groupId)
+                        if (!linked) manager.repository.cancelTransactionGroup(groupId)
                         manager.getCategoriesAsync()
                         withContext(Dispatchers.Main) {
                             BudgetWidgetProvider.updateAll(this@TransactionsActivity)
@@ -750,6 +775,13 @@ class TransactionsActivity : AppCompatActivity() {
                             } else {
                                 startActivity(
                                     Intent(this@TransactionsActivity, IncomeDistributionActivity::class.java)
+                                        .apply {
+                                            if (linked) {
+                                                putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, plannedSource ?: 0)
+                                                putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH, plannedMonth)
+                                                putExtra(IncomeDistributionActivity.EXTRA_REPLACE_GROUP, groupId)
+                                            }
+                                        }
                                         .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, total)
                                         .putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, note)
                                         .putExtra(IncomeDistributionActivity.EXTRA_PREFILL_CATEGORY_IDS, categoryIds)

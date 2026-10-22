@@ -3,70 +3,65 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
-
         <TextView
             android:id="@+id/recordDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="15sp"/>
-
+            android:textSize="16sp"
+            android:textColor="@color/text_primary" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:orientation="horizontal">
-
-             <Button
+            android:orientation="vertical">
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/payButton"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:maxLines="1"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:padding="6dp"
                 android:layout_marginEnd="2dp"
-                android:text="@string/auto_pay"/>
-
-             <Button
+                android:text="@string/auto_pay"
+                style="@style/Widget.MyBudget.Button"
+                android:minHeight="@dimen/touch_min_size" />
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/editButton"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:maxLines="1"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:padding="6dp"
                 android:layout_marginStart="2dp"
                 android:layout_marginEnd="2dp"
-                android:text="@string/auto_edit"/>
-
-             <Button
+                android:text="@string/auto_edit"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:minHeight="@dimen/touch_min_size" />
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/deleteButton"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:maxLines="1"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:padding="6dp"
                 android:layout_marginStart="2dp"
                 android:layout_marginEnd="2dp"
-                android:text="@string/delete"/>
-
-             <Button
+                android:text="@string/delete"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:minHeight="@dimen/touch_min_size"
+                android:textColor="@color/expense_red" />
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/cancelButton"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:maxLines="1"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 android:padding="6dp"
                 android:layout_marginStart="2dp"
-                android:text="@android:string/cancel"/>
+                android:text="@android:string/cancel"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:minHeight="@dimen/touch_min_size" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

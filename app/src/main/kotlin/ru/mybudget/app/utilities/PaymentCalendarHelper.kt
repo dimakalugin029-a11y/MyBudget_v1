@@ -47,7 +47,19 @@ object PaymentCalendarHelper {
         val kind: EntryKind,
         val categoryId: Int = 0,
         val sourceRef: SourceRef = SourceRef(),
-    )
+        val isIncome: Boolean = kind == EntryKind.INCOME,
+        val isGlobal: Boolean = false,
+    ) {
+        val isForecast: Boolean get() = kind == EntryKind.UTILITY_FORECAST
+        val eventKey: String get() = when {
+            sourceRef.obligationId != null -> "obligation:${sourceRef.obligationId}:${YearMonth.from(LocalDate.ofEpochDay(epochDay))}"
+            sourceRef.billId != null -> "bill:${sourceRef.billId}"
+            sourceRef.reminderId != null -> "reminder:${sourceRef.reminderId}:$epochDay"
+            sourceRef.recurringId != null -> "recurring:${sourceRef.recurringId}:$epochDay"
+            sourceRef.incomeSourceId != null -> "income:${sourceRef.incomeSourceId}:$epochDay"
+            else -> "$kind:${sourceRef.propertyId}:$epochDay:$title"
+        }
+    }
 
     private val isoFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val displayFmt = DateTimeFormatter.ofPattern("dd.MM.yyyy")
@@ -69,10 +81,12 @@ object PaymentCalendarHelper {
         val today = LocalDate.ofEpochDay(todayEpochDay)
         val horizonEnd = LocalDate.ofEpochDay(maxDay)
         val result = mutableListOf<Entry>()
+        val knownObligations = obligations.map { it.id }.toSet()
 
         for (reminder in reminders) {
+            if (!reminder.isActive || reminder.obligationId in knownObligations) continue
             val epoch = parseDateEpochDay(reminder.dueDate) ?: continue
-            if (epoch !in todayEpochDay..maxDay) continue
+            if (epoch > maxDay) continue
             val category = categoryNames[reminder.categoryId]
             result += Entry(
                 epochDay = epoch,
@@ -82,13 +96,14 @@ object PaymentCalendarHelper {
                 amount = reminder.amount,
                 kind = EntryKind.REMINDER,
                 categoryId = reminder.categoryId,
-                sourceRef = SourceRef(reminderId = reminder.id),
+                sourceRef = SourceRef(reminderId = reminder.id, obligationId = reminder.obligationId),
             )
         }
 
         for (item in recurring) {
+            if (!item.isActive || item.obligationId in knownObligations) continue
             val epoch = parseDateEpochDay(item.nextDueDate) ?: continue
-            if (epoch !in todayEpochDay..maxDay) continue
+            if (epoch > maxDay) continue
             val title = item.description.ifBlank { "Повторяющаяся операция" }
             val category = categoryNames[item.categoryId]
             result += Entry(
@@ -99,7 +114,8 @@ object PaymentCalendarHelper {
                 amount = item.amount,
                 kind = EntryKind.RECURRING,
                 categoryId = item.categoryId,
-                sourceRef = SourceRef(recurringId = item.id),
+                sourceRef = SourceRef(recurringId = item.id, obligationId = item.obligationId),
+                isIncome = item.type == "income",
             )
         }
 
@@ -120,12 +136,21 @@ object PaymentCalendarHelper {
         )
 
         for (ob in obligations.filter { it.isActive }) {
+            val created = java.time.Instant.ofEpochMilli(ob.createdAt)
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            // Explicit linked dates preserve outstanding occurrences after the schedule has moved.
+            val linkedDates = reminders.filter { it.obligationId == ob.id }.mapNotNull { parseDateEpochDay(it.dueDate) } +
+                recurring.filter { it.obligationId == ob.id }.mapNotNull { parseDateEpochDay(it.nextDueDate) }
+            val savedStart = ru.mybudget.app.PaymentTracking.startMonth(ob, today).atDay(1)
+            val start = minOf(savedStart, linkedDates.minOrNull()?.let { LocalDate.ofEpochDay(it) } ?: savedStart)
+            val linkedPeriods = linkedDates.map { YearMonth.from(LocalDate.ofEpochDay(it)) }.toSet()
             if (ob.periodType == PlannedObligationHelper.PERIOD_YEARLY) {
-                for (year in today.year..horizonEnd.year) {
+                for (year in start.year..horizonEnd.year) {
                     val ym = YearMonth.of(year, ob.dueMonth.coerceIn(1, 12))
                     val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
                     val epoch = dueDate.toEpochDay()
-                    if (epoch in todayEpochDay..maxDay) {
+                    if (epoch <= maxDay && (dueDate >= savedStart || YearMonth.from(dueDate) in linkedPeriods) &&
+                        (dueDate >= created || YearMonth.from(dueDate) in linkedPeriods || dueDate >= today)) {
                         val key = ObligationPaymentHelper.periodKey(ob.id, dueDate)
                         if (!paidObligationPeriods.contains(key)) {
                             addObligationEntry(result, ob, dueDate, categoryNames)
@@ -133,12 +158,13 @@ object PaymentCalendarHelper {
                     }
                 }
             } else {
-                var ym = YearMonth.from(today)
+                var ym = YearMonth.from(start)
                 val endYm = YearMonth.from(horizonEnd)
                 while (!ym.isAfter(endYm)) {
                     val dueDate = PlannedObligationHelper.dueLocalDate(ym, ob.dueDay)
                     val epoch = dueDate.toEpochDay()
-                    if (epoch in todayEpochDay..maxDay) {
+                    if (epoch <= maxDay && (dueDate >= savedStart || YearMonth.from(dueDate) in linkedPeriods) &&
+                        (dueDate >= created || YearMonth.from(dueDate) in linkedPeriods || dueDate >= today)) {
                         val key = ObligationPaymentHelper.periodKey(ob.id, dueDate)
                         if (!paidObligationPeriods.contains(key)) {
                             addObligationEntry(result, ob, dueDate, categoryNames)
@@ -170,45 +196,17 @@ object PaymentCalendarHelper {
         todayEpochDay: Long,
         maxDay: Long,
     ) {
-        val byProperty = unpaidBills
-            .filter { it.total > 0.0 }
-            .groupBy { it.bill.propertyId }
-        if (byProperty.isEmpty()) return
-
-        for ((propertyId, bills) in byProperty) {
-            val paymentDay = utilityPaymentDays[propertyId] ?: UtilityPaymentReminderPreferences.DEFAULT_DAY
-            val propertyName = bills.first().propertyName.ifBlank { "Квартира" }
-            val totalAmount = bills.sumOf { it.total }
-            val oldestBill = bills.minWithOrNull(
-                compareBy<UnpaidUtilityBill> { it.bill.year }.thenBy { it.bill.month },
-            )?.bill
-            val subtitle = utilityUnpaidSubtitle(bills.size)
-            var ym = YearMonth.from(today)
-            val endYm = YearMonth.from(horizonEnd)
-            while (!ym.isAfter(endYm)) {
-                val dueDate = PlannedObligationHelper.dueLocalDate(ym, paymentDay)
-                val epoch = dueDate.toEpochDay()
-                if (epoch in todayEpochDay..maxDay) {
-                    result += Entry(
-                        epochDay = epoch,
-                        dateLabel = dueDate.format(displayFmt),
-                        title = "Коммуналка: $propertyName",
-                        subtitle = subtitle,
-                        amount = totalAmount,
-                        kind = EntryKind.UTILITY,
-                        sourceRef = SourceRef(propertyId = propertyId, billId = oldestBill?.id),
-                    )
-                }
-                ym = ym.plusMonths(1)
-            }
-        }
-    }
-
-    private fun utilityUnpaidSubtitle(unpaidCount: Int): String {
-        return when {
-            unpaidCount == 1 -> "1 месяц не списано с бюджета"
-            unpaidCount in 2..4 -> "$unpaidCount месяца не списано с бюджета"
-            else -> "$unpaidCount месяцев не списано с бюджета"
+        for (unpaid in unpaidBills.filter { it.total > 0.0 }) {
+            val bill = unpaid.bill
+            val ym = YearMonth.of(bill.year, bill.month)
+            val due = PlannedObligationHelper.dueLocalDate(ym,
+                utilityPaymentDays[bill.propertyId] ?: UtilityPaymentReminderPreferences.DEFAULT_DAY)
+            if (due.toEpochDay() > maxDay) continue
+            result += Entry(epochDay = due.toEpochDay(), dateLabel = due.format(displayFmt),
+                title = "Коммуналка: ${unpaid.propertyName.ifBlank { "Квартира" }}",
+                subtitle = "Общее ЖКХ · квитанция ${ym.monthValue}.${ym.year}",
+                amount = unpaid.total, kind = EntryKind.UTILITY, isGlobal = true,
+                sourceRef = SourceRef(propertyId = bill.propertyId, billId = bill.id))
         }
     }
 
@@ -227,7 +225,7 @@ object PaymentCalendarHelper {
                 title = "Коммуналка (прогноз): ${forecast.propertyName}",
                 subtitle = "По среднему за прошлые месяцы",
                 amount = forecast.forecastTotal,
-                kind = EntryKind.UTILITY_FORECAST,
+                kind = EntryKind.UTILITY_FORECAST, isGlobal = true,
                 sourceRef = SourceRef(propertyId = forecast.propertyId),
             )
         }
@@ -291,27 +289,14 @@ object PaymentCalendarHelper {
     )
 
     internal fun dedupeOverlappingEntries(entries: List<Entry>): List<Entry> {
-        val obligationKeys = entries
-            .filter { entry ->
-                entry.kind == EntryKind.OBLIGATION &&
-                    entry.categoryId > 0 &&
-                    entry.amount != null &&
-                    entry.amount > 0.0
+        // Only an explicit identity can merge records; matching amounts are not an identity.
+        return entries.sortedBy {
+            when (it.kind) {
+                EntryKind.OBLIGATION -> 0
+                EntryKind.RECURRING -> 1
+                else -> 2
             }
-            .map { calendarDedupeKey(it) }
-            .toSet()
-        if (obligationKeys.isEmpty()) return entries
-        return entries.filter { entry ->
-            when (entry.kind) {
-                EntryKind.REMINDER, EntryKind.RECURRING -> {
-                    if (entry.categoryId <= 0 || entry.amount == null || entry.amount <= 0.0) {
-                        return@filter true
-                    }
-                    calendarDedupeKey(entry) !in obligationKeys
-                }
-                else -> true
-            }
-        }
+        }.distinctBy { it.eventKey }.sortedWith(compareBy({ it.epochDay }, { it.title }))
     }
 
     internal fun calendarDedupeKey(entry: Entry): CalendarDedupeKey {
@@ -324,17 +309,13 @@ object PaymentCalendarHelper {
 
     private fun roundAmount(value: Double): Double = kotlin.math.round(value * 100.0) / 100.0
 
-    fun weekPaymentTotal(entries: List<Entry>): Double {
-        return ru.mybudget.app.MoneyFormat.roundMoney(
-            entries
-                .filter { entry ->
-                    entry.kind != EntryKind.INCOME &&
-                        entry.amount != null &&
-                        entry.amount > 0.0
-                }
-                .sumOf { it.amount ?: 0.0 },
-        )
-    }
+    fun weekPaymentTotal(entries: List<Entry>, includeGlobal: Boolean = false): Double =
+        ru.mybudget.app.MoneyFormat.roundMoney(entries.filter {
+            !it.isIncome && !it.isForecast && (includeGlobal || !it.isGlobal) && (it.amount ?: 0.0) > 0.0
+        }.sumOf { it.amount ?: 0.0 })
+
+    fun forecastTotal(entries: List<Entry>): Double = ru.mybudget.app.MoneyFormat.roundMoney(
+        entries.filter { it.isForecast }.sumOf { it.amount ?: 0.0 })
 
     fun parseDateEpochDay(dateStr: String): Long? {
         return runCatching { LocalDate.parse(dateStr, isoFmt).toEpochDay() }.getOrNull()

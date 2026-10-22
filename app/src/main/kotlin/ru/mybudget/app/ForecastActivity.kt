@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import android.os.Bundle
+import androidx.room.withTransaction
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,17 +24,31 @@ class ForecastActivity : AppCompatActivity() {
 
     private var horizon = ForecastHelper.Horizon.QUARTER
     private var scenario = ForecastHelper.Scenario.OPTIMISTIC
+    private var forecastJob: kotlinx.coroutines.Job? = null
+    private var lastForecast: ForecastHelper.ForecastResult? = null
+    private var lastBudgetId = 1
+    private var lastScenario = scenario
+    private var selectedBudgetId = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_forecast)
         manager = BudgetManager.getInstance(this)
+        selectedBudgetId = savedInstanceState?.getInt("forecast_budget")
+            ?: intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+        horizon = runCatching { ForecastHelper.Horizon.valueOf(savedInstanceState?.getString("forecast_horizon").orEmpty()) }.getOrDefault(horizon)
+        scenario = runCatching { ForecastHelper.Scenario.valueOf(savedInstanceState?.getString("forecast_scenario").orEmpty()) }.getOrDefault(scenario)
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.forecast_title),
-            getString(R.string.main_icon_statistics),
         )
         summaryView = findViewById(R.id.forecastSummary)
+        findViewById<View>(R.id.forecastBudgetButton).setOnClickListener {
+            BudgetPickerDialog.show(this, manager, selectedBudgetId) { id, _ ->
+                selectedBudgetId = id
+                refresh()
+            }
+        }
         findViewById<View>(R.id.forecastHint)?.let {
             ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.FORECAST, R.string.hint_forecast, showHelpLink = false)
         }
@@ -64,15 +79,42 @@ class ForecastActivity : AppCompatActivity() {
             refresh()
         }
         findViewById<MaterialButton>(R.id.forecastVsFact).setOnClickListener {
-            startActivity(android.content.Intent(this, ForecastVsFactActivity::class.java))
+            startActivity(android.content.Intent(this, ForecastVsFactActivity::class.java)
+                .putExtra(BudgetIntentExtras.BUDGET_ID, selectedBudgetId))
+        }
+        findViewById<View>(R.id.forecastSaveSnapshot).setOnClickListener {
+            lastForecast?.let { saveSnapshots(it, lastBudgetId, lastScenario.name) }
         }
         refresh()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("forecast_budget", selectedBudgetId)
+        outState.putString("forecast_horizon", horizon.name)
+        outState.putString("forecast_scenario", scenario.name)
+        super.onSaveInstanceState(outState)
+    }
+
     private fun refresh() {
-        lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) { loadForecast() }
-            if (result != null) saveSnapshots(result)
+        forecastJob?.cancel()
+        val budgetId = selectedBudgetId
+        val chosenHorizon = horizon
+        val chosenScenario = scenario
+        lastForecast = null
+        findViewById<View>(R.id.forecastSaveSnapshot).isEnabled = false
+        summaryView.setText(R.string.analysis_loading)
+        findViewById<TextView>(R.id.forecastProjectedBalance).setText(R.string.analysis_value_pending)
+        syncToggleStates()
+        forecastJob = lifecycleScope.launch {
+          try {
+            val profiles = manager.getBudgetProfilesAsync()
+            findViewById<TextView>(R.id.forecastBudgetButton).text = getString(R.string.forecast_budget_context,
+                profiles.firstOrNull { it.id == budgetId }?.name ?: getString(R.string.budget_profiles_default_name))
+            val result = withContext(Dispatchers.IO) { loadForecast(budgetId, chosenHorizon, chosenScenario) }
+            if (budgetId != selectedBudgetId) return@launch
+            lastForecast = result
+            lastBudgetId = budgetId
+            lastScenario = chosenScenario
             adapter.submit(result?.months ?: emptyList())
             if (result == null) {
                 summaryView.text = ""
@@ -85,16 +127,29 @@ class ForecastActivity : AppCompatActivity() {
                     MoneyFormat.formatRub(result.totalExpense),
                     MoneyFormat.formatRub(result.totalNet),
                 )
+                findViewById<TextView>(R.id.forecastProjectedBalance).apply {
+                    text = MoneyFormat.formatRub(result.projectedEndBalance)
+                    setTextColor(ContextCompat.getColor(context,
+                        if (result.projectedEndBalance < 0.0) R.color.expense_red else R.color.text_primary))
+                }
+                findViewById<View>(R.id.forecastSaveSnapshot).isEnabled = true
             }
             syncToggleStates()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            summaryView.setText(R.string.analysis_error)
+          }
         }
     }
 
-    private fun saveSnapshots(result: ForecastHelper.ForecastResult) {
-        val budgetId = manager.getActiveBudgetId()
-        val scenarioName = scenario.name
+    private fun saveSnapshots(result: ForecastHelper.ForecastResult, budgetId: Int, scenarioName: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            result.months.forEach { month ->
+          try {
+            manager.database.withTransaction {
+            result.months.filterNot { it.isPartial }.forEach { month ->
+                val external = month.copy(expenseLines = month.expenseLines.filterNot { it.source == ForecastHelper.ExpenseSource.GOAL },
+                    totalExpense = MoneyFormat.roundMoney(month.totalExpense - month.goalsExpense),
+                    net = MoneyFormat.roundMoney(month.net + month.goalsExpense))
                 manager.repository.upsertForecastSnapshot(
                     ru.mybudget.app.data.ForecastSnapshotEntity(
                         budgetId = budgetId,
@@ -102,67 +157,28 @@ class ForecastActivity : AppCompatActivity() {
                         month = month.month,
                         scenario = scenarioName,
                         totalIncome = month.totalIncome,
-                        totalExpense = month.totalExpense,
-                        net = month.net,
-                        linesJson = ForecastSnapshotCodec.encode(month),
+                        totalExpense = external.totalExpense,
+                        net = external.net,
+                        linesJson = ForecastSnapshotCodec.encode(external),
                     ),
                 )
             }
+            }
+            withContext(Dispatchers.Main) { android.widget.Toast.makeText(this@ForecastActivity,
+                "Прогноз сохранён", android.widget.Toast.LENGTH_SHORT).show() }
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (error: Exception) {
+            withContext(Dispatchers.Main) { android.widget.Toast.makeText(this@ForecastActivity,
+                error.message.orEmpty(), android.widget.Toast.LENGTH_LONG).show() }
+          }
         }
     }
 
-    private suspend fun loadForecast(): ForecastHelper.ForecastResult? {
-        manager.getCategoriesAsync()
-        val budgetId = manager.getActiveBudgetId()
-        val categories = manager.getCategories()
-        val categoryNames = categories.associate { it.id to it.name }
-        val parents = categories.associate { it.id to it.name }
-        val incomeSources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
-        val obligations = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
-        val monthlyPlans = manager.repository.getMonthlyPlansForBudget(budgetId)
-        val goals = manager.repository.getAllSavingsGoalsList()
-        val pastMonths = MonthBudgetComparisonHelper.recentMonths().drop(1).take(3)
-        val pastRanges = pastMonths.map { MonthBudgetComparisonHelper.monthRangeMs(it.first, it.second) }
-        val pastTransactions = manager.repository.getTransactionsInRange(
-            pastRanges.minOf { it.first },
-            System.currentTimeMillis(),
-        )
-        val startBalance = manager.getTotalBalance(budgetId)
-        val goalBalances = goals.associate { it.categoryId to manager.getCategoryBalanceWithSubcategories(it.categoryId) }
-        val result = ForecastHelper.build(
-            ForecastHelper.Inputs(
-                startBalance = startBalance,
-                today = java.time.LocalDate.now(),
-                horizon = horizon,
-                scenario = scenario,
-                incomeSources = incomeSources,
-                obligations = obligations,
-                monthlyPlans = monthlyPlans,
-                pastTransactions = pastTransactions,
-                goals = goals,
-                goalBalances = goalBalances,
-                categoryNames = categoryNames,
-            ),
-        )
-        if (result.months.isEmpty()) return null
-        return result.copy(
-            months = result.months.map { month ->
-                month.copy(
-                    incomeLines = month.incomeLines,
-                    expenseLines = month.expenseLines.map { line ->
-                        val name = if (line.source == ForecastHelper.ExpenseSource.GOAL) {
-                            line.name
-                        } else {
-                            val cat = categories.firstOrNull { it.id == line.categoryId }
-                            if (cat != null) CategoryMultiPicker.leafLabel(cat, parents) else line.name
-                        }
-                        line.copy(name = name)
-                    },
-                )
-            },
-        )
+    private suspend fun loadForecast(budgetId: Int, chosenHorizon: ForecastHelper.Horizon,
+        chosenScenario: ForecastHelper.Scenario): ForecastHelper.ForecastResult? {
+        val inputs = ForecastDataLoader.load(manager, budgetId, chosenHorizon, chosenScenario)
+        return ForecastHelper.build(inputs)
     }
-
     private fun syncToggleStates() {
         bindToggle(R.id.forecastHorizonQuarter, horizon == ForecastHelper.Horizon.QUARTER)
         bindToggle(R.id.forecastHorizonHalfYear, horizon == ForecastHelper.Horizon.HALF_YEAR)
@@ -172,7 +188,12 @@ class ForecastActivity : AppCompatActivity() {
     }
 
     private fun bindToggle(id: Int, selected: Boolean) {
-        findViewById<MaterialButton>(id).isEnabled = !selected
+        findViewById<MaterialButton>(id).apply {
+            isSelected = selected
+            backgroundTintList = android.content.res.ColorStateList.valueOf(ContextCompat.getColor(context,
+                if (selected) R.color.md_theme_primary else R.color.card_background))
+            setTextColor(ContextCompat.getColor(context, if (selected) R.color.md_theme_onPrimary else R.color.text_primary))
+        }
     }
 
     private class ForecastAdapter : RecyclerView.Adapter<ForecastAdapter.Holder>() {
@@ -213,7 +234,7 @@ class ForecastActivity : AppCompatActivity() {
 
             fun bind(month: ForecastHelper.ForecastMonth, expanded: Boolean, onToggle: () -> Unit) {
                 val context = itemView.context
-                titleView.text = MonthBudgetComparisonHelper.monthLabel(month.year, month.month)
+                titleView.text = MonthBudgetComparisonHelper.monthLabel(month.year, month.month) + if (month.isPartial) " · остаток месяца" else ""
                 incomeView.text = context.getString(
                     R.string.forecast_month_income,
                     MoneyFormat.formatRub(month.totalIncome),

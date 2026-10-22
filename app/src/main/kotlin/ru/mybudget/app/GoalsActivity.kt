@@ -69,6 +69,11 @@ class GoalsActivity : AppCompatActivity() {
             manager.repository.getAllSavingsGoalsIncludingArchived().collectLatest { goals ->
                 cachedGoals = goals
                 rebuildRows()
+                val selectedGoal = intent.getIntExtra("attention_goal_id", -1)
+                if (selectedGoal > 0) {
+                    intent.removeExtra("attention_goal_id")
+                    allGoals.firstOrNull { it.goal.id == selectedGoal }?.let { showGoalDialog(it) }
+                }
             }
         }
     }

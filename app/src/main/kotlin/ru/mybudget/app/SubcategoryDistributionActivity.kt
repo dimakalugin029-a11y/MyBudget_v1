@@ -39,6 +39,7 @@ class SubcategoryDistributionActivity : AppCompatActivity() {
         setContentView(R.layout.activity_remainder_distribution)
         ScreenHeaderHelper.setup(this, getString(R.string.subcategory_distribution_title), "⚖️")
         manager = BudgetManager.getInstance(this)
+        distributionRequest = savedInstanceState?.getString("transfer_request") ?: distributionRequest
         sourceId = intent.getIntExtra(EXTRA_SOURCE_CATEGORY_ID, 0)
         sourceName = intent.getStringExtra(EXTRA_SOURCE_CATEGORY_NAME).orEmpty()
         availableAmount = intent.getDoubleExtra(EXTRA_AVAILABLE_AMOUNT, 0.0)
@@ -71,6 +72,7 @@ class SubcategoryDistributionActivity : AppCompatActivity() {
     }
 
     private fun loadCategories() {
+        submitting = true
         progressBar.visibility = View.VISIBLE
         lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) {
@@ -152,18 +154,22 @@ class SubcategoryDistributionActivity : AppCompatActivity() {
         updateTotals()
     }
 
+    private var distributionRequest = java.util.UUID.randomUUID().toString()
+    private var submitting = false
     private fun applyDistribution() {
+        if (submitting) return
         val items = amounts.filter { it.value > 0.0 }.map { it.key to it.value }
         val total = items.sumOf { it.second }
         if (items.isEmpty() || total <= 0.0 || total > availableAmount + 0.01) {
             Toast.makeText(this, R.string.remainder_invalid_amount, Toast.LENGTH_SHORT).show()
             return
         }
+        submitting = true
         progressBar.visibility = View.VISIBLE
         distributeButton.isEnabled = false
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
-                manager.distributeSubcategoryAmount(sourceId, items)
+                manager.distributeSubcategoryAmount(sourceId, items, distributionRequest)
             }
             progressBar.visibility = View.GONE
             if (ok) {
@@ -171,6 +177,7 @@ class SubcategoryDistributionActivity : AppCompatActivity() {
                 Toast.makeText(this@SubcategoryDistributionActivity, R.string.subcategory_distribution_done, Toast.LENGTH_SHORT).show()
                 finish()
             } else {
+                submitting = false
                 distributeButton.isEnabled = true
                 Toast.makeText(this@SubcategoryDistributionActivity, R.string.remainder_insufficient, Toast.LENGTH_LONG).show()
             }
@@ -240,5 +247,10 @@ class SubcategoryDistributionActivity : AppCompatActivity() {
         const val EXTRA_SOURCE_CATEGORY_ID = "source_category_id"
         const val EXTRA_SOURCE_CATEGORY_NAME = "source_category_name"
         const val EXTRA_AVAILABLE_AMOUNT = "available_amount"
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("transfer_request", distributionRequest)
+        super.onSaveInstanceState(outState)
     }
 }

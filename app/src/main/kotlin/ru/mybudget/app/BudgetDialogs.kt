@@ -1,6 +1,10 @@
 package ru.mybudget.app
 
 import android.text.InputType
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
+import android.widget.GridLayout
 import android.view.LayoutInflater
 import android.widget.ArrayAdapter
 import android.widget.EditText
@@ -55,22 +59,74 @@ object BudgetDialogs {
         onDone: () -> Unit,
     ) {
         val input = nameInput(activity, category.name, activity.getString(R.string.budget_name_hint))
-        AlertDialog.Builder(activity)
+        val content = wrap(activity, input)
+        var selectedColor = category.colorHex
+        val label = TextView(activity).apply {
+            setText(R.string.budget_color_label)
+            setPadding(dp(activity, 16), dp(activity, 8), 0, dp(activity, 8))
+        }
+        content.addView(label)
+        val palette = GridLayout(activity).apply { columnCount = 4 }
+        val colors = listOf("") + BudgetCategory.PRESET_COLORS
+        val chips = mutableListOf<Pair<TextView, String>>()
+        fun refreshSelection() {
+            chips.forEach { (chip, color) ->
+                val selected = color.equals(selectedColor, ignoreCase = true)
+                chip.isSelected = selected
+                chip.text = if (selected) "✓" else if (color.isEmpty()) "×" else ""
+                chip.setTextColor(if (color.isEmpty()) Color.DKGRAY else Color.WHITE)
+                chip.background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (color.isEmpty()) Color.LTGRAY else Color.parseColor(color))
+                    setStroke(dp(activity, if (selected) 3 else 1), if (selected) Color.BLACK else Color.GRAY)
+                }
+            }
+        }
+        colors.forEach { color ->
+            val chip = TextView(activity).apply {
+                gravity = Gravity.CENTER
+                textSize = 22f
+                isClickable = true
+                isFocusable = true
+                contentDescription = if (color.isEmpty()) activity.getString(R.string.budget_clear_color)
+                    else activity.getString(R.string.budget_color_description, color)
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = dp(activity, 48)
+                    height = dp(activity, 48)
+                    setMargins(dp(activity, 6), dp(activity, 6), dp(activity, 6), dp(activity, 6))
+                }
+                setOnClickListener { selectedColor = color; refreshSelection() }
+            }
+            chips.add(chip to color)
+            palette.addView(chip)
+        }
+        content.addView(palette)
+        content.addView(android.widget.Button(activity).apply {
+            setText(R.string.budget_clear_color)
+            setOnClickListener { selectedColor = ""; refreshSelection() }
+        })
+        refreshSelection()
+        val dialog = AlertDialog.Builder(activity)
             .setTitle(R.string.budget_edit_category_title)
-            .setView(wrap(activity, input))
-            .setPositiveButton(R.string.save) { _, _ ->
+            .setView(android.widget.ScrollView(activity).apply { addView(content) })
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 val name = input.text.toString().trim()
                 if (name.isEmpty()) {
-                    Toast.makeText(activity, R.string.budget_enter_name_hint, Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                    input.error = activity.getString(R.string.budget_enter_name_hint)
+                    return@setOnClickListener
                 }
                 activity.lifecycleScope.launch {
-                    manager.updateCategory(category.id, name, category.plannedAmount)
+                    manager.updateCategory(category.id, name, category.plannedAmount, selectedColor)
+                    dialog.dismiss()
                     onDone()
                 }
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
+        dialog.show()
     }
 
     fun confirmDeleteCategory(

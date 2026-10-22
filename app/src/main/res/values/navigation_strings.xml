@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_overview">Обзор</string>
+    <string name="nav_budget">Бюджет</string>
+    <string name="nav_plan">План</string>
+    <string name="nav_analysis">Анализ</string>
+    <string name="nav_more">Ещё</string>
+    <string name="main_add_operation">Добавить операцию</string>
+    <string name="main_recent_transactions">Последние операции</string>
+    <string name="main_recent_empty">Пока нет операций. Добавьте доход или расход.</string>
+    <string name="main_recent_error">Не удалось загрузить операции. Откройте журнал или повторите позже.</string>
+    <string name="main_plan_intro">Доходы, расходы и обязательства — всё, что нужно запланировать.</string>
+    <string name="main_more_intro">Автомобиль, дом и управление приложением.</string>
+    <string name="main_family_menu">Семья и обмен данными</string>
+    <string name="main_recent_details">%1$s · %2$s</string>
+    <string name="main_recent_amount_income">+%1$s</string>
+    <string name="main_recent_amount_expense">−%1$s</string>
+    <string name="main_recent_loading">Загрузка операций…</string>
+    <string name="main_plan_budget">Бюджет: %1$s</string>
+    <string name="main_recent_categories">Статей: %1$d</string>
+    <string name="main_recent_transfer">Перемещение средств</string>
+    <string name="main_recent_transfer_amount">Изменение остатка: %1$s</string>
+</resources>

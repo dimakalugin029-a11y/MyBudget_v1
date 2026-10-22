@@ -27,10 +27,13 @@ import ru.mybudget.app.data.migration.Migration37To38
 import ru.mybudget.app.data.migration.Migration38To39
 import ru.mybudget.app.data.migration.Migration39To40
 import ru.mybudget.app.data.migration.Migration40To41
+import ru.mybudget.app.data.migration.Migration41To42
+import ru.mybudget.app.data.migration.Migration42To43
 import ru.mybudget.app.data.migration.Migration27To28
 
 @Database(
     entities = [
+        MoneyCommandEntity::class,
         BudgetProfileEntity::class,
         BudgetCategoryEntity::class,
         TransactionEntity::class,
@@ -61,7 +64,7 @@ import ru.mybudget.app.data.migration.Migration27To28
         VehicleFuelLogEntity::class,
         VehicleRepairEntity::class,
     ],
-    version = 41,
+    version = 45,
     exportSchema = false,
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -442,6 +445,10 @@ abstract class BudgetDatabase : RoomDatabase() {
             Migration38To39.MIGRATION,
             Migration39To40.MIGRATION,
             Migration40To41.MIGRATION,
+            Migration41To42.MIGRATION,
+            Migration42To43.MIGRATION,
+            ru.mybudget.app.data.migration.Migration43To44.MIGRATION,
+            ru.mybudget.app.data.migration.Migration44To45.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {

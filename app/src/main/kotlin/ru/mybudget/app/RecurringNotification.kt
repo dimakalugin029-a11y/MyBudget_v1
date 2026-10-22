@@ -14,6 +14,7 @@ object RecurringNotification {
     const val ACTION_APPLY = "ru.mybudget.app.action.RECURRING_APPLY"
     const val ACTION_SKIP = "ru.mybudget.app.action.RECURRING_SKIP"
     const val EXTRA_RECURRING_ID = "recurring_id"
+    const val EXTRA_DUE_DATE = "recurring_due_date"
 
     fun showConfirmNotification(
         context: Context,
@@ -38,8 +39,8 @@ object RecurringNotification {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .addAction(0, context.getString(R.string.recurring_notify_apply), actionPendingIntent(context, ACTION_APPLY, recurring.id, 100))
-            .addAction(0, context.getString(R.string.recurring_notify_skip), actionPendingIntent(context, ACTION_SKIP, recurring.id, 200))
+            .addAction(0, context.getString(R.string.recurring_notify_apply), actionPendingIntent(context, ACTION_APPLY, recurring.id, recurring.nextDueDate, 100))
+            .addAction(0, context.getString(R.string.recurring_notify_skip), actionPendingIntent(context, ACTION_SKIP, recurring.id, recurring.nextDueDate, 200))
             .build()
         manager.notify(recurring.id + 10000, notification)
     }
@@ -48,11 +49,14 @@ object RecurringNotification {
         context: Context,
         action: String,
         recurringId: Int,
+        dueDate: String,
         requestCode: Int,
     ): PendingIntent {
         val intent = Intent(context, RecurringActionReceiver::class.java)
             .setAction(action)
             .putExtra(EXTRA_RECURRING_ID, recurringId)
+            .putExtra(EXTRA_DUE_DATE, dueDate)
+            .setData(android.net.Uri.parse("mybudget://recurring/$recurringId/$dueDate/$action"))
         return PendingIntent.getBroadcast(
             context,
             requestCode + recurringId,

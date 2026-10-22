@@ -19,7 +19,7 @@ import ru.mybudget.app.utilities.UtilityPropertyCopyHelper
 class BudgetManager private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val database = BudgetDatabase.getInstance(appContext)
+    internal val database = BudgetDatabase.getInstance(appContext)
     val repository = BudgetRepository(database.budgetDao())
     val utilityDao = database.utilityDao()
 
@@ -266,9 +266,14 @@ class BudgetManager private constructor(context: Context) {
         type: String,
         description: String,
         participantLabel: String = "",
+        requestId: String? = null,
     ) {
         withContext(Dispatchers.IO) {
-            repository.recordTransaction(categoryId, amount, type, description, participantLabel = participantLabel)
+            if (requestId == null) repository.recordTransaction(categoryId, amount, type, description, participantLabel = participantLabel)
+            else {
+                database.budgetDao().recordSingleWithRequest(categoryId, amount, type, description, participantLabel, requestId)
+                if (type == "expense") OverspendNotifier.checkAfterExpense(appContext, categoryId)
+            }
             loadCategoriesFromDatabase(persistParentFixes = false)
         }
     }
@@ -277,9 +282,10 @@ class BudgetManager private constructor(context: Context) {
         items: List<Pair<Int, Double>>,
         type: String,
         description: String,
+        requestId: String = java.util.UUID.randomUUID().toString(),
     ) {
         withContext(Dispatchers.IO) {
-            val groupId = java.util.UUID.randomUUID().toString()
+            val groupId = requestId
             repository.applyTransactionGroup(items, type, description, groupId)
             loadCategoriesFromDatabase(persistParentFixes = false)
         }
@@ -321,7 +327,7 @@ class BudgetManager private constructor(context: Context) {
         if (balance != 0.0) {
             val targetId = targetCategoryId ?: return@withContext false
             if (targetId == categoryId) return@withContext false
-            repository.transferBetweenLeafCategories(categoryId, targetId, balance)
+            database.budgetDao().relocateCategoryBalance(categoryId, targetId, balance)
         }
         repository.deleteCategory(categoryId)
         if (recordAudit) {
@@ -412,7 +418,8 @@ class BudgetManager private constructor(context: Context) {
         return getCategoriesForExpenses()
     }
 
-    suspend fun transferSubcategoryBalance(fromId: Int, toId: Int, amount: Double): Boolean {
+    suspend fun transferSubcategoryBalance(fromId: Int, toId: Int, amount: Double,
+        requestId: String = java.util.UUID.randomUUID().toString()): Boolean {
         if (amount <= 0.0 || fromId == toId) return false
         return withContext(Dispatchers.IO) {
             getCategoriesAsync()
@@ -421,7 +428,8 @@ class BudgetManager private constructor(context: Context) {
             if (from.parentId == 0 || to.parentId == 0) return@withContext false
             if (hasSubcategories(fromId) || hasSubcategories(toId)) return@withContext false
             if (from.currentBalance + 1.0E-9 < amount) return@withContext false
-            repository.transferBetweenLeafCategories(fromId, toId, amount)
+            try { database.budgetDao().transferBetweenLeafCategories(fromId, toId, amount, requestId) }
+            catch (_: IllegalArgumentException) { return@withContext false }
             loadCategoriesFromDatabase(persistParentFixes = false)
             true
         }
@@ -430,6 +438,7 @@ class BudgetManager private constructor(context: Context) {
     suspend fun distributeSubcategoryAmount(
         fromId: Int,
         items: List<Pair<Int, Double>>,
+        requestId: String = java.util.UUID.randomUUID().toString(),
     ): Boolean {
         if (items.isEmpty()) return false
         return withContext(Dispatchers.IO) {
@@ -447,7 +456,8 @@ class BudgetManager private constructor(context: Context) {
                 return@withContext false
             }
             if (from.currentBalance + 0.01 < total) return@withContext false
-            items.forEach { (id, amount) -> repository.transferBetweenLeafCategories(fromId, id, amount) }
+            try { database.budgetDao().distributeBalance(fromId, items.map { it.first }.toIntArray(), items.map { it.second }.toDoubleArray(), requestId) }
+            catch (_: IllegalArgumentException) { return@withContext false }
             loadCategoriesFromDatabase(persistParentFixes = false)
             true
         }

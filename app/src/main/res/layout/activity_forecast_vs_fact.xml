@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:background="@color/background_light"
     android:padding="@dimen/space_16"
@@ -9,17 +10,24 @@
         layout="@layout/include_screen_header"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"/>
+        android:layout_marginBottom="@dimen/space_12" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        style="@style/Text.MyBudget.Subtitle"
+        android:text="@string/analysis_value_pending"
+        android:id="@+id/forecastReportBudget"
+        android:layout_marginBottom="@dimen/space_12" />
     <TextView
         android:id="@+id/forecastVsFactEmpty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/forecast_vs_fact_empty"
         android:visibility="gone"
-        style="@style/Text.MyBudget.Subtitle"/>
+        style="@style/Text.MyBudget.Subtitle" />
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/forecastVsFactList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1" />
 </LinearLayout>

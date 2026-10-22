@@ -26,6 +26,12 @@ class ForecastVsFactActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_forecast_vs_fact)
         manager = BudgetManager.getInstance(this)
+        lifecycleScope.launch {
+            val id = intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+            val profiles = manager.getBudgetProfilesAsync()
+            findViewById<TextView>(R.id.forecastReportBudget).text = getString(R.string.forecast_budget_context,
+                profiles.firstOrNull { it.id == id }?.name ?: getString(R.string.budget_profiles_default_name))
+        }
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.forecast_vs_fact_title),
@@ -43,8 +49,9 @@ class ForecastVsFactActivity : AppCompatActivity() {
     private fun load() {
         lifecycleScope.launch {
             val rows = withContext(Dispatchers.IO) {
-                val budgetId = manager.getActiveBudgetId()
-                val categories = manager.getCategories()
+                val budgetId = intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+                val categories = manager.database.budgetDao().getAllCategoriesForExport()
+                    .filter { it.budgetId == budgetId }.map { BudgetCategory.fromEntity(it) }
                 val categoryIds = categories.map { it.id }.toSet()
                 val parents = categories.associate { it.id to it.name }
                 val snapshots = manager.repository.getForecastSnapshots(budgetId)
@@ -63,22 +70,16 @@ class ForecastVsFactActivity : AppCompatActivity() {
                     val lines = ForecastSnapshotCodec.decode(snapshot.linesJson)
                     val factIncomeBySource = transactions
                         .filter { it.type == "income" }
-                        .groupBy { it.categoryId }
+                        .groupBy { it.plannedIncomeSourceId }
                         .mapKeys { entry ->
-                            val sourceName = lines?.incomes?.firstOrNull { it.sourceId == entry.key }?.name
-                            sourceName ?: categories.firstOrNull { it.id == entry.key }?.let {
-                                CategoryMultiPicker.leafLabel(it, parents)
-                            } ?: entry.key.toString()
+                            entry.key?.let { "source:$it" } ?: "unlinked-income"
                         }
                         .mapValues { entry -> entry.value.sumOf { it.amount } }
                     val factExpenseByCategory = transactions
                         .filter { it.type == "expense" }
                         .groupBy { it.categoryId }
                         .mapKeys { entry ->
-                            val lineName = lines?.expenses?.firstOrNull { it.categoryId == entry.key }?.name
-                            lineName ?: categories.firstOrNull { it.id == entry.key }?.let {
-                                CategoryMultiPicker.leafLabel(it, parents)
-                            } ?: entry.key.toString()
+                            "category:${entry.key}"
                         }
                         .mapValues { entry -> entry.value.sumOf { it.amount } }
                     Row(
@@ -91,15 +92,17 @@ class ForecastVsFactActivity : AppCompatActivity() {
                         ),
                         incomeLines = lines?.let {
                             ForecastVsFactHelper.compareLines(
-                                it.incomes.map { line -> line.name to line.amount },
+                                it.incomes.map { line -> "source:${line.sourceId}" to line.amount },
                                 factIncomeBySource,
-                            )
+                            ).map { line -> line.copy(name = it.incomes.firstOrNull { source -> "source:${source.sourceId}" == line.name }?.name
+                                ?: if (line.name == "unlinked-income") "Доход без связи с источником" else line.name) }
                         } ?: emptyList(),
                         expenseLines = lines?.let {
                             ForecastVsFactHelper.compareLines(
-                                it.expenses.map { line -> line.name to line.amount },
+                                it.expenses.map { line -> "category:${line.categoryId}" to line.amount },
                                 factExpenseByCategory,
-                            )
+                            ).map { line -> line.copy(name = it.expenses.firstOrNull { expense -> "category:${expense.categoryId}" == line.name }?.name
+                                ?: categories.firstOrNull { category -> "category:${category.id}" == line.name }?.name ?: line.name) }
                         } ?: emptyList(),
                     )
                 }

@@ -9,12 +9,14 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.room.withTransaction
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,7 @@ class UtilitiesActivity : AppCompatActivity() {
     private lateinit var adapter: MonthAdapter
     private var pendingImportUri: Uri? = null
     private var loadingDialog: AlertDialog? = null
+    private var monthsJob: kotlinx.coroutines.Job? = null
 
     private val exportXlsxLauncher = registerForActivityResult(
         ActivityResultContracts.CreateDocument(MeterExcelFormat.XLSX_MIME),
@@ -121,20 +124,12 @@ class UtilitiesActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utilities)
         manager = BudgetManager.getInstance(this)
-        lifecycleScope.launch(Dispatchers.IO) {
-            UtilityPropertyCopyHelper.ensureDefaultProperty(manager.utilityDao)
-            val activeId = ActivePropertyPreferences.getActivePropertyId(this@UtilitiesActivity)
-            if (manager.utilityDao.getPropertyById(activeId) == null) {
-                val fallback = manager.utilityDao.getAllProperties().firstOrNull()?.id
-                    ?: ActivePropertyPreferences.DEFAULT_PROPERTY_ID
-                ActivePropertyPreferences.setActivePropertyId(this@UtilitiesActivity, fallback)
-            }
-        }
         intent.getIntExtra(EXTRA_PROPERTY_ID, 0).takeIf { it > 0 }?.let {
             ActivePropertyPreferences.setActivePropertyId(this, it)
         }
-        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_utilities), getString(R.string.main_icon_utilities))
+        ScreenHeaderHelper.setup(this, getString(R.string.main_menu_utilities))
         adapter = MonthAdapter(
+            savedInstanceState?.getIntArray("utility_expanded_years"),
             onOpen = { billId ->
                 startActivity(
                     Intent(this, UtilityBillActivity::class.java).putExtra(EXTRA_BILL_ID, billId),
@@ -145,6 +140,9 @@ class UtilitiesActivity : AppCompatActivity() {
         val recycler = findViewById<RecyclerView>(R.id.utilitiesRecyclerView)
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
+        adapter.stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
+        findViewById<View>(R.id.utilitySelectedProperty).setOnClickListener { showPropertyPicker() }
+        findViewById<View>(R.id.utilitiesLoadStatus).setOnClickListener { loadMonths() }
         refreshPropertyRow()
         MenuRowHelper.bind(
             findViewById(R.id.utilityPayCategoryButton),
@@ -189,13 +187,13 @@ class UtilitiesActivity : AppCompatActivity() {
         ) { confirmMarkPastAsLegacyPaid() }
         refreshPhotoFolderRow()
         findViewById<View>(R.id.addUtilityMonthButton).setOnClickListener { showAddMonthDialog() }
-        val sheetBehavior = CollapsibleBottomSheetHelper.attach(
+        CollapsibleBottomSheetHelper.attach(
             findViewById(R.id.utilitiesActionsSheet),
             findViewById(R.id.bottomSheetHeader),
             findViewById(R.id.bottomSheetChevron),
-            recycler,
-            resources.getDimensionPixelSize(R.dimen.space_8),
+            resources.getDimensionPixelSize(R.dimen.touch_min_size) * 2,
         )
+        val sheetBehavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from<View>(findViewById(R.id.utilitiesActionsSheet))
         val addMonthButton = findViewById<View>(R.id.addUtilityMonthButton)
         val sheetHeader = findViewById<View>(R.id.bottomSheetHeader)
         val extraPadding = resources.getDimensionPixelSize(R.dimen.space_8)
@@ -204,10 +202,11 @@ class UtilitiesActivity : AppCompatActivity() {
                 val peek = sheetHeader.height + addMonthButton.height + extraPadding
                 if (peek > 0) {
                     sheetBehavior.peekHeight = peek
-                    recycler.setPadding(
-                        recycler.paddingLeft,
-                        recycler.paddingTop,
-                        recycler.paddingRight,
+                    val scroll = findViewById<View>(R.id.utilitiesScroll)
+                    scroll.setPadding(
+                        scroll.paddingLeft,
+                        scroll.paddingTop,
+                        scroll.paddingRight,
                         peek + extraPadding,
                     )
                 }
@@ -215,6 +214,32 @@ class UtilitiesActivity : AppCompatActivity() {
         }
         if (!UtilitySetupPreferences.hasSeenIntro(this)) {
             showIntroDialog()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putIntArray("utility_expanded_years", adapter.expandedYearsSnapshot())
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun showPropertyPicker() {
+        lifecycleScope.launch {
+            val properties = withContext(Dispatchers.IO) { manager.utilityDao.getAllProperties() }
+            AlertDialog.Builder(this@UtilitiesActivity)
+                .setTitle(R.string.design_utility_object)
+                .setSingleChoiceItems(properties.map { it.name }.toTypedArray(),
+                    properties.indexOfFirst { it.id == propertyId() }) { dialog, index ->
+                    ActivePropertyPreferences.setActivePropertyId(this@UtilitiesActivity, properties[index].id)
+                    dialog.dismiss()
+                    refreshPropertyRow()
+                    refreshPayCategoryRow()
+                    refreshPaymentDayRow()
+                    loadMonths()
+                }
+                .setNeutralButton(R.string.design_utility_manage_objects) { _, _ ->
+                    startActivity(Intent(this@UtilitiesActivity, UtilityPropertiesActivity::class.java))
+                }
+                .setNegativeButton(android.R.string.cancel, null).show()
         }
     }
 
@@ -307,21 +332,64 @@ class UtilitiesActivity : AppCompatActivity() {
     }
 
     private fun loadMonths() {
-        lifecycleScope.launch {
-            val enriched = withContext(Dispatchers.IO) { loadEnrichedSummaries() }
+        monthsJob?.cancel()
+        monthsJob = lifecycleScope.launch {
+          val status = findViewById<TextView>(R.id.utilitiesLoadStatus)
+          status.setText(R.string.design_utility_loading)
+          status.visibility = View.VISIBLE
+          findViewById<View>(R.id.utilityLatestBillCard).visibility = View.GONE
+          findViewById<View>(R.id.utilitiesRecyclerView).visibility = View.GONE
+          try {
+            withContext(Dispatchers.IO) { UtilityPropertyCopyHelper.ensureDefaultProperty(manager.utilityDao) }
+            val properties = withContext(Dispatchers.IO) { manager.utilityDao.getAllProperties() }
+            val selectedId = properties.firstOrNull { it.id == propertyId() }?.id ?: properties.firstOrNull()?.id
+                ?: ActivePropertyPreferences.DEFAULT_PROPERTY_ID
+            ActivePropertyPreferences.setActivePropertyId(this@UtilitiesActivity, selectedId)
+            val enriched = withContext(Dispatchers.IO) { manager.database.withTransaction { loadEnrichedSummaries(selectedId) } }
+            if (selectedId != propertyId()) return@launch
             adapter.submit(enriched)
             val empty = enriched.isEmpty()
             findViewById<View>(R.id.utilitiesEmptyText).visibility = if (empty) View.VISIBLE else View.GONE
             findViewById<View>(R.id.utilitiesRecyclerView).visibility = if (empty) View.GONE else View.VISIBLE
+            findViewById<TextView>(R.id.utilitySelectedProperty).text = properties.firstOrNull { it.id == selectedId }?.name
+                ?: getString(R.string.design_utility_object)
+            val latest = enriched.maxByOrNull { it.summary.bill.year * 12 + it.summary.bill.month }?.summary
+            if (latest != null) {
+                val bill = latest.bill
+                findViewById<View>(R.id.utilityLatestBillCard).apply {
+                    visibility = View.VISIBLE
+                    setOnClickListener {
+                        startActivity(Intent(this@UtilitiesActivity, UtilityBillActivity::class.java).putExtra(EXTRA_BILL_ID, bill.id))
+                    }
+                }
+                findViewById<TextView>(R.id.utilityLatestPeriod).text = getString(R.string.design_utility_latest,
+                    MonthlyPlanHelper.formatMonthLabel(bill.year, bill.month))
+                findViewById<TextView>(R.id.utilityLatestTotal).text = MoneyFormat.formatRub(latest.grandTotal)
+                findViewById<TextView>(R.id.utilityLatestStatus).apply {
+                    setText(when {
+                        UtilityLegacyPaymentHelper.isLegacyPaid(bill) -> R.string.utility_paid_legacy_summary
+                        bill.budgetPaidAt != null -> R.string.design_utility_paid
+                        else -> R.string.design_utility_unmarked
+                    })
+                    setTextColor(ContextCompat.getColor(context, if (bill.budgetPaidAt == null) R.color.text_secondary else R.color.primary_green))
+                }
+            }
+            status.visibility = View.GONE
+            refreshPropertyRow()
+            refreshPayCategoryRow()
+            refreshPaymentDayRow()
             refreshSetupGuide()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            status.setText(R.string.design_utility_load_error)
+          }
         }
     }
 
     private fun propertyId() = ActivePropertyPreferences.getActivePropertyId(this)
 
-    private suspend fun loadEnrichedSummaries(): List<EnrichedUtilityBillSummary> {
+    private suspend fun loadEnrichedSummaries(activePropertyId: Int): List<EnrichedUtilityBillSummary> {
         val dao = manager.utilityDao
-        val activePropertyId = propertyId()
         val bills = dao.getAllBills(activePropertyId)
         val totals = dao.getBillGrandTotals().associate { it.billId to it.total }
         val totalsByPeriod = bills.associate { (it.year to it.month) to (totals[it.id] ?: 0.0) }
@@ -352,12 +420,15 @@ class UtilitiesActivity : AppCompatActivity() {
     }
 
     private fun refreshPropertyRow() {
+        val selectedId = propertyId()
         lifecycleScope.launch {
             val property = withContext(Dispatchers.IO) {
-                manager.utilityDao.getPropertyById(propertyId())
+                manager.utilityDao.getPropertyById(selectedId)
             }
+            if (selectedId != propertyId()) return@launch
             val name = property?.name ?: getString(R.string.utility_properties_setting)
             val title = "${getString(R.string.utility_properties_setting)} · $name"
+            findViewById<TextView>(R.id.utilitySelectedProperty).text = name
             MenuRowHelper.bind(
                 findViewById(R.id.utilityPropertyButton),
                 "🏠",
@@ -720,12 +791,15 @@ class UtilitiesActivity : AppCompatActivity() {
     }
 
     private class MonthAdapter(
+        initialExpandedYears: IntArray?,
         private val onOpen: (Int) -> Unit,
         private val onLongClick: (UtilityBillSummary) -> Unit,
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private var rows: List<UtilityMonthRow> = emptyList()
         private var billsByYear: Map<Int, List<UtilityMonthRow.MonthItem>> = emptyMap()
-        private val expandedYears = linkedSetOf<Int>()
+        private val expandedYears = initialExpandedYears?.toMutableSet() ?: linkedSetOf()
+        private var expansionInitialized = initialExpandedYears != null
+        fun expandedYearsSnapshot(): IntArray = expandedYears.toIntArray()
         private var currentYear = Calendar.getInstance().get(Calendar.YEAR)
         private val monthNames = arrayOf(
             "январь", "февраль", "март", "апрель", "май", "июнь",
@@ -740,13 +814,14 @@ class UtilitiesActivity : AppCompatActivity() {
                         .map { UtilityMonthRow.MonthItem(it) }
                 }
             expandedYears.retainAll(billsByYear.keys)
-            if (expandedYears.isEmpty()) {
+            if (!expansionInitialized) {
                 if (currentYear in billsByYear) {
                     expandedYears += currentYear
                 } else {
                     billsByYear.keys.maxOrNull()?.let { expandedYears += it }
                 }
             }
+            expansionInitialized = true
             rebuildRows()
         }
 
@@ -795,8 +870,12 @@ class UtilitiesActivity : AppCompatActivity() {
                 row.year.toString()
             }
             holder.subtitle.text =
-                "${row.monthCount} ${monthsWord(row.monthCount)} · ${MoneyFormat.formatRub(row.yearTotal)}"
-            holder.expandIcon.text = if (row.expanded) "▲" else "▼"
+                "${row.monthCount} ${monthsWord(row.monthCount)} · " + holder.itemView.context.getString(
+                    R.string.design_utility_year_charged, MoneyFormat.formatRub(row.yearTotal))
+            holder.expandIcon.rotation = if (row.expanded) 180f else 0f
+            holder.expandIcon.contentDescription = holder.itemView.context.getString(
+                if (row.expanded) R.string.design_utility_collapse_year else R.string.design_utility_expand_year, row.year)
+            holder.expandIcon.setOnClickListener { toggleYear(row.year) }
             holder.itemView.setOnClickListener { toggleYear(row.year) }
         }
 
@@ -814,20 +893,26 @@ class UtilitiesActivity : AppCompatActivity() {
             }
             holder.total.text = MoneyFormat.formatRub(item.grandTotal)
             val bill = item.bill
-            if (bill.budgetPaidAt != null && bill.budgetPaymentSummary.isNotBlank()) {
-                holder.paymentStatus.visibility = View.VISIBLE
+            holder.paymentStatus.visibility = View.VISIBLE
+            if (UtilityLegacyPaymentHelper.isLegacyPaid(bill)) {
+                holder.paymentStatus.setText(R.string.utility_paid_legacy_summary)
                 holder.paymentStatus.setTextColor(ContextCompat.getColor(ctx, R.color.primary_green))
-                val paid = ctx.getString(R.string.utility_paid_from_budget, bill.budgetPaymentSummary)
+            } else if (bill.budgetPaidAt != null) {
+                holder.paymentStatus.setTextColor(ContextCompat.getColor(ctx, R.color.primary_green))
+                val paid = if (bill.budgetPaymentSummary.isNotBlank())
+                    ctx.getString(R.string.utility_paid_from_budget, bill.budgetPaymentSummary)
+                    else ctx.getString(R.string.design_utility_paid)
                 holder.paymentStatus.text = if (bill.budgetRemainderSummary.isNotBlank()) {
                     paid + "\n" + ctx.getString(R.string.utility_remainder_in_envelope, bill.budgetRemainderSummary)
                 } else {
                     paid
                 }
             } else {
-                holder.paymentStatus.visibility = View.GONE
+                holder.paymentStatus.setText(R.string.design_utility_unmarked)
+                holder.paymentStatus.setTextColor(ContextCompat.getColor(ctx,
+                    if (row.unpaid) R.color.expense_red else R.color.text_secondary))
             }
             val badges = mutableListOf<String>()
-            if (row.unpaid) badges += ctx.getString(R.string.utility_unpaid_badge)
             row.anomalyPercent?.let { pct ->
                 badges += if (pct > 0) {
                     ctx.getString(R.string.utility_anomaly_badge, pct)
@@ -848,7 +933,7 @@ class UtilitiesActivity : AppCompatActivity() {
                 val colorRes = when {
                     row.unpaid -> R.color.expense_red
                     (row.anomalyPercent ?: 0) > 0 -> R.color.expense_red
-                    else -> R.color.settings_orange
+                    else -> R.color.module_warning_text
                 }
                 holder.badge.setTextColor(ContextCompat.getColor(ctx, colorRes))
             }
@@ -875,7 +960,7 @@ class UtilitiesActivity : AppCompatActivity() {
         class YearHolder(v: View) : RecyclerView.ViewHolder(v) {
             val title: TextView = v.findViewById(R.id.yearHeaderTitle)
             val subtitle: TextView = v.findViewById(R.id.yearHeaderSubtitle)
-            val expandIcon: TextView = v.findViewById(R.id.yearHeaderExpandIcon)
+            val expandIcon: ImageButton = v.findViewById(R.id.yearHeaderExpandIcon)
         }
 
         companion object {

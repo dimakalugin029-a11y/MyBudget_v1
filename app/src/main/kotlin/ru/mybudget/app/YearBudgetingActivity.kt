@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import android.os.Bundle
+import androidx.room.withTransaction
 import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
@@ -64,9 +65,11 @@ class YearBudgetingActivity : AppCompatActivity() {
         load()
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
     private fun load() {
+        loadJob?.cancel()
         findViewById<TextView>(R.id.yearBudgetYearLabel).text = year.toString()
-        lifecycleScope.launch {
+        loadJob = lifecycleScope.launch {
             val plan = withContext(Dispatchers.IO) { buildYearPlan() }
             loaded = plan
             adapter.submit(plan)
@@ -86,9 +89,9 @@ class YearBudgetingActivity : AppCompatActivity() {
     }
 
     private suspend fun buildYearPlan(): YearBudgetingHelper.YearPlan {
-        val categories = manager.getCategoriesForBudget(budgetId)
+        val categories = manager.database.budgetDao().getAllCategoriesForExport().filter { it.budgetId == budgetId }.map { BudgetCategory.fromEntity(it) }
         val expenseCategories = categories
-            .filter { !manager.hasSubcategories(it.id) }
+            .filter { category -> categories.none { it.parentId == category.id } }
             .sortedWith(compareBy({ it.name }))
         val categoryIds = categories.map { it.id }.toSet()
         val sources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
@@ -103,20 +106,7 @@ class YearBudgetingActivity : AppCompatActivity() {
         val plansByMonth = mutableMapOf<Int, List<MonthlyCategoryPlanEntity>>()
         for (month in 1..12) {
             val plans = allCategoryPlans[month] ?: emptyList()
-            if (YearBudgetingHelper.isClosedMonth(year, month, now.year, now.month) && plans.isEmpty()) {
-                val fixation = YearBudgetingHelper.expenseFixations(
-                    year = year,
-                    month = month,
-                    budgetId = budgetId,
-                    expenseCategories = expenseCategories,
-                    categoryPlans = emptyList(),
-                    obligations = obligations,
-                )
-                fixation.forEach { manager.repository.upsertMonthlyPlan(it) }
-                plansByMonth[month] = fixation
-            } else {
-                plansByMonth[month] = plans
-            }
+            plansByMonth[month] = plans
         }
         val factByMonth = mutableMapOf<Int, YearBudgetingHelper.MonthFact>()
         for (month in 1..12) {
@@ -141,6 +131,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             obligations = obligations,
             factByMonth = factByMonth,
             factByCategory = factByCategory,
+            preserveUnknownHistory = true,
         )
     }
 
@@ -165,6 +156,7 @@ class YearBudgetingActivity : AppCompatActivity() {
                 MoneyFormat.formatRub(plan.net),
             ),
         )
+        if (plan.months.any { !it.incomePlanKnown || !it.expensePlanKnown }) sb.append("\nИтоги плана неполные: для части прошлых месяцев план не был сохранён.")
         findViewById<TextView>(R.id.yearBudgetSummary).text = sb.toString()
         findViewById<View>(R.id.yearBudgetEmpty).visibility =
             if (plan.months.all { it.incomeLines.isEmpty() && it.expenseLines.isEmpty() }) View.VISIBLE else View.GONE
@@ -212,8 +204,8 @@ class YearBudgetingActivity : AppCompatActivity() {
         val monthPlan = loaded?.months?.getOrNull(position) ?: return
         lifecycleScope.launch {
             val templates = editorTemplates ?: withContext(Dispatchers.IO) {
-                val categories = manager.getCategoriesForBudget(budgetId)
-                    .filter { !manager.hasSubcategories(it.id) }
+                val categories = manager.database.budgetDao().getAllCategoriesForExport().filter { it.budgetId == budgetId }.map { BudgetCategory.fromEntity(it) }
+                    .filter { it.isActive && !manager.hasSubcategories(it.id) }
                     .sortedBy { it.name }
                 val parents = manager.getRootCategories(budgetId).associate { it.id to it.name }
                 EditorTemplates(
@@ -236,6 +228,7 @@ class YearBudgetingActivity : AppCompatActivity() {
             MonthBudgetComparisonHelper.monthLabel(monthPlan.year, monthPlan.month),
         )
         val scroll = ScrollView(this)
+        scroll.setBackgroundColor(ContextCompat.getColor(this, R.color.md_theme_surface))
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
         container.setPadding(
@@ -257,13 +250,8 @@ class YearBudgetingActivity : AppCompatActivity() {
 
         addSectionHeader(container, getString(R.string.year_budget_editor_income))
         val overrideAmounts = monthPlan.incomeLines.associate { it.sourceId to it.amount }
-        val overrideFlags = monthPlan.incomeLines.associate { it.sourceId to it.isOverride }
         templates.sources.forEach { source ->
-            val prefill = if (overrideFlags[source.id] == true) {
-                overrideAmounts[source.id] ?: 0.0
-            } else {
-                PlannedIncomeHelper.budgetMonthAmount(source, monthPlan.month)
-            }
+            val prefill = overrideAmounts[source.id] ?: 0.0
             incomeInputs[source.id] = addInputRow(container, source.name, prefill)
         }
 
@@ -275,14 +263,15 @@ class YearBudgetingActivity : AppCompatActivity() {
             expenseInputs[category.id] = addInputRow(container, label, planAmounts[category.id] ?: 0.0)
         }
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setTitle(title)
             .setView(scroll)
-            .setPositiveButton(R.string.year_budget_editor_save) { _, _ ->
-                saveEditor(monthPlan, incomeInputs, expenseInputs)
-            }
+            .setPositiveButton(R.string.year_budget_editor_save, null)
             .setNegativeButton(R.string.year_budget_editor_cancel, null)
             .show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (saveEditor(monthPlan, incomeInputs, expenseInputs)) dialog.dismiss()
+        }
     }
 
     private fun addSectionHeader(container: LinearLayout, text: String) {
@@ -290,6 +279,7 @@ class YearBudgetingActivity : AppCompatActivity() {
         view.text = text
         view.isAllCaps = true
         view.textSize = 12f
+        view.setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
         container.addView(
             view,
             LinearLayout.LayoutParams(
@@ -306,12 +296,16 @@ class YearBudgetingActivity : AppCompatActivity() {
         val nameView = TextView(this)
         nameView.text = label
         nameView.textSize = 13f
+        nameView.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         nameView.maxLines = 2
         row.addView(
             nameView,
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
-        val input = EditText(this)
+        val input = androidx.appcompat.widget.AppCompatEditText(this)
+        input.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        input.setHintTextColor(ContextCompat.getColor(this, R.color.text_secondary))
+        input.backgroundTintList = ContextCompat.getColorStateList(this, R.color.md_theme_primary)
         input.inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
         input.setText(formatAmount(amount))
         input.textSize = 13f
@@ -350,41 +344,41 @@ class YearBudgetingActivity : AppCompatActivity() {
         monthPlan: YearBudgetingHelper.MonthPlan,
         incomeInputs: Map<Int, EditText>,
         expenseInputs: Map<Int, EditText>,
-    ) {
-        lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                incomeInputs.forEach { (sourceId, input) ->
-                    val amount = parseAmount(input.text.toString())
-                    manager.repository.upsertMonthlyIncomePlan(
-                        MonthlyIncomePlanEntity(
-                            year = monthPlan.year,
-                            month = monthPlan.month,
-                            sourceId = sourceId,
-                            budgetId = budgetId,
-                            amount = amount,
-                            isEnabled = amount > 0.0,
-                        ),
-                    )
+    ): Boolean {
+        fun values(inputs: Map<Int, EditText>): Map<Int, Double>? {
+            val result = linkedMapOf<Int, Double>()
+            for ((id, input) in inputs) {
+                val text = input.text.toString().trim()
+                val value = if (text.isEmpty()) 0.0 else MoneyFormat.parse(text)
+                if (value == null || !value.isFinite() || value < 0.0) {
+                    input.error = "Укажите сумму не меньше нуля"
+                    input.requestFocus()
+                    return null
                 }
-                expenseInputs.forEach { (categoryId, input) ->
-                    val amount = parseAmount(input.text.toString())
-                    manager.repository.upsertMonthlyPlan(
-                        MonthlyCategoryPlanEntity(
-                            year = monthPlan.year,
-                            month = monthPlan.month,
-                            categoryId = categoryId,
-                            budgetId = budgetId,
-                            plannedAmount = amount,
-                            isEnabled = amount > 0.0,
-                        ),
-                    )
-                }
+                result[id] = MoneyFormat.roundMoney(value)
             }
-            android.widget.Toast.makeText(this@YearBudgetingActivity, R.string.year_budget_editor_saved, android.widget.Toast.LENGTH_SHORT).show()
-            load()
+            return result
         }
+        val incomes = values(incomeInputs) ?: return false
+        val expenses = values(expenseInputs) ?: return false
+        val selectedBudget = budgetId
+        lifecycleScope.launch {
+            try {
+                manager.database.withTransaction {
+                    incomes.forEach { (id, amount) -> manager.repository.upsertMonthlyIncomePlan(
+                        MonthlyIncomePlanEntity(monthPlan.year, monthPlan.month, id, selectedBudget, amount, amount > 0.0)) }
+                    expenses.forEach { (id, amount) -> manager.repository.upsertMonthlyPlan(
+                        MonthlyCategoryPlanEntity(monthPlan.year, monthPlan.month, id, selectedBudget, amount, amount > 0.0)) }
+                }
+                android.widget.Toast.makeText(this@YearBudgetingActivity, R.string.year_budget_editor_saved, android.widget.Toast.LENGTH_SHORT).show()
+                load()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (error: Exception) {
+                android.widget.Toast.makeText(this@YearBudgetingActivity, error.message.orEmpty(), android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+        return true
     }
-
     private class MonthAdapter(
         val onToggle: (Int) -> Unit,
         val onEdit: (Int) -> Unit,
@@ -459,7 +453,7 @@ class YearBudgetingActivity : AppCompatActivity() {
                     deltaView.setTextColor(
                         ContextCompat.getColor(
                             context,
-                            if (month.netDelta!!.absolute >= 0.0) R.color.income_green else R.color.expense_red,
+                            if (month.netDelta!!.absolute >= 0.0) R.color.year_budget_positive else R.color.year_budget_negative,
                         ),
                     )
                 } else {
@@ -468,11 +462,15 @@ class YearBudgetingActivity : AppCompatActivity() {
                     deltaView.setTextColor(
                         ContextCompat.getColor(
                             context,
-                            if (month.net >= 0.0) R.color.income_green else R.color.expense_red,
+                            if (month.net >= 0.0) R.color.year_budget_positive else R.color.year_budget_negative,
                         ),
                     )
                 }
                 editButton.setOnClickListener { onEdit(bindingAdapterPosition) }
+                if (!month.incomePlanKnown || !month.expensePlanKnown) {
+                    totalsView.text = "Исторический план сохранён не полностью.\nФакт дохода: ${MoneyFormat.formatRub(month.fact?.income ?: 0.0)} · расхода: ${MoneyFormat.formatRub(month.fact?.expense ?: 0.0)}"
+                    deltaView.visibility = View.GONE
+                }
                 val hasLines = month.incomeLines.isNotEmpty() || month.expenseLines.isNotEmpty()
                 if (!hasLines) {
                     toggleButton.visibility = View.GONE

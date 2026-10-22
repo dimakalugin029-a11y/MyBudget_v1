@@ -34,17 +34,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_4"
-                    android:textSize="13sp"
                     style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
-            <EditText
+            <EditText style="@style/Widget.MyBudget.OperationInput"
                 android:id="@+id/amountInput"
                 android:layout_width="120dp"
                 android:layout_height="wrap_content"
-                android:background="@drawable/edittext_border"
+                android:background="@drawable/operation_input_bg"
                 android:hint="@string/budget_amount_hint"
                 android:inputType="numberDecimal"
-                android:padding="@dimen/space_8" />
+                android:padding="@dimen/space_12" />
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

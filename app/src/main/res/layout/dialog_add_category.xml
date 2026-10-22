@@ -4,11 +4,11 @@
     android:padding="@dimen/space_16"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:textColor="@color/text_primary"
         android:id="@+id/nameInput"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:background="@drawable/operation_input_bg"
+        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="@string/budget_name_hint"/>
@@ -18,7 +18,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_8"
         android:text="@string/budget_make_subcategory"/>
-    <Spinner
+    <Spinner android:minHeight="@dimen/touch_min_size"
         android:id="@+id/parentSpinner"
         android:padding="@dimen/space_4"
         android:visibility="gone"

@@ -42,9 +42,9 @@
         android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/stats_date_from"
-        app:cornerRadius="@dimen/radius_10"
-        app:strokeColor="@color/budget_blue"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        app:cornerRadius="@dimen/radius_12"
+        app:strokeColor="@color/md_theme_primary"
+        style="@style/Widget.MyBudget.Button.Outlined" />
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -60,9 +60,9 @@
         android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/stats_date_to"
-        app:cornerRadius="@dimen/radius_10"
-        app:strokeColor="@color/budget_blue"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        app:cornerRadius="@dimen/radius_12"
+        app:strokeColor="@color/md_theme_primary"
+        style="@style/Widget.MyBudget.Button.Outlined" />
     <com.google.android.material.button.MaterialButton
         android:id="@+id/customRangeApplyButton"
         android:layout_width="match_parent"
@@ -70,7 +70,6 @@
         android:layout_marginHorizontal="@dimen/space_16"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/stats_apply_range"
-        app:backgroundTint="@color/statistics_deep_orange"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button" />
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button" />
 </LinearLayout>

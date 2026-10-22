@@ -47,7 +47,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_2"
                 android:textColor="@color/obligations_hero_text_secondary"
-                android:textSize="12sp"
                 style="@style/Text.MyBudget.Subtitle"/>
             <TextView
                 android:id="@+id/obligationsPaychecksHint"
@@ -55,7 +54,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
                 android:textColor="@color/expense_red"
-                android:textSize="11sp"
                 android:visibility="gone"
                 style="@style/Text.MyBudget.Subtitle"/>
         </LinearLayout>

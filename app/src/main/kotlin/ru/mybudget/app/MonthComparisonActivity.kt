@@ -46,7 +46,7 @@ class MonthComparisonActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val data = withContext(Dispatchers.IO) {
                 val txs = manager.repository.getAllTransactions().first()
-                val cats = manager.getCategoriesAsync()
+                val cats = manager.database.budgetDao().getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
                 Triple(txs, cats, MonthBudgetComparisonHelper.recentMonths())
             }
             allTransactions = data.first

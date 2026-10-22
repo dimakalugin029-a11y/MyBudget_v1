@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="design_auto_add_event">Добавить событие</string>
+    <string name="design_auto_manage">Управление автомобилями</string>
+    <string name="design_auto_journal">Журнал событий</string>
+    <string name="design_auto_month_paid">Оплачено · %1$s</string>
+    <string name="design_auto_month_methods">Из бюджета: %1$s · Наличными: %2$s\nНе оплачено: %3$s</string>
+    <string name="design_auto_empty_filter">Событий этого типа пока нет.</string>
+    <string name="design_utility_object">Объект</string>
+    <string name="design_utility_manage_objects">Управление объектами</string>
+    <string name="design_utility_latest">Последняя квитанция · %1$s</string>
+    <string name="design_utility_unmarked">Не отмечено оплаченным</string>
+    <string name="design_utility_paid">Отмечено оплаченным</string>
+    <string name="design_utility_open_bill">Открыть квитанцию ›</string>
+    <string name="design_utility_empty_overview">Добавьте первый месяц для этого объекта.</string>
+    <string name="design_utility_loading">Загружаем квитанции…</string>
+    <string name="design_utility_load_error">Не удалось загрузить квитанции. Нажмите, чтобы повторить.</string>
+    <string name="design_utility_expand_year">Развернуть месяцы %1$d года</string>
+    <string name="design_utility_collapse_year">Свернуть месяцы %1$d года</string>
+    <string name="design_auto_stat_type_hint">Разделы показывают оплаченные события. Нажмите, чтобы открыть список за выбранный период.</string>
+    <string name="design_auto_stat_paid">Оплачено за выбранный период</string>
+    <string name="design_auto_unpaid_records">Неоплаченные события: %1$s</string>
+    <string name="design_utility_year_charged">Начислено: %1$s</string>
+</resources>

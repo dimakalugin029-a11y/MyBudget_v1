@@ -4,7 +4,8 @@ import ru.mybudget.app.data.TransactionEntity
 import java.util.concurrent.TimeUnit
 
 object StatisticsChartHelper {
-    private val dayMs = TimeUnit.DAYS.toMillis(1)
+    fun dayKey(milliseconds: Long): Long = java.time.Instant.ofEpochMilli(milliseconds)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toEpochDay()
 
     data class DailyPoint(val dayKey: Long, val value: Double)
 
@@ -27,18 +28,19 @@ object StatisticsChartHelper {
         snapshotsByDay: Map<Long, Double> = emptyMap(),
         nowMs: Long = System.currentTimeMillis(),
     ): BalanceSeries {
-        val fromDay = fromMs / dayMs
-        val toDay = toMs / dayMs
-        val todayDay = nowMs / dayMs
+        val fromDay = dayKey(fromMs)
+        val toDay = dayKey(toMs - 1)
         if (fromDay > toDay) {
             return BalanceSeries(emptyList(), currentBalance, currentBalance)
         }
 
-        val inRange = transactions.filter { it.date in fromMs..toMs }
-        val byDay = inRange.groupBy { it.date / dayMs }
+        val inRange = transactions.filter { it.date >= fromMs && it.date < toMs }
+        val byDay = inRange.groupBy { dayKey(it.date) }
         val netInRange = inRange.sumOf { signedAmount(it.type, it.amount) }
-        val endBalance = snapshotsByDay[todayDay] ?: currentBalance
+        val endBalance = currentBalance - transactions.filter { it.date >= toMs && it.date <= nowMs }
+            .sumOf { signedAmount(it.type, it.amount) }
         var running = endBalance - netInRange
+        val opening = running
 
         val points = mutableListOf<DailyPoint>()
         var day = fromDay
@@ -53,7 +55,7 @@ object StatisticsChartHelper {
             day++
         }
 
-        val startBalance = points.firstOrNull()?.value ?: running
+        val startBalance = opening
         val lastBalance = points.lastOrNull()?.value ?: endBalance
         return BalanceSeries(points, startBalance, lastBalance)
     }
@@ -63,13 +65,13 @@ object StatisticsChartHelper {
         fromMs: Long,
         toMs: Long,
     ): FlowSeries {
-        val fromDay = fromMs / dayMs
-        val toDay = toMs / dayMs
+        val fromDay = dayKey(fromMs)
+        val toDay = dayKey(toMs - 1)
         if (fromDay > toDay) return FlowSeries(emptyList())
 
         val byDay = transactions
-            .filter { it.date in fromMs..toMs }
-            .groupBy { it.date / dayMs }
+            .filter { it.date >= fromMs && it.date < toMs }
+            .groupBy { dayKey(it.date) }
 
         val points = mutableListOf<DailyPoint>()
         var day = fromDay
@@ -105,5 +107,6 @@ object StatisticsChartHelper {
         else -> 5
     }
 
-    fun dayKeyToMillis(dayKey: Long): Long = dayKey * dayMs
+    fun dayKeyToMillis(dayKey: Long): Long = java.time.LocalDate.ofEpochDay(dayKey)
+        .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 }

@@ -83,7 +83,21 @@ class StatisticsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_statistics)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.statistics_title), getString(R.string.main_icon_statistics))
+        savedInstanceState?.let { state ->
+            period = runCatching { Period.valueOf(state.getString("analysis_period").orEmpty()) }.getOrDefault(period)
+            chartMode = runCatching { ChartMode.valueOf(state.getString("analysis_chart").orEmpty()) }.getOrDefault(chartMode)
+            pieGroup = runCatching { PieGroup.valueOf(state.getString("analysis_group").orEmpty()) }.getOrDefault(pieGroup)
+            selectedBudgetId = state.getInt("analysis_budget", 0).takeIf { it > 0 }
+            customFrom = state.getLong("analysis_from")
+            customTo = state.getLong("analysis_to")
+            compareEnabled = state.getBoolean("analysis_compare")
+        }
+        ScreenHeaderHelper.setup(this, getString(R.string.nav_analysis))
+        TopLevelNavigation.bind(this, TopLevelNavigation.Destination.ANALYSIS)
+        findViewById<View>(R.id.statsForecastButton).setOnClickListener {
+            openBudgetReport(ForecastActivity::class.java)
+        }
+        findViewById<View>(R.id.statsRetryButton).setOnClickListener { loadStats() }
         findViewById<View>(R.id.statisticsHint)?.let {
             ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.STATISTICS, R.string.hint_statistics, showHelpLink = false)
         }
@@ -100,8 +114,8 @@ class StatisticsActivity : AppCompatActivity() {
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         7 -> startActivity(Intent(this@StatisticsActivity, CategoryTrendsActivity::class.java))
-                        8 -> startActivity(Intent(this@StatisticsActivity, ForecastActivity::class.java))
-                        1 -> startActivity(Intent(this@StatisticsActivity, PlanFactActivity::class.java))
+                        8 -> openBudgetReport(ForecastActivity::class.java)
+                        1 -> openBudgetReport(PlanFactActivity::class.java)
                         6 -> startActivity(Intent(this@StatisticsActivity, YearOverviewActivity::class.java))
                         5 -> startActivity(Intent(this@StatisticsActivity, MonthComparisonActivity::class.java))
                         4 -> startActivity(Intent(this@StatisticsActivity, ParticipantsReportActivity::class.java))
@@ -118,10 +132,14 @@ class StatisticsActivity : AppCompatActivity() {
         pieChart = findViewById(R.id.pieChart)
         setupCharts()
         adapter = CategoryAdapter { slice ->
+            val snapshot = lastSnapshot ?: return@CategoryAdapter
             startActivity(
                 Intent(this, TransactionsActivity::class.java)
                     .putExtra(TransactionsActivity.EXTRA_CATEGORY_IDS, slice.categoryIds.toIntArray())
-                    .putExtra(TransactionsActivity.EXTRA_CATEGORY_TITLE, slice.name),
+                    .putExtra(TransactionsActivity.EXTRA_CATEGORY_TITLE, slice.name)
+                    .putExtra(TransactionsActivity.EXTRA_TYPE_FILTER, "expense")
+                    .putExtra(TransactionsActivity.EXTRA_DATE_FROM_MS, snapshot.from)
+                    .putExtra(TransactionsActivity.EXTRA_DATE_TO_MS, snapshot.to - 1),
             )
         }
         findViewById<RecyclerView>(R.id.statsCategoryList).apply {
@@ -129,7 +147,7 @@ class StatisticsActivity : AppCompatActivity() {
             adapter = this@StatisticsActivity.adapter
         }
         findViewById<MaterialButton>(R.id.statsPlanFactButton).setOnClickListener {
-            startActivity(Intent(this, PlanFactActivity::class.java))
+            openBudgetReport(PlanFactActivity::class.java)
         }
         findViewById<View>(R.id.statsKpiIncomeCard).setOnClickListener { openKpiTransactions("income") }
         findViewById<View>(R.id.statsKpiExpenseCard).setOnClickListener { openKpiTransactions("expense") }
@@ -138,7 +156,32 @@ class StatisticsActivity : AppCompatActivity() {
         bindCompareChip()
         bindChartModeChips()
         bindPieGroupChips()
-        loadStats()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("analysis_period", period.name)
+        outState.putString("analysis_chart", chartMode.name)
+        outState.putString("analysis_group", pieGroup.name)
+        outState.putInt("analysis_budget", selectedBudgetId ?: 0)
+        outState.putLong("analysis_from", customFrom)
+        outState.putLong("analysis_to", customTo)
+        outState.putBoolean("analysis_compare", compareEnabled)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun openBudgetReport(target: Class<*>) {
+        fun open(budgetId: Int) {
+            startActivity(Intent(this, target).putExtra(BudgetIntentExtras.BUDGET_ID, budgetId))
+        }
+        selectedBudgetId?.let { open(it); return }
+        lifecycleScope.launch {
+            val profiles = manager.getBudgetProfilesAsync()
+            if (profiles.size == 1) open(profiles.single().id)
+            else AlertDialog.Builder(this@StatisticsActivity)
+                .setTitle(R.string.analysis_choose_report_budget)
+                .setItems(profiles.map { it.name }.toTypedArray()) { _, index -> open(profiles[index].id) }
+                .setNegativeButton(android.R.string.cancel, null).show()
+        }
     }
 
     override fun onResume() {
@@ -154,6 +197,8 @@ class StatisticsActivity : AppCompatActivity() {
         pieChart.setDrawEntryLabels(false)
         pieChart.legend.isEnabled = false
         pieChart.setHoleColor(Color.TRANSPARENT)
+        pieChart.setCenterTextColor(ContextCompat.getColor(this, R.color.text_primary))
+        pieChart.setNoDataTextColor(ContextCompat.getColor(this, R.color.text_secondary))
     }
 
     private fun setupLineStyleChart(chart: BarLineChartBase<*>) {
@@ -269,8 +314,10 @@ class StatisticsActivity : AppCompatActivity() {
             val toCal = Calendar.getInstance()
             DatePickerDialog(this, { _, y2, m2, d2 ->
                 toCal.set(y2, m2, d2, 23, 59, 59)
+                toCal.set(Calendar.MILLISECOND, 999)
+                if (toCal.timeInMillis < fromCal.timeInMillis) return@DatePickerDialog
                 customFrom = fromCal.timeInMillis
-                customTo = toCal.timeInMillis
+                customTo = toCal.timeInMillis + 1
                 period = Period.CUSTOM
                 findViewById<TextView>(R.id.statsPeriodWeek).isSelected = false
                 findViewById<TextView>(R.id.statsPeriodMonth).isSelected = false
@@ -292,7 +339,7 @@ class StatisticsActivity : AppCompatActivity() {
             Period.YEAR -> now - TimeUnit.DAYS.toMillis(365)
             Period.CUSTOM -> now - TimeUnit.DAYS.toMillis(30)
         }
-        return start to now
+        return start to now + 1
     }
 
     private fun periodLabel(): String {
@@ -302,12 +349,26 @@ class StatisticsActivity : AppCompatActivity() {
             Period.MONTH -> getString(R.string.stats_period_month)
             Period.QUARTER -> getString(R.string.stats_period_quarter)
             Period.YEAR -> getString(R.string.stats_period_year)
-            Period.CUSTOM -> getString(R.string.stats_period_custom, fmt.format(Date(customFrom)), fmt.format(Date(customTo)))
+            Period.CUSTOM -> getString(R.string.stats_period_custom, fmt.format(Date(customFrom)), fmt.format(Date(customTo - 1)))
         }
     }
 
+    private var statsJob: kotlinx.coroutines.Job? = null
     private fun loadStats() {
-        lifecycleScope.launch {
+        statsJob?.cancel()
+        lastSnapshot = null
+        listOf(R.id.statsKpiIncome, R.id.statsKpiExpense, R.id.statsKpiBalance, R.id.statsCurrentBalance).forEach {
+            findViewById<TextView>(it).setText(R.string.analysis_value_pending)
+        }
+        findViewById<TextView>(R.id.statsInsightText).text = ""
+        findViewById<View>(R.id.statsComparisonCard).visibility = View.GONE
+        findViewById<TextView>(R.id.statsStatus).apply {
+            setText(R.string.analysis_loading)
+            visibility = View.VISIBLE
+        }
+        findViewById<View>(R.id.statsRetryButton).visibility = View.GONE
+        statsJob = lifecycleScope.launch {
+          try {
             val snapshot = computeSnapshot()
             lastSnapshot = snapshot
             bindKpis(snapshot)
@@ -316,40 +377,49 @@ class StatisticsActivity : AppCompatActivity() {
             bindPie(snapshot)
             findViewById<TextView>(R.id.summaryText).apply {
                 visibility = View.VISIBLE
-                text = periodLabel()
+                text = getString(R.string.analysis_period_context,
+                    dateBtnFormat.format(Date(snapshot.from)), dateBtnFormat.format(Date(snapshot.to - 1)), periodLabel())
             }
+            val profiles = manager.getBudgetProfilesAsync()
+            findViewById<MaterialButton>(R.id.statsBudgetChip).text = profiles.firstOrNull { it.id == snapshot.budgetId }?.name
+                ?: getString(R.string.stats_budget_all)
+            findViewById<View>(R.id.statsStatus).visibility = View.GONE
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            findViewById<TextView>(R.id.statsStatus).setText(R.string.analysis_error)
+            findViewById<View>(R.id.statsRetryButton).visibility = View.VISIBLE
+          }
         }
     }
 
     private suspend fun computeSnapshot(range: Pair<Long, Long>? = null): StatsSnapshot = withContext(Dispatchers.IO) {
         val (from, to) = range ?: rangeMillis()
-        val dayMs = TimeUnit.DAYS.toMillis(1)
+        val budgetId = selectedBudgetId
         manager.getCategoriesAsync()
         val allTx = manager.repository.getAllTransactions().first()
-        val categories = manager.getCategories()
-        val allowedIds = if (selectedBudgetId == null) {
+        val categories = manager.database.budgetDao().getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
+        val allowedIds = if (budgetId == null) {
             categories.map { it.id }.toSet()
         } else {
-            manager.getCategoryIdsForBudget(selectedBudgetId!!)
+            categories.filter { it.budgetId == budgetId }.map { it.id }.toSet()
         }
         val inBudget = allTx.filter { it.categoryId in allowedIds }
-        val inPeriod = inBudget.filter { it.date in from..to }
-        val currentBalance = if (selectedBudgetId == null) {
+        val inPeriod = inBudget.filter { it.date >= from && it.date < to }
+        val currentBalance = if (budgetId == null) {
             manager.getTotalBalanceAll()
         } else {
-            manager.getTotalBalance(selectedBudgetId!!)
+            manager.getTotalBalance(budgetId)
         }
-        val fromDay = from / dayMs
-        val toDay = to / dayMs
-        val snapshotsByDay = if (selectedBudgetId == null) {
-            manager.repository.getAllBalanceSnapshotsInRange(fromDay, toDay)
-                .groupBy { it.dayKey }
-                .mapValues { (_, list) -> list.sumOf { it.totalBalance } }
+        val fromDay = StatisticsChartHelper.dayKey(from)
+        val toDay = StatisticsChartHelper.dayKey(to - 1)
+        val snapshotsByDay = if (budgetId == null) {
+            // A sparse set of budget snapshots cannot be summed into an aggregate daily balance.
+            emptyMap()
         } else {
-            manager.repository.getBalanceSnapshotsForBudget(selectedBudgetId!!, fromDay, toDay)
+            manager.repository.getBalanceSnapshotsForBudget(budgetId, fromDay, toDay)
                 .associate { it.dayKey to it.totalBalance }
         }
-        StatsSnapshot(inBudget, inPeriod, categories, from, to, currentBalance, snapshotsByDay)
+        StatsSnapshot(inBudget, inPeriod, categories, from, to, currentBalance, snapshotsByDay, budgetId)
     }
 
     private fun launchCsvExport() {
@@ -472,11 +542,11 @@ class StatisticsActivity : AppCompatActivity() {
 
     private fun buildComparisonBlock(snapshot: StatsSnapshot): MonthReportPdfExporter.ComparisonBlock? {
         val (prevFrom, prevTo) = StatisticsPeriodComparisonHelper.previousRange(snapshot.from, snapshot.to)
-        val previousTx = snapshot.allInBudget.filter { it.date in prevFrom..prevTo }
+        val previousTx = snapshot.allInBudget.filter { it.date >= prevFrom && it.date < prevTo }
         val label = getString(
             R.string.stats_compare_period,
             compareDateFormat.format(Date(prevFrom)),
-            compareDateFormat.format(Date(prevTo)),
+            compareDateFormat.format(Date(prevTo - 1)),
         )
         return MonthReportPdfExporter.ComparisonBlock(
             previousPeriodLabel = label,
@@ -495,11 +565,11 @@ class StatisticsActivity : AppCompatActivity() {
             return
         }
         val (prevFrom, prevTo) = StatisticsPeriodComparisonHelper.previousRange(snapshot.from, snapshot.to)
-        val previousTx = snapshot.allInBudget.filter { it.date in prevFrom..prevTo }
+        val previousTx = snapshot.allInBudget.filter { it.date >= prevFrom && it.date < prevTo }
         val label = getString(
             R.string.stats_compare_period,
             compareDateFormat.format(Date(prevFrom)),
-            compareDateFormat.format(Date(prevTo)),
+            compareDateFormat.format(Date(prevTo - 1)),
         )
         val comparison = StatisticsPeriodComparisonHelper.buildComparison(
             currentTransactions = snapshot.inPeriod,
@@ -549,25 +619,25 @@ class StatisticsActivity : AppCompatActivity() {
     }
 
     private fun buildExportCsv(snapshot: StatsSnapshot): String {
-        val names = snapshot.categories.associate { it.id to it.name }
+        val parents = snapshot.categories.associate { it.id to it.name }
+        val names = snapshot.categories.associate { it.id to CategoryMultiPicker.leafLabel(it, parents) }
         val df = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val sb = StringBuilder("date,category,type,amount,description\n")
         snapshot.inPeriod.forEach { tx ->
             val date = df.format(Date(tx.date))
             val category = names[tx.categoryId].orEmpty()
-            val amount = String.format(Locale.getDefault(), "%.2f", tx.amount)
-            val desc = tx.description.replace(",", " ")
-            sb.append("$date,$category,${tx.type},$amount,$desc\n")
+            val amount = String.format(Locale.US, "%.2f", tx.amount)
+            sb.append(CsvCodec.row(listOf(date, category, tx.type, amount, tx.description)))
         }
         return sb.toString()
     }
 
     private fun openKpiTransactions(type: String) {
         val snapshot = lastSnapshot ?: return
-        val allowedIds = if (selectedBudgetId == null) {
+        val allowedIds = if (snapshot.budgetId == null) {
             snapshot.categories.map { it.id }
         } else {
-            manager.getCategoryIdsForBudget(selectedBudgetId!!)
+            snapshot.categories.filter { it.budgetId == snapshot.budgetId }.map { it.id }.toSet()
         }
         val label = getString(if (type == "income") R.string.stats_kpi_income else R.string.stats_kpi_expense)
         startActivity(
@@ -576,7 +646,7 @@ class StatisticsActivity : AppCompatActivity() {
                 .putExtra(TransactionsActivity.EXTRA_CATEGORY_TITLE, "$label · ${periodLabel()}")
                 .putExtra(TransactionsActivity.EXTRA_TYPE_FILTER, type)
                 .putExtra(TransactionsActivity.EXTRA_DATE_FROM_MS, snapshot.from)
-                .putExtra(TransactionsActivity.EXTRA_DATE_TO_MS, snapshot.to),
+                .putExtra(TransactionsActivity.EXTRA_DATE_TO_MS, snapshot.to - 1),
         )
     }
 
@@ -588,10 +658,16 @@ class StatisticsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.statsKpiExpense).text = MoneyFormat.formatRub(expense)
         findViewById<TextView>(R.id.statsKpiBalance).text = MoneyFormat.formatRub(diff)
         findViewById<TextView>(R.id.statsCurrentBalance).text = MoneyFormat.formatRub(snapshot.currentBalance)
+        findViewById<TextView>(R.id.statsInsightText).text = when {
+            snapshot.inPeriod.isEmpty() -> getString(R.string.analysis_no_operations)
+            diff < -0.005 -> getString(R.string.analysis_net_negative, MoneyFormat.formatRub(-diff))
+            diff > 0.005 -> getString(R.string.analysis_net_positive, MoneyFormat.formatRub(diff))
+            else -> getString(R.string.analysis_net_zero)
+        }
         val color = when {
             diff < -0.005 -> R.color.expense_red
             diff > 0.005 -> R.color.income_green
-            else -> R.color.budget_blue
+            else -> R.color.text_primary
         }
         findViewById<TextView>(R.id.statsKpiBalance).setTextColor(ContextCompat.getColor(this, color))
     }
@@ -619,7 +695,7 @@ class StatisticsActivity : AppCompatActivity() {
             snapshotsByDay = snapshot.snapshotsByDay,
         )
         findViewById<TextView>(R.id.statsBalanceChartSubtitle).text = getString(
-            R.string.stats_chart_balance_subtitle,
+            R.string.analysis_balance_range,
             MoneyFormat.formatRub(series.startBalance),
             MoneyFormat.formatRub(series.endBalance),
         )
@@ -631,7 +707,7 @@ class StatisticsActivity : AppCompatActivity() {
         configureMoneyAxis(lineChart, values)
         configureDayAxis(lineChart, dayKeys)
         val set = LineDataSet(entries, "").apply {
-            color = ContextCompat.getColor(this@StatisticsActivity, R.color.budget_blue)
+            color = ContextCompat.getColor(this@StatisticsActivity, R.color.md_theme_primary)
             setDrawCircles(false)
             setDrawValues(false)
             lineWidth = 2f
@@ -724,6 +800,8 @@ class StatisticsActivity : AppCompatActivity() {
         val sorted = grouped.values.sortedByDescending { it.amount }
         pieSlices = sorted
         adapter.submit(sorted, total)
+        pieChart.visibility = if (sorted.isEmpty()) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.statsExpenseEmptyText).visibility = if (sorted.isEmpty()) View.VISIBLE else View.GONE
         if (sorted.isEmpty()) {
             pieChart.clear()
             pieChart.centerText = ""
@@ -773,6 +851,7 @@ class StatisticsActivity : AppCompatActivity() {
         val to: Long,
         val currentBalance: Double,
         val snapshotsByDay: Map<Long, Double>,
+        val budgetId: Int?,
     )
 
     private data class CategorySlice(

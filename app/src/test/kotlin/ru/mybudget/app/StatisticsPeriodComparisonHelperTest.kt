@@ -14,7 +14,7 @@ class StatisticsPeriodComparisonHelperTest {
         val to = from + 30L * dayMs
         val (prevFrom, prevTo) = StatisticsPeriodComparisonHelper.previousRange(from, to)
         assertEquals(to - from, prevTo - prevFrom)
-        assertEquals(from - 1, prevTo)
+        assertEquals(from, prevTo)
     }
 
     @Test

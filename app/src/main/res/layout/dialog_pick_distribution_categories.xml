@@ -20,7 +20,7 @@
             android:minHeight="@dimen/touch_min_size"
             android:text="@string/distribution_select_all"
             android:layout_weight="1"
-            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            style="@style/Widget.MyBudget.Button.Text"/>
         <com.google.android.material.button.MaterialButton
             android:textSize="13sp"
             android:id="@+id/selectDefaultsCategoriesButton"
@@ -29,9 +29,9 @@
             android:minHeight="@dimen/touch_min_size"
             android:text="@string/distribution_select_with_defaults"
             android:layout_weight="1"
-            app:strokeColor="@color/budget_blue"
+            app:strokeColor="@color/md_theme_primary"
             app:strokeWidth="0dp"
-            style="@style/Widget.MaterialComponents.Button.TextButton"/>
+            style="@style/Widget.MyBudget.Button.Text"/>
     </LinearLayout>
     <ListView
         android:id="@+id/categoryPickList"

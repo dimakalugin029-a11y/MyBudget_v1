@@ -9,7 +9,7 @@
         android:id="@+id/searchResultType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textSize="11sp"
+        android:textSize="14sp"
         android:textAllCaps="true"
         android:textColor="@color/budget_blue"/>
     <TextView

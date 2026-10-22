@@ -82,7 +82,7 @@ class UtilityMetersActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_utility_meters)
-        ScreenHeaderHelper.setup(this, getString(R.string.utility_meters_title), getString(R.string.main_icon_utilities))
+        ScreenHeaderHelper.setup(this, getString(R.string.utility_meters_title))
         setupExcelMenu()
         findViewById<View>(R.id.metersExcelHint)?.let {
             ScreenHintHelper.bind(
@@ -362,7 +362,7 @@ class UtilityMetersActivity : AppCompatActivity() {
             }
             val colorRes = when {
                 epoch != null && epoch < todayEpochDay -> R.color.expense_red
-                epoch != null && epoch - todayEpochDay <= 30 -> R.color.settings_orange
+                epoch != null && epoch - todayEpochDay <= 30 -> R.color.module_warning_text
                 else -> R.color.text_secondary
             }
             holder.verification.visibility = View.VISIBLE

@@ -34,14 +34,34 @@ class IncomeDistributionActivity : AppCompatActivity() {
     private var leaves: List<BudgetCategory> = emptyList()
     private var parents: Map<Int, String> = emptyMap()
     private var actionsSheetBehavior: BottomSheetBehavior<View>? = null
+    private var plannedSourceId: Int? = null
+    private var plannedMonth = java.time.YearMonth.now()
+    private var receiptRequest = java.util.UUID.randomUUID().toString()
+    private var submitting = false
+    private var distributionBudgetId = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_income_distribution)
         manager = BudgetManager.getInstance(this)
         val pending = PendingDistributionPreferences.getPending(this)
-        totalIncome = intent.getDoubleExtra(EXTRA_TOTAL_INCOME, pending?.amount ?: 0.0)
-        ScreenHeaderHelper.setup(this, getString(R.string.transaction_income_distribution), "⚖️")
+        distributionBudgetId = savedInstanceState?.getInt("distribution_budget")
+            ?: intent.getIntExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
+        val matchingPending = pending?.takeIf { it.budgetId == distributionBudgetId }
+        plannedSourceId = intent.getIntExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, 0).takeIf { it > 0 }
+            ?: matchingPending?.plannedSourceId.takeIf { !intent.hasExtra(EXTRA_TOTAL_INCOME) }
+        plannedMonth = runCatching { java.time.YearMonth.parse(intent.getStringExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH)
+            ?: matchingPending?.plannedMonth) }.getOrDefault(java.time.YearMonth.now())
+        receiptRequest = savedInstanceState?.getString("receipt_request")
+            ?: intent.getStringExtra(EXTRA_RECEIPT_REQUEST)
+            ?: matchingPending?.requestId.takeIf { !intent.hasExtra(EXTRA_TOTAL_INCOME) } ?: receiptRequest
+        totalIncome = intent.getDoubleExtra(EXTRA_TOTAL_INCOME, matchingPending?.amount ?: 0.0)
+        if (savedInstanceState != null) {
+            plannedSourceId = savedInstanceState.getInt("plan_source", 0).takeIf { it > 0 }
+            plannedMonth = runCatching { java.time.YearMonth.parse(savedInstanceState.getString("plan_month")) }.getOrDefault(plannedMonth)
+            totalIncome = savedInstanceState.getDouble("distribution_total", totalIncome)
+        }
+        ScreenHeaderHelper.setup(this, getString(R.string.transaction_income_distribution))
         findViewById<View>(R.id.incomeDistributionHint)?.let {
             ScreenHintHelper.bind(
                 this,
@@ -92,10 +112,21 @@ class IncomeDistributionActivity : AppCompatActivity() {
         }
         attachActionsSheet()
         lifecycleScope.launch {
+            if (distributionBudgetId != manager.getActiveBudgetId()) {
+                Toast.makeText(this@IncomeDistributionActivity, R.string.income_plan_changed, Toast.LENGTH_LONG).show()
+                finish()
+                return@launch
+            }
             manager.getCategoriesAsync()
             leaves = manager.getCategoriesForExpenses()
             parents = manager.getRootCategories().associate { it.id to it.name }
             applyPrefill()
+            savedInstanceState?.getIntArray("distribution_ids")?.let { ids ->
+                val values = savedInstanceState.getDoubleArray("distribution_amounts") ?: doubleArrayOf()
+                selectedIds = ids.toMutableList()
+                amounts.clear()
+                ids.forEachIndexed { index, id -> values.getOrNull(index)?.let { amounts[id] = it } }
+            }
             applySavedTemplateIfEmpty()
             if (totalIncome <= 0.0) {
                 Toast.makeText(this@IncomeDistributionActivity, R.string.income_enter_total_amount, Toast.LENGTH_LONG).show()
@@ -345,6 +376,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
             totalText.setTextColor(ContextCompat.getColor(this, R.color.text_primary))
         }
         submitButton.isEnabled = selectedIds.isNotEmpty() &&
+            !submitting &&
             distributed > 0.0 &&
             (totalIncome <= 0.0 || distributed <= totalIncome + 0.01)
     }
@@ -375,6 +407,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
     }
 
     private fun submit() {
+        if (submitting) return
         val items = amounts.filter { it.value > 0.0 }.map { it.key to it.value }
         if (items.isEmpty()) {
             Toast.makeText(this, R.string.income_distribution_empty, Toast.LENGTH_SHORT).show()
@@ -387,8 +420,23 @@ class IncomeDistributionActivity : AppCompatActivity() {
         val note = intent.getStringExtra(EXTRA_INCOME_NOTE)?.trim().orEmpty()
             .ifBlank { PendingDistributionPreferences.getPending(this)?.note.orEmpty() }
             .ifBlank { getString(R.string.transaction_income_distribution) }
+        submitting = true
+        submitButton.isEnabled = false
         lifecycleScope.launch {
-            manager.applyTransactionGroup(items, "income", note)
+          try {
+            require(distributionBudgetId == manager.getActiveBudgetId()) { "Выбран другой бюджет" }
+            val sourceId = plannedSourceId
+            var credited = items.sumOf { it.second }
+            if (sourceId != null) {
+                val applied = IncomePlanExecution(manager.database).receive(sourceId, plannedMonth, items, note,
+                    receiptRequest, intent.getStringExtra(EXTRA_REPLACE_GROUP))
+                if (!applied) {
+                    credited = manager.database.budgetDao().getTransactionsByGroupId(receiptRequest).sumOf { it.amount }
+                    Toast.makeText(this@IncomeDistributionActivity, R.string.income_plan_changed, Toast.LENGTH_LONG).show()
+                }
+                manager.reloadCategoriesFromDatabase()
+                BudgetWidgetProvider.updateAll(this@IncomeDistributionActivity)
+            } else manager.applyTransactionGroup(items, "income", note)
             IncomeDistributionTemplatePreferences.save(
                 this@IncomeDistributionActivity,
                 manager.getActiveBudgetId(),
@@ -396,23 +444,45 @@ class IncomeDistributionActivity : AppCompatActivity() {
                 amounts,
                 totalIncome,
             )
-            val leftover = remaining()
+            val leftover = MoneyFormat.roundMoney(totalIncome - credited)
             if (leftover > 0.01) {
                 PendingDistributionPreferences.setPending(
                     this@IncomeDistributionActivity,
                     manager.getActiveBudgetId(),
                     leftover,
                     note,
+                    plannedSourceId,
+                    plannedMonth.toString(),
                 )
             } else {
                 PendingDistributionPreferences.clear(this@IncomeDistributionActivity)
             }
             Toast.makeText(this@IncomeDistributionActivity, R.string.income_distribution_done, Toast.LENGTH_SHORT).show()
             finish()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (error: Exception) {
+            Toast.makeText(this@IncomeDistributionActivity, getString(R.string.income_plan_error, error.message.orEmpty()), Toast.LENGTH_LONG).show()
+          } finally {
+            submitting = false
+            updateTotals()
+          }
         }
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("receipt_request", receiptRequest)
+        outState.putInt("plan_source", plannedSourceId ?: 0)
+        outState.putString("plan_month", plannedMonth.toString())
+        outState.putInt("distribution_budget", distributionBudgetId)
+        outState.putDouble("distribution_total", totalIncome)
+        outState.putIntArray("distribution_ids", selectedIds.toIntArray())
+        outState.putDoubleArray("distribution_amounts", selectedIds.map { amounts[it] ?: 0.0 }.toDoubleArray())
+        super.onSaveInstanceState(outState)
+    }
+
     companion object {
+        const val EXTRA_RECEIPT_REQUEST = "receipt_request"
+        const val EXTRA_REPLACE_GROUP = "replace_income_group"
         const val EXTRA_INCOME_NOTE = "income_note"
         const val EXTRA_TOTAL_INCOME = "total_income"
         const val EXTRA_PREFILL_CATEGORY_IDS = "prefill_category_ids"

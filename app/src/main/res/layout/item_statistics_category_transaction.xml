@@ -20,7 +20,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/text_secondary"
-            android:textSize="11sp"
             style="@style/Text.MyBudget.Subtitle" />
         <TextView
             android:id="@+id/categoryTxDescription"

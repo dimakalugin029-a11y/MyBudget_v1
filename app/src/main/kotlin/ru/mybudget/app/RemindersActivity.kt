@@ -228,8 +228,9 @@ class RemindersActivity : AppCompatActivity() {
             .setMessage(getString(R.string.reminder_mark_paid_msg, reminder.title, MoneyFormat.format(reminder.amount)))
             .setPositiveButton(R.string.reminder_mark_paid) { _, _ ->
                 lifecycleScope.launch {
-                    ReminderPaymentHelper.payReminder(manager, reminder.id.toInt())
-                    Toast.makeText(this@RemindersActivity, R.string.reminder_paid_done, Toast.LENGTH_SHORT).show()
+                    val date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(reminder.dueDate)
+                    val paid = ReminderPaymentHelper.payReminder(manager, reminder.id.toInt(), date)
+                    if (paid) Toast.makeText(this@RemindersActivity, R.string.reminder_paid_done, Toast.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)

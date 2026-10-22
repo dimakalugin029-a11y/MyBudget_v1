@@ -7,12 +7,14 @@ import android.view.DragEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.ImageButton
 import android.widget.PopupMenu
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -37,12 +39,31 @@ class BudgetActivity : AppCompatActivity() {
     private var draggedRow: View? = null
     private var draggedCategory: BudgetCategory? = null
     private val rowCategories = mutableMapOf<View, BudgetCategory>()
+    private var reorderMode = false
+    private var filterBeforeReorder = BudgetPlanHelper.ListFilter.ALL
+    private var reorderSaving = false
+    private var restoredScrollY: Int? = null
+    private lateinit var reorderBackCallback: OnBackPressedCallback
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_budget)
         manager = BudgetManager.getInstance(this)
-        ScreenHeaderHelper.setup(this, getString(R.string.budget_screen_title), getString(R.string.main_icon_budget))
+        expandedParentIds.addAll(savedInstanceState?.getIntArray("budget_expanded")?.toList().orEmpty())
+        listFilter = savedInstanceState?.getString("budget_filter")?.let {
+            runCatching { BudgetPlanHelper.ListFilter.valueOf(it) }.getOrNull()
+        } ?: BudgetPlanHelper.ListFilter.ALL
+        filterBeforeReorder = savedInstanceState?.getString("budget_previous_filter")?.let {
+            runCatching { BudgetPlanHelper.ListFilter.valueOf(it) }.getOrNull()
+        } ?: listFilter
+        reorderMode = savedInstanceState?.getBoolean("budget_reorder") ?: false
+        restoredScrollY = savedInstanceState?.getInt("budget_scroll")
+        reorderBackCallback = object : OnBackPressedCallback(reorderMode) {
+            override fun handleOnBackPressed() { setReorderMode(false) }
+        }
+        onBackPressedDispatcher.addCallback(this, reorderBackCallback)
+        ScreenHeaderHelper.setup(this, getString(R.string.budget_screen_title))
+        TopLevelNavigation.bind(this, TopLevelNavigation.Destination.BUDGET)
         ScreenHeaderHelper.bindAction(
             this,
             android.R.drawable.ic_input_add,
@@ -69,12 +90,18 @@ class BudgetActivity : AppCompatActivity() {
         safeToSpendText = findViewById(R.id.safeToSpendText)
 
         findViewById<View>(R.id.activeBudgetPicker).setOnClickListener {
-            BudgetPicker.show(this, onSwitched = { reload() })
+            BudgetPicker.show(this, onSwitched = {
+                expandedParentIds.clear()
+                setReorderMode(false)
+                categoriesScrollView.scrollTo(0, 0)
+                reload()
+            })
         }
         findViewById<View>(R.id.budgetExpandToggle).setOnClickListener { toggleExpandAll() }
-        findViewById<View>(R.id.selectionBar).visibility = View.GONE
+        findViewById<View>(R.id.budgetOrderButton).setOnClickListener { setReorderMode(!reorderMode) }
         categoriesContainer.setOnDragListener(dragListener)
         setupFilters()
+        updateReorderControls()
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 manager.categoriesFlow.collect {
@@ -82,6 +109,15 @@ class BudgetActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putIntArray("budget_expanded", expandedParentIds.toIntArray())
+        outState.putString("budget_filter", listFilter.name)
+        outState.putString("budget_previous_filter", filterBeforeReorder.name)
+        outState.putBoolean("budget_reorder", reorderMode)
+        outState.putInt("budget_scroll", categoriesScrollView.scrollY)
+        super.onSaveInstanceState(outState)
     }
 
     override fun onResume() {
@@ -94,17 +130,52 @@ class BudgetActivity : AppCompatActivity() {
         val nonZero = findViewById<TextView>(R.id.budgetFilterNonZero)
         val overspend = findViewById<TextView>(R.id.budgetFilterOverspend)
         fun select(filter: BudgetPlanHelper.ListFilter) {
+            if (reorderMode) return
             listFilter = filter
             all.isSelected = filter == BudgetPlanHelper.ListFilter.ALL
             nonZero.isSelected = filter == BudgetPlanHelper.ListFilter.NON_ZERO
             overspend.isSelected = filter == BudgetPlanHelper.ListFilter.OVERSPEND
             maybeShowFilterHint()
             displayCategories(manager.getCategoriesForBudget())
+            categoriesScrollView.post { categoriesScrollView.scrollTo(0, 0) }
         }
         all.setOnClickListener { select(BudgetPlanHelper.ListFilter.ALL) }
         nonZero.setOnClickListener { select(BudgetPlanHelper.ListFilter.NON_ZERO) }
         overspend.setOnClickListener { select(BudgetPlanHelper.ListFilter.OVERSPEND) }
-        all.isSelected = true
+        updateFilterSelection()
+    }
+
+    private fun updateFilterSelection() {
+        listOf(R.id.budgetFilterAll, R.id.budgetFilterNonZero, R.id.budgetFilterOverspend)
+            .zip(BudgetPlanHelper.ListFilter.entries).forEach { (id, filter) ->
+                findViewById<View>(id).apply {
+                    isSelected = filter == listFilter
+                    isEnabled = !reorderMode
+                    alpha = if (reorderMode) 0.5f else 1f
+                }
+            }
+    }
+
+    private fun setReorderMode(enabled: Boolean) {
+        if (reorderSaving || reorderMode == enabled) return
+        if (enabled) {
+            filterBeforeReorder = listFilter
+            listFilter = BudgetPlanHelper.ListFilter.ALL
+        } else {
+            listFilter = filterBeforeReorder
+        }
+        reorderMode = enabled
+        reorderBackCallback.isEnabled = enabled
+        updateReorderControls()
+        displayCategories(manager.getCategoriesForBudget())
+    }
+
+    private fun updateReorderControls() {
+        findViewById<TextView>(R.id.budgetOrderButton).setText(
+            if (reorderMode) R.string.budget_order_done else R.string.budget_order,
+        )
+        findViewById<View>(R.id.budgetOrderHint).visibility = if (reorderMode) View.VISIBLE else View.GONE
+        updateFilterSelection()
     }
 
     private fun maybeShowFilterHint() {
@@ -177,7 +248,7 @@ class BudgetActivity : AppCompatActivity() {
     }
 
     private fun toggleExpandAll() {
-        val parents = manager.getRootCategories().filter { manager.hasSubcategories(it.id) }.map { it.id }
+        val parents = visibleGroups(manager.getCategoriesForBudget()).filter { it.hasChildren }.map { it.parent.id }
         if (parents.isEmpty()) return
         if (expandedParentIds.containsAll(parents)) {
             expandedParentIds.clear()
@@ -188,19 +259,35 @@ class BudgetActivity : AppCompatActivity() {
     }
 
     private fun displayCategories(categories: List<BudgetCategory>) {
+        val scrollY = restoredScrollY ?: categoriesScrollView.scrollY
         categoriesContainer.removeAllViews()
         rowCategories.clear()
         draggedRow = null
         draggedCategory = null
         val parents = categories.filter { it.parentId == 0 && it.isActive }.sortedBy { it.position }
+        val groups = visibleGroups(categories)
+        val expandableIds = groups.filter { it.hasChildren }.map { it.parent.id }
+        findViewById<TextView>(R.id.budgetExpandToggle).apply {
+            val allExpanded = expandableIds.isNotEmpty() && expandedParentIds.containsAll(expandableIds)
+            setText(if (allExpanded) R.string.budget_collapse_all_label else R.string.budget_expand_all_label)
+            isEnabled = expandableIds.isNotEmpty()
+            alpha = if (isEnabled) 1f else 0.5f
+        }
         findViewById<View>(R.id.budgetLoadingState).visibility = View.GONE
         findViewById<View>(R.id.budgetErrorState).visibility = View.GONE
         if (parents.isEmpty()) {
+            findViewById<TextView>(R.id.budgetFilterAll).text = getString(R.string.budget_filter_all_count, 0)
+            findViewById<TextView>(R.id.budgetFilterNonZero).text = getString(R.string.budget_filter_active_count, 0)
+            findViewById<TextView>(R.id.budgetFilterOverspend).text = getString(R.string.budget_filter_overspend_count, 0)
             categoriesScrollView.visibility = View.GONE
-            findViewById<View>(R.id.budgetEmptyState).visibility = View.VISIBLE
+            findViewById<TextView>(R.id.budgetEmptyState).apply {
+                setText(R.string.budget_empty)
+                visibility = View.VISIBLE
+            }
             return
         }
         findViewById<View>(R.id.budgetEmptyState).visibility = View.GONE
+        restoredScrollY = null
         categoriesScrollView.visibility = View.VISIBLE
         expandedParentIds.retainAll(parents.map { it.id }.toSet())
 
@@ -233,35 +320,27 @@ class BudgetActivity : AppCompatActivity() {
                 },
             )
 
-        for (parent in parents) {
-            val children = categories
-                .filter { it.parentId == parent.id && it.isActive }
-                .sortedBy { it.position }
-                .filter { shouldShowCategory(it) }
-            val showParent = listFilter == BudgetPlanHelper.ListFilter.ALL || children.isNotEmpty()
-            if (!showParent) continue
-            addParentHeaderView(parent)
-            if (expandedParentIds.contains(parent.id)) {
-                for (child in children) {
-                    addLeafRowView(child)
-                }
+        if (groups.isEmpty()) {
+            categoriesScrollView.visibility = View.GONE
+            findViewById<TextView>(R.id.budgetEmptyState).apply {
+                setText(R.string.budget_filter_empty)
+                visibility = View.VISIBLE
             }
         }
+        for (group in groups) {
+            if (!group.hasChildren) {
+                addLeafRowView(group.parent)
+            } else {
+                addParentHeaderView(group.parent)
+                if (expandedParentIds.contains(group.parent.id)) group.children.forEach { addLeafRowView(it) }
+            }
+        }
+        categoriesScrollView.post { categoriesScrollView.scrollTo(0, scrollY) }
     }
 
-    private fun shouldShowCategory(category: BudgetCategory): Boolean {
-        if (manager.hasSubcategories(category.id)) return true
-        val spent = monthlySpentMap[category.id] ?: 0.0
-        val threshold = OverspendPreferences.getThresholdPercent(this)
-        val planned = monthlyPlannedMap[category.id] ?: category.plannedAmount
-        return when (listFilter) {
-            BudgetPlanHelper.ListFilter.ALL -> true
-            BudgetPlanHelper.ListFilter.NON_ZERO ->
-                BudgetPlanHelper.matchesFilter(category, spent, listFilter, threshold)
-            BudgetPlanHelper.ListFilter.OVERSPEND ->
-                BudgetPlanHelper.isCategoryOverspent(category, spent, threshold, planned)
-        }
-    }
+    private fun visibleGroups(categories: List<BudgetCategory>) = BudgetListHelper.visibleGroups(
+        categories, listFilter, monthlySpentMap, monthlyPlannedMap, OverspendPreferences.getThresholdPercent(this),
+    )
 
     private fun addParentHeaderView(category: BudgetCategory) {
         val row = LayoutInflater.from(this).inflate(R.layout.item_budget_parent_header, categoriesContainer, false)
@@ -270,7 +349,7 @@ class BudgetActivity : AppCompatActivity() {
         val metaView = row.findViewById<TextView>(R.id.categoryMeta)
 
         nameView.text = category.name
-        bindColorStrip(row, category, alwaysShow = true)
+        bindColorStrip(row, category)
 
         val balance = manager.getCategoryBalanceWithSubcategories(category.id)
         bindBalanceText(balanceView, balance)
@@ -291,14 +370,23 @@ class BudgetActivity : AppCompatActivity() {
             metaView.visibility = View.GONE
         }
 
-        row.setOnClickListener {
-            if (childCount > 0) {
-                if (!expandedParentIds.add(category.id)) expandedParentIds.remove(category.id)
-                displayCategories(manager.getCategoriesForBudget())
-            }
+        val toggle = {
+            if (!expandedParentIds.add(category.id)) expandedParentIds.remove(category.id)
+            displayCategories(manager.getCategoriesForBudget())
         }
+        row.setOnClickListener { toggle() }
+        row.findViewById<ImageButton>(R.id.categoryExpandButton).apply {
+            rotation = if (category.id in expandedParentIds) 180f else 0f
+            contentDescription = getString(
+                if (category.id in expandedParentIds) R.string.budget_collapse_named else R.string.budget_expand_named,
+                category.name,
+            )
+            setOnClickListener { toggle() }
+        }
+        bindCategoryMenu(row, category, isParent = true, childCount = childCount, leftover = leftover)
         row.setOnLongClickListener {
-            showCategoryMenu(row, category, isParent = true, childCount = childCount, leftover = leftover)
+            if (reorderMode) showOrderMenu(row, category)
+            else showCategoryMenu(row, category, isParent = true, childCount = childCount, leftover = leftover)
             true
         }
         bindDragHandle(row, category)
@@ -309,6 +397,13 @@ class BudgetActivity : AppCompatActivity() {
         val row = LayoutInflater.from(this).inflate(R.layout.item_budget_leaf_row, categoriesContainer, false)
         val nameView = row.findViewById<TextView>(R.id.categoryName)
         val balanceView = row.findViewById<TextView>(R.id.categoryBalance)
+        if (category.parentId == 0) {
+            (row.layoutParams as LinearLayout.LayoutParams).apply {
+                marginStart = 0
+                topMargin = resources.getDimensionPixelSize(R.dimen.space_8)
+            }
+            row.setBackgroundResource(R.drawable.budget_parent_header_bg)
+        }
 
         nameView.text = category.name
         bindColorStrip(row, category)
@@ -316,8 +411,11 @@ class BudgetActivity : AppCompatActivity() {
         bindPlanUsage(row, category)
 
         row.setOnClickListener {
-            showCategoryMenu(row, category, isParent = false, childCount = 0, leftover = 0.0)
+            if (reorderMode) showOrderMenu(row, category)
+            else showCategoryMenu(row, category, isParent = category.parentId == 0, childCount = 0, leftover = 0.0)
         }
+        bindCategoryMenu(row, category, isParent = category.parentId == 0, childCount = 0, leftover = 0.0)
+        row.findViewById<View>(R.id.categoryQuickActions).visibility = if (reorderMode) View.GONE else View.VISIBLE
         row.findViewById<View>(R.id.addIncomeButton).setOnClickListener {
             BudgetDialogs.showAddTransaction(this, manager, category, BudgetDialogs.TransactionKind.INCOME) { reload() }
         }
@@ -328,9 +426,22 @@ class BudgetActivity : AppCompatActivity() {
         categoriesContainer.addView(row)
     }
 
+    private fun bindCategoryMenu(row: View, category: BudgetCategory, isParent: Boolean, childCount: Int, leftover: Double) {
+        row.findViewById<View>(R.id.categoryMenuButton).apply {
+            visibility = if (reorderMode) View.GONE else View.VISIBLE
+            contentDescription = getString(R.string.budget_category_actions, category.name)
+            setOnClickListener { showCategoryMenu(this, category, isParent, childCount, leftover) }
+        }
+    }
+
     private fun bindDragHandle(row: View, category: BudgetCategory) {
         rowCategories[row] = category
         val handle = row.findViewById<View>(R.id.dragHandle) ?: return
+        handle.visibility = if (reorderMode) View.VISIBLE else View.GONE
+        handle.contentDescription = getString(R.string.budget_order_named, category.name)
+        handle.setOnClickListener {
+            showOrderMenu(handle, category)
+        }
         handle.setOnLongClickListener {
             startCategoryDrag(row, category)
             true
@@ -338,6 +449,7 @@ class BudgetActivity : AppCompatActivity() {
     }
 
     private fun startCategoryDrag(row: View, category: BudgetCategory) {
+        if (!reorderMode || reorderSaving) return
         draggedRow = row
         draggedCategory = category
         row.startDragAndDrop(null, View.DragShadowBuilder(row), category.id, 0)
@@ -346,6 +458,7 @@ class BudgetActivity : AppCompatActivity() {
     private val dragListener = View.OnDragListener { _, event ->
         when (event.action) {
             DragEvent.ACTION_DRAG_STARTED -> {
+                if (!reorderMode || reorderSaving) return@OnDragListener false
                 val categoryId = event.localState as? Int
                 val category = categoryId?.let { id -> rowCategories.values.firstOrNull { it.id == id } }
                 draggedCategory = category
@@ -353,6 +466,11 @@ class BudgetActivity : AppCompatActivity() {
                 category != null && draggedRow != null
             }
             DragEvent.ACTION_DRAG_LOCATION -> {
+                val edge = resources.getDimensionPixelSize(R.dimen.space_24) * 2
+                val visibleY = event.y - categoriesScrollView.scrollY
+                val step = resources.getDimensionPixelSize(R.dimen.space_12)
+                if (visibleY < edge) categoriesScrollView.scrollBy(0, -step)
+                else if (visibleY > categoriesScrollView.height - edge) categoriesScrollView.scrollBy(0, step)
                 moveDraggedRowIfNeeded(event.x, event.y)
                 true
             }
@@ -380,8 +498,25 @@ class BudgetActivity : AppCompatActivity() {
         val from = categoriesContainer.indexOfChild(drag)
         val to = categoriesContainer.indexOfChild(target)
         if (from == -1 || to == -1) return
-        categoriesContainer.removeView(drag)
-        categoriesContainer.addView(drag, to)
+        // Move a root together with its currently expanded children.
+        fun block(row: View, category: BudgetCategory): List<View> = buildList {
+            add(row)
+            if (category.parentId == 0) {
+                var index = categoriesContainer.indexOfChild(row) + 1
+                while (index < categoriesContainer.childCount) {
+                    val child = categoriesContainer.getChildAt(index)
+                    if (rowCategories[child]?.parentId != category.id) break
+                    add(child)
+                    index++
+                }
+            }
+        }
+        val moving = block(drag, dragCategory)
+        val targetBlock = block(target, targetCategory)
+        moving.forEach(categoriesContainer::removeView)
+        val insertAt = if (from < to) categoriesContainer.indexOfChild(targetBlock.last()) + 1
+            else categoriesContainer.indexOfChild(target)
+        moving.forEachIndexed { index, view -> categoriesContainer.addView(view, insertAt + index) }
     }
 
     private fun findRowUnder(x: Float, y: Float): View? {
@@ -406,13 +541,46 @@ class BudgetActivity : AppCompatActivity() {
             val sibling = rowCategories[categoriesContainer.getChildAt(i)] ?: continue
             if (areDragSiblings(dragCategory, sibling)) targetIndex++
         }
-        lifecycleScope.launch {
-            manager.moveCategoryToPosition(dragCategory.id, targetIndex)
-            reload()
+        saveOrder { manager.moveCategoryToPosition(dragCategory.id, targetIndex) }
+    }
+
+    private fun showOrderMenu(anchor: View, category: BudgetCategory) {
+        if (!reorderMode || reorderSaving) return
+        val siblings = manager.getCategoriesForBudget().filter { it.isActive && it.parentId == category.parentId }
+            .sortedBy { it.position }
+        val index = siblings.indexOfFirst { it.id == category.id }
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, R.string.budget_move_up).isEnabled = index > 0
+            menu.add(0, 2, 1, R.string.budget_move_down).isEnabled = index >= 0 && index < siblings.lastIndex
+            setOnMenuItemClickListener {
+                saveOrder { manager.moveCategory(category.id, if (it.itemId == 1) -1 else 1) }
+                true
+            }
+            show()
         }
     }
 
-    private fun bindColorStrip(row: View, category: BudgetCategory, alwaysShow: Boolean = false) {
+    private fun saveOrder(move: suspend () -> Boolean) {
+        if (reorderSaving) return
+        reorderSaving = true
+        isDataRefreshInProgress = true
+        lifecycleScope.launch {
+            try {
+                move()
+                refresh()
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                Toast.makeText(this@BudgetActivity, R.string.budget_order_failed, Toast.LENGTH_LONG).show()
+                displayCategories(manager.getCategoriesForBudget())
+            } finally {
+                reorderSaving = false
+                isDataRefreshInProgress = false
+            }
+        }
+    }
+
+    private fun bindColorStrip(row: View, category: BudgetCategory) {
         val strip = row.findViewById<View>(R.id.colorStrip) ?: return
         val parsedColor = if (category.colorHex.isNotBlank()) {
             runCatching { Color.parseColor(category.colorHex) }.getOrNull()
@@ -424,16 +592,12 @@ class BudgetActivity : AppCompatActivity() {
                 strip.visibility = View.VISIBLE
                 strip.setBackgroundColor(parsedColor)
             }
-            alwaysShow -> {
-                strip.visibility = View.VISIBLE
-                strip.setBackgroundColor(ContextCompat.getColor(this, R.color.budget_blue))
-            }
             else -> strip.visibility = View.GONE
         }
     }
 
     private fun bindBalanceText(balanceView: TextView, balance: Double) {
-        balanceView.text = MoneyFormat.formatRub(balance)
+        balanceView.text = getString(R.string.budget_row_balance, MoneyFormat.formatRub(balance))
         val colorRes = when {
             balance < -0.005 -> R.color.expense_red
             balance > 0.005 -> R.color.income_green
@@ -461,8 +625,6 @@ class BudgetActivity : AppCompatActivity() {
                 menu.add(0, 9, 0, R.string.budget_distribute_to_subcategories)
                 menu.add(0, 10, 0, R.string.budget_move_subcategory)
             }
-            menu.add(0, 11, 0, R.string.budget_move_up)
-            menu.add(0, 12, 0, R.string.budget_move_down)
             menu.add(0, 4, 0, R.string.budget_rename)
             menu.add(0, 6, 0, R.string.budget_profiles_delete)
             setOnMenuItemClickListener { item ->
@@ -483,8 +645,6 @@ class BudgetActivity : AppCompatActivity() {
                         reload()
                     }
                     8 -> openRemainder(category, leftover)
-                    11 -> lifecycleScope.launch { manager.moveCategory(category.id, -1); reload() }
-                    12 -> lifecycleScope.launch { manager.moveCategory(category.id, 1); reload() }
                 }
                 true
             }
@@ -496,13 +656,8 @@ class BudgetActivity : AppCompatActivity() {
         val planRow = categoryView.findViewById<View>(R.id.categoryPlanRow) ?: return
         val planProgress = categoryView.findViewById<ProgressBar>(R.id.categoryPlanProgress) ?: return
         val planText = categoryView.findViewById<TextView>(R.id.categoryPlanText) ?: return
-        val fromMonthly = monthlyPlannedMap[category.id] ?: 0.0
-        if (category.plannedAmount <= 0.0 && fromMonthly <= 0.0) {
-            planRow.visibility = View.GONE
-            return
-        }
         val spent = monthlySpentMap[category.id] ?: 0.0
-        val planned = if (fromMonthly > 0.0) fromMonthly else category.plannedAmount
+        val planned = monthlyPlannedMap[category.id] ?: category.plannedAmount
         if (planned <= 0.0) {
             planRow.visibility = View.GONE
             return
@@ -510,7 +665,7 @@ class BudgetActivity : AppCompatActivity() {
         val pct = BudgetPlanHelper.planPercent(spent, planned)
         planProgress.progress = pct
         val text = StringBuilder(
-            getString(R.string.budget_plan_usage, pct, MoneyFormat.formatRub(spent), MoneyFormat.formatRub(planned)),
+            getString(R.string.budget_row_usage, MoneyFormat.formatRub(spent), MoneyFormat.formatRub(planned)),
         )
         CategoryRunwayHelper.formatRunwaySuffix(this, category.currentBalance, spent)?.let { suffix ->
             text.append(" · ").append(suffix)

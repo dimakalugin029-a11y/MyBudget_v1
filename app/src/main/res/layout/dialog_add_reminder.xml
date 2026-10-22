@@ -21,12 +21,12 @@
             android:layout_marginBottom="@dimen/space_4"
             android:text="@string/reminder_title_label"
     style="@style/Text.MyBudget.SectionLabel"/>
-        <EditText
+        <EditText style="@style/Widget.MyBudget.OperationInput"
             android:textSize="16sp"
             android:textColor="@color/text_primary"
             android:id="@+id/reminderTitleInput"
-            android:background="@drawable/edittext_border"
-            android:padding="@dimen/space_8"
+            android:background="@drawable/operation_input_bg"
+            android:padding="@dimen/space_12"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_16"
@@ -38,12 +38,12 @@
             android:layout_marginBottom="@dimen/space_4"
             android:text="@string/reminder_amount_label"
     style="@style/Text.MyBudget.SectionLabel"/>
-        <EditText
+        <EditText style="@style/Widget.MyBudget.OperationInput"
             android:textSize="16sp"
             android:textColor="@color/text_primary"
             android:id="@+id/reminderAmountInput"
-            android:background="@drawable/edittext_border"
-            android:padding="@dimen/space_8"
+            android:background="@drawable/operation_input_bg"
+            android:padding="@dimen/space_12"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_16"
@@ -56,7 +56,7 @@
             android:layout_marginBottom="@dimen/space_4"
             android:text="@string/reminder_category_label"
     style="@style/Text.MyBudget.SectionLabel"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/reminderCategorySpinner"
             android:padding="@dimen/space_4"
             android:layout_width="match_parent"
@@ -83,7 +83,7 @@
             android:layout_marginBottom="@dimen/space_4"
             android:text="@string/reminder_repeat_label"
     style="@style/Text.MyBudget.SectionLabel"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/reminderRepeatSpinner"
             android:padding="@dimen/space_4"
             android:layout_width="match_parent"

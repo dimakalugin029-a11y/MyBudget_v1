@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:background="@color/background_light"
     android:paddingLeft="@dimen/space_16"
@@ -8,148 +10,163 @@
     android:paddingBottom="@dimen/space_16"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingHorizontal="@dimen/space_16">
+    android:paddingHorizontal="@dimen/space_16"
+    android:fitsSystemWindows="true">
     <include
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
-        layout="@layout/include_screen_header"/>
-    <androidx.cardview.widget.CardView
+        layout="@layout/include_screen_header" />
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/utilityBillScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        app:cardBackgroundColor="@android:color/transparent"
-        app:cardElevation="0dp">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/utilities_hero_card_bg"
-            android:orientation="vertical"
-            android:paddingLeft="@dimen/space_12"
-            android:paddingTop="@dimen/space_10"
-            android:paddingRight="@dimen/space_12"
-            android:paddingBottom="@dimen/space_10"
-            android:paddingHorizontal="@dimen/space_12"
-            android:paddingVertical="@dimen/space_10">
-            <LinearLayout
+            android:orientation="vertical">
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-                <TextView
-                    android:id="@+id/billPeriodTitle"
+                android:layout_marginBottom="@dimen/space_8"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/utilities_hero_card_bg"
+                    android:orientation="vertical"
+                    android:paddingLeft="@dimen/space_12"
+                    android:paddingTop="@dimen/space_10"
+                    android:paddingRight="@dimen/space_12"
+                    android:paddingBottom="@dimen/space_10"
+                    android:paddingHorizontal="@dimen/space_12"
+                    android:paddingVertical="@dimen/space_10">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
+                        <TextView
+                            android:id="@+id/billPeriodTitle"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/main_hero_text_primary"
+                            android:textSize="15sp"
+                            style="@style/Text.MyBudget.Section" />
+                        <TextView
+                            android:id="@+id/billGrandTotal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/main_hero_text_primary"
+                            android:textSize="28sp"
+                            style="@style/Text.MyBudget.Amount"
+                            android:layout_marginTop="@dimen/space_8" />
+                    </LinearLayout>
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:id="@+id/billPaymentStatusText"
+                        android:textColor="@color/hero_text_secondary"
+                        android:layout_marginTop="@dimen/space_8" />
+                    <TextView
+                        android:id="@+id/billAreaText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:textColor="@color/utilities_hero_text_secondary"
+                        android:textSize="14sp"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <TextView
+                        android:id="@+id/billChecklistText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_4"
+                        android:textColor="@color/utilities_hero_text_secondary"
+                        android:textSize="14sp"
+                        android:visibility="gone"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <TextView
+                        android:id="@+id/billForecastText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_2"
+                        android:textColor="@color/utilities_hero_text_secondary"
+                        android:textSize="14sp"
+                        android:visibility="gone"
+                        style="@style/Text.MyBudget.Subtitle" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/openPhotosButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_6"
+                        android:minHeight="@dimen/touch_min_size"
+                        android:minWidth="0dp"
+                        android:paddingHorizontal="@dimen/space_10"
+                        android:text="@string/utility_photos_open"
+                        android:textColor="@color/main_hero_text_primary"
+                        android:textSize="12sp"
+                        app:cornerRadius="@dimen/radius_12"
+                        app:icon="@android:drawable/ic_menu_camera"
+                        app:iconGravity="textStart"
+                        app:iconPadding="@dimen/space_4"
+                        app:iconTint="@color/main_hero_text_primary"
+                        app:strokeColor="@color/main_hero_text_primary"
+                        style="@style/Widget.MyBudget.Button.Outlined" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_8">
+                <com.google.android.material.button.MaterialButton
+                    android:textSize="12sp"
+                    android:id="@+id/applyMetersButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/utility_bill_apply_meters"
                     android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/main_hero_text_primary"
-                    android:textSize="15sp"
-                    style="@style/Text.MyBudget.Section" />
-                <TextView
-                    android:id="@+id/billGrandTotal"
-                    android:layout_width="wrap_content"
+                    android:layout_marginEnd="@dimen/space_6"
+                    app:cornerRadius="@dimen/radius_12"
+                    app:icon="@android:drawable/ic_menu_sort_by_size"
+                    app:iconGravity="textStart"
+                    app:strokeColor="@color/md_theme_primary"
+                    style="@style/Widget.MyBudget.Button.Outlined" />
+                <com.google.android.material.button.MaterialButton
+                    android:textSize="12sp"
+                    android:id="@+id/hideZeroLinesButton"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/space_8"
-                    android:textColor="@color/main_hero_text_primary"
-                    android:textSize="22sp"
-                    style="@style/Text.MyBudget.Amount" />
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/utility_bill_hide_zeros"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/space_6"
+                    app:cornerRadius="@dimen/radius_12"
+                    app:icon="@android:drawable/ic_menu_view"
+                    app:iconGravity="textStart"
+                    app:strokeColor="@color/md_theme_primary"
+                    style="@style/Widget.MyBudget.Button.Outlined" />
             </LinearLayout>
             <TextView
-                android:id="@+id/billAreaText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:textColor="@color/utilities_hero_text_secondary"
-                android:textSize="12sp"
-                style="@style/Text.MyBudget.Subtitle" />
-            <TextView
-                android:id="@+id/billChecklistText"
+                android:layout_marginBottom="@dimen/space_8"
+                android:text="@string/utility_bill_lines_hint"
+                style="@style/Text.MyBudget.SectionLabel" />
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/billDetailsRecyclerView"
+                android:paddingBottom="@dimen/space_8"
+                android:clipToPadding="false"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                android:textColor="@color/utilities_hero_text_secondary"
-                android:textSize="11sp"
-                android:visibility="gone"
-                style="@style/Text.MyBudget.Subtitle" />
-            <TextView
-                android:id="@+id/billForecastText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_2"
-                android:textColor="@color/utilities_hero_text_secondary"
-                android:textSize="11sp"
-                android:visibility="gone"
-                style="@style/Text.MyBudget.Subtitle" />
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/openPhotosButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_6"
-                android:minHeight="36dp"
-                android:minWidth="0dp"
-                android:paddingHorizontal="@dimen/space_10"
-                android:text="@string/utility_photos_open"
-                android:textColor="@color/main_hero_text_primary"
-                android:textSize="12sp"
-                app:cornerRadius="@dimen/radius_10"
-                app:icon="@android:drawable/ic_menu_camera"
-                app:iconGravity="textStart"
-                app:iconPadding="@dimen/space_4"
-                app:iconTint="@color/main_hero_text_primary"
-                app:strokeColor="@color/main_hero_text_primary"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                android:nestedScrollingEnabled="false" />
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8">
-        <com.google.android.material.button.MaterialButton
-            android:textSize="12sp"
-            android:id="@+id/applyMetersButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/touch_min_size"
-            android:text="@string/utility_bill_apply_meters"
-            android:layout_weight="1"
-            android:layout_marginEnd="@dimen/space_6"
-            app:cornerRadius="@dimen/radius_10"
-            app:icon="@android:drawable/ic_menu_sort_by_size"
-            app:iconGravity="textStart"
-            app:strokeColor="@color/budget_blue"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        <com.google.android.material.button.MaterialButton
-            android:textSize="12sp"
-            android:id="@+id/hideZeroLinesButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:minHeight="@dimen/touch_min_size"
-            android:text="@string/utility_bill_hide_zeros"
-            android:layout_weight="1"
-            android:layout_marginStart="@dimen/space_6"
-            app:cornerRadius="@dimen/radius_10"
-            app:icon="@android:drawable/ic_menu_view"
-            app:iconGravity="textStart"
-            app:strokeColor="@color/budget_blue"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-    </LinearLayout>
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_8"
-        android:text="@string/utility_bill_lines_hint"
-        style="@style/Text.MyBudget.SectionLabel"/>
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/billDetailsRecyclerView"
-        android:paddingBottom="@dimen/space_8"
-        android:clipToPadding="false"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+    </androidx.core.widget.NestedScrollView>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/payFromBudgetButton"
         android:layout_width="match_parent"
@@ -157,7 +174,6 @@
         android:layout_marginTop="@dimen/space_8"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/utility_pay_from_budget"
-        app:backgroundTint="@color/income_green"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button" />
 </LinearLayout>

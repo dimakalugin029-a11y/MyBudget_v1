@@ -84,7 +84,8 @@ object ForecastVsFactHelper {
         forecastLines: List<Pair<String, Double>>,
         factByCategory: Map<String, Double>,
     ): List<LineComparison> {
-        val result = forecastLines.map { (name, amount) ->
+        val groupedForecast = forecastLines.groupBy { it.first }.map { (name, lines) -> name to lines.sumOf { it.second } }
+        val result = groupedForecast.map { (name, amount) ->
             val fact = MoneyFormat.roundMoney(factByCategory[name] ?: 0.0)
             LineComparison(name, MoneyFormat.roundMoney(amount), fact, delta(amount, fact))
         }

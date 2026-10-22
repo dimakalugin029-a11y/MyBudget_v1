@@ -139,15 +139,15 @@ class RecurringActivity : AppCompatActivity() {
             .setMessage(getString(R.string.recurring_execute_msg, MoneyFormat.format(recurring.amount)))
             .setPositiveButton(R.string.recurring_execute) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
-                    RecurringHelper.applyAndAdvance(
-                        repository,
-                        BudgetDatabase.getInstance(this@RecurringActivity).budgetDao(),
+                    val applied = RecurringHelper.applyAndAdvance(
                         recurring,
                         this@RecurringActivity,
                     )
                     manager.getCategoriesAsync(forceReload = true)
                     withContext(Dispatchers.Main) {
-                        Toast.makeText(this@RecurringActivity, R.string.recurring_executed, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@RecurringActivity,
+                            if (applied) R.string.recurring_executed else R.string.attention_event_changed,
+                            Toast.LENGTH_SHORT).show()
                     }
                 }
             }

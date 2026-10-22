@@ -1,193 +1,169 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
-
-    <LinearLayout
+    android:orientation="vertical"
+    android:background="@color/background_light"
+    android:padding="@dimen/space_16"
+    android:fitsSystemWindows="true">
+    <include layout="@layout/include_screen_header" />
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/autoScroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
-
-        <androidx.cardview.widget.CardView
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/Card.MyBudget.Surface">
-
-            <LinearLayout
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/space_16">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/vehicleNameText"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="12dp">
-
-                <TextView
-                    android:id="@+id/vehicleNameText"
-                    android:layout_width="0dp"
+                android:minHeight="56dp"
+                android:text="@string/auto_pick_vehicle"
+                app:icon="@drawable/ic_budget_expand"
+                app:iconGravity="end" />
+            <TextView
+                android:id="@+id/autoLoadStatus"
+                style="@style/Text.MyBudget.Subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingVertical="@dimen/space_8"
+                android:text="@string/auto_stats_loading" />
+            <androidx.cardview.widget.CardView
+                style="@style/Card.MyBudget.Surface"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_12">
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textSize="18sp"
-                    android:textStyle="bold"/>
-
-                <Button
-                    android:id="@+id/addVehicleButton"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <TextView
+                        android:id="@+id/autoMonthLabel"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <TextView
+                        android:id="@+id/autoMonthPaid"
+                        style="@style/Text.MyBudget.Title"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="28sp"
+                        android:text="@string/analysis_value_pending" />
+                    <TextView
+                        android:id="@+id/autoMonthPaymentDetails"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_8" />
+                    <TextView
+                        android:id="@+id/fuelStatsText"
+                        style="@style/Text.MyBudget.Subtitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_8" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/autoStatisticsButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/auto_statistics_title" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/autoAddEventButton"
+                style="@style/Widget.MyBudget.Button"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="56dp"
+                android:text="@string/design_auto_add_event"
+                app:icon="@drawable/ic_nav_add"
+                app:iconGravity="textStart" />
+            <TextView
+                style="@style/Text.MyBudget.Section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_16"
+                android:layout_marginBottom="@dimen/space_8"
+                android:text="@string/design_auto_journal" />
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/auto_add_vehicle"/>
-
-                <ImageButton
-                    android:id="@+id/deleteVehicleButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:contentDescription="@string/auto_delete_vehicle"
-                    android:src="@android:drawable/ic_menu_delete"
-                    android:background="?attr/selectableItemBackgroundBorderless"/>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="12dp">
-
-            <Button
-                android:id="@+id/addServiceButton"
-                android:layout_width="0dp"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/filterAllButton"
+                        style="@style/Chip.MyBudget.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_6"
+                        android:text="@string/auto_filter_all"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <TextView
+                        android:id="@+id/filterServiceButton"
+                        style="@style/Chip.MyBudget.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_6"
+                        android:text="@string/auto_section_service"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <TextView
+                        android:id="@+id/filterInsuranceButton"
+                        style="@style/Chip.MyBudget.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_6"
+                        android:text="@string/auto_section_insurance"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <TextView
+                        android:id="@+id/filterFuelButton"
+                        style="@style/Chip.MyBudget.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_6"
+                        android:text="@string/auto_section_fuel"
+                        android:clickable="true"
+                        android:focusable="true" />
+                    <TextView
+                        android:id="@+id/filterRepairButton"
+                        style="@style/Chip.MyBudget.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_6"
+                        android:text="@string/auto_section_repair"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+            </HorizontalScrollView>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/autoRecycler"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/auto_section_service"/>
-
-            <Button
-                android:id="@+id/addInsuranceButton"
-                android:layout_width="0dp"
+                android:nestedScrollingEnabled="false"
+                android:layout_marginTop="@dimen/space_8" />
+            <TextView
+                android:id="@+id/autoEmptyState"
+                style="@style/Text.MyBudget.Subtitle"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                android:text="@string/auto_section_insurance"/>
+                android:gravity="center"
+                android:padding="@dimen/space_24"
+                android:text="@string/auto_empty"
+                android:visibility="gone" />
         </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/addFuelButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/auto_section_fuel"/>
-
-            <Button
-                android:id="@+id/addRepairButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/auto_section_repair"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/filterAllButton"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:textSize="12sp"
-                android:text="@string/auto_filter_all"/>
-
-            <Button
-                android:id="@+id/filterServiceButton"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:layout_marginStart="3dp"
-                android:textSize="12sp"
-                android:text="@string/auto_section_service"/>
-
-            <Button
-                android:id="@+id/filterInsuranceButton"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:layout_marginStart="3dp"
-                android:textSize="12sp"
-                android:text="@string/auto_section_insurance"/>
-
-            <Button
-                android:id="@+id/filterFuelButton"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="3dp"
-                android:layout_marginStart="3dp"
-                android:textSize="12sp"
-                android:text="@string/auto_section_fuel"/>
-
-            <Button
-                android:id="@+id/filterRepairButton"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="0dp"
-                android:paddingTop="8dp"
-                android:paddingBottom="8dp"
-                android:layout_weight="1"
-                android:layout_marginStart="3dp"
-                android:textSize="12sp"
-                android:text="@string/auto_section_repair"/>
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/fuelStatsText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="14sp"/>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/autoRecycler"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"/>
-
-        <TextView
-            android:id="@+id/autoEmptyState"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="@string/auto_empty"
-            android:textSize="14sp"/>
-    </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

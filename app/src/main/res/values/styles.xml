@@ -8,6 +8,45 @@
     <item name="colorPrimary">@color/md_theme_primary</item>
     <item name="colorSurface">@color/md_theme_surface</item>
     <item name="colorSurfaceVariant">@color/md_theme_surfaceVariant</item>
+    <item name="colorOnSurfaceVariant">@color/md_theme_onSurfaceVariant</item>
+    <item name="colorSecondary">@color/md_theme_primary</item>
+    <item name="colorOnSecondary">@color/md_theme_onPrimary</item>
+    <item name="colorSecondaryContainer">@color/md_theme_surfaceVariant</item>
+    <item name="colorOnSecondaryContainer">@color/md_theme_onSurfaceVariant</item>
+    <item name="colorError">@color/md_theme_error</item>
+    <item name="colorOnError">@color/md_theme_onError</item>
+    <item name="android:textColorPrimary">@color/text_primary</item>
+    <item name="android:textColorSecondary">@color/text_secondary</item>
+    <item name="materialButtonStyle">@style/Widget.MyBudget.Button</item>
+  </style>
+  <style name="Widget.MyBudget.Button" parent="Widget.Material3.Button">
+    <item name="android:minHeight">@dimen/touch_min_size</item>
+    <item name="android:textAllCaps">false</item>
+    <item name="cornerRadius">@dimen/radius_12</item>
+  </style>
+  <style name="Widget.MyBudget.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+    <item name="android:minHeight">@dimen/touch_min_size</item>
+    <item name="android:textAllCaps">false</item>
+    <item name="cornerRadius">@dimen/radius_12</item>
+  </style>
+  <style name="Widget.MyBudget.Button.Text" parent="Widget.Material3.Button.TextButton">
+    <item name="android:minHeight">@dimen/touch_min_size</item>
+    <item name="android:textAllCaps">false</item>
+    <item name="cornerRadius">@dimen/radius_12</item>
+  </style>
+  <style name="Widget.MyBudget.OperationInput" parent="Widget.AppCompat.EditText">
+    <item name="android:background">@drawable/operation_input_bg</item>
+    <item name="android:textColor">@color/text_primary</item>
+    <item name="android:textColorHint">@color/text_secondary</item>
+    <item name="android:textSize">16sp</item>
+    <item name="android:minHeight">56dp</item>
+    <item name="android:padding">@dimen/space_12</item>
+    <item name="android:gravity">top|start</item>
+  </style>
+  <style name="Widget.MyBudget.OperationAmount" parent="Widget.MyBudget.OperationInput">
+    <item name="android:textSize">32sp</item>
+    <item name="android:textStyle">bold</item>
+    <item name="android:gravity">center_vertical|start</item>
   </style>
   <style name="Card.MyBudget.Action" parent="">
     <item name="cardCornerRadius">@dimen/radius_12</item>
@@ -15,7 +54,7 @@
   </style>
   <style name="Card.MyBudget.Surface" parent="">
     <item name="cardBackgroundColor">@color/card_background_white</item>
-    <item name="cardCornerRadius">@dimen/radius_16</item>
+    <item name="cardCornerRadius">@dimen/radius_20</item>
     <item name="cardElevation">@dimen/card_elevation_low</item>
   </style>
   <style name="Card.MyBudget.Surface.Small" parent="@style/Card.MyBudget.Surface">
@@ -23,7 +62,7 @@
   </style>
   <style name="Chip.MyBudget" parent=""></style>
   <style name="Chip.MyBudget.Filter" parent="@style/Chip.MyBudget">
-    <item name="android:textSize">12sp</item>
+    <item name="android:textSize">14sp</item>
     <item name="android:textColor">@color/quick_filter_chip_text</item>
     <item name="android:gravity">center</item>
     <item name="android:background">@drawable/quick_filter_chip_bg</item>
@@ -44,7 +83,7 @@
     <item name="android:textColor">@color/text_primary</item>
   </style>
   <style name="Text.MyBudget.Subtitle" parent="@style/Text.MyBudget">
-    <item name="android:textSize">12sp</item>
+    <item name="android:textSize">14sp</item>
     <item name="android:textColor">@color/text_secondary</item>
   </style>
   <style name="Text.MyBudget.SectionLabel" parent="@style/Text.MyBudget">

@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import ru.mybudget.app.data.MonthlyCategoryPlanEntity
+import ru.mybudget.app.data.MonthlyIncomePlanEntity
 import ru.mybudget.app.data.PlannedIncomeSourceEntity
 import ru.mybudget.app.data.PlannedObligationEntity
 import ru.mybudget.app.data.SavingsGoalEntity
@@ -44,6 +45,7 @@ object ForecastHelper {
         val goalsExpense: Double,
         val net: Double,
         val projectedEndBalance: Double,
+        val isPartial: Boolean = false,
     )
 
     data class ForecastResult(
@@ -66,6 +68,9 @@ object ForecastHelper {
         val goals: List<SavingsGoalEntity>,
         val goalBalances: Map<Int, Double>,
         val categoryNames: Map<Int, String> = emptyMap(),
+        val monthlyIncomePlans: List<MonthlyIncomePlanEntity> = emptyList(),
+        val includeCurrentMonth: Boolean = false,
+        val paidPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet(),
     )
 
     private const val REALISTIC_VARIABLE_FACTOR = 1.1
@@ -80,7 +85,8 @@ object ForecastHelper {
     }
 
     fun build(inputs: Inputs): ForecastResult {
-        val startMonth = YearMonth.from(inputs.today).plusMonths(1)
+        val currentMonth = YearMonth.from(inputs.today)
+        val startMonth = if (inputs.includeCurrentMonth) currentMonth else currentMonth.plusMonths(1)
         val avgFactByCategory = averageFactExpenseByCategory(inputs)
         val avgMonthlyIncome = averageFactMonthlyIncome(inputs)
         val goalCategories = inputs.goals
@@ -88,12 +94,24 @@ object ForecastHelper {
             .map { it.categoryId }
             .toSet()
 
-        var runningBalance = inputs.startBalance
-        val months = (0 until inputs.horizon.months).map { offset ->
+        var runningBalance = inputs.startBalance - inputs.goalBalances.filterKeys { it in goalCategories }
+            .values.sumOf { it.coerceAtLeast(0.0) }
+        val goalBalances = inputs.goalBalances.toMutableMap()
+        val months = (0 until inputs.horizon.months + if (inputs.includeCurrentMonth) 1 else 0).map { offset ->
             val ym = startMonth.plusMonths(offset.toLong())
-            val incomeLines = incomeForMonth(inputs, ym, avgMonthlyIncome)
+            var incomeLines = incomeForMonth(inputs, ym, avgMonthlyIncome)
+            val partial = inputs.includeCurrentMonth && ym == currentMonth
+            if (partial) {
+                val received = inputs.pastTransactions.filter { it.type == "income" && monthOf(it.date) == ym }.sumOf { it.amount }
+                val planned = incomeLines.sumOf { it.amount }
+                val ratio = if (planned > 0.0) ((planned - received).coerceAtLeast(0.0) / planned) else 0.0
+                incomeLines = incomeLines.map { it.copy(amount = MoneyFormat.roundMoney(it.amount * ratio)) }
+            }
             val (mandatoryLines, mandatoryTotal) = mandatoryExpenseForMonth(inputs, ym, avgFactByCategory, goalCategories)
-            val goalsLines = goalsForMonth(inputs, ym, mandatoryLines)
+            val goalsLines = goalsForMonth(inputs.copy(goalBalances = goalBalances), ym, mandatoryLines)
+            (mandatoryLines + goalsLines).filter { it.categoryId in goalCategories }.forEach {
+                goalBalances[it.categoryId] = (goalBalances[it.categoryId] ?: 0.0) + it.amount
+            }
             val totalIncome = MoneyFormat.roundMoney(incomeLines.sumOf { it.amount })
             val totalExpense = MoneyFormat.roundMoney(mandatoryTotal + goalsLines.sumOf { it.amount })
             val net = MoneyFormat.roundMoney(totalIncome - totalExpense)
@@ -112,6 +130,7 @@ object ForecastHelper {
                 goalsExpense = MoneyFormat.roundMoney(goalsLines.sumOf { it.amount }),
                 net = net,
                 projectedEndBalance = runningBalance,
+                isPartial = partial,
             )
         }
         val totalIncome = MoneyFormat.roundMoney(months.sumOf { it.totalIncome })
@@ -133,11 +152,8 @@ object ForecastHelper {
         val lines = inputs.incomeSources
             .filter { it.isActive }
             .mapNotNull { source ->
-                val monthly = if (appliesInMonth(source.periodType, source.dueMonth, ym)) {
-                    source.amount
-                } else {
-                    0.0
-                }
+                val override = inputs.monthlyIncomePlans.firstOrNull { it.sourceId == source.id && it.year == ym.year && it.month == ym.monthValue }
+                val monthly = IncomePlanAmounts.planned(source, ym.monthValue, override)
                 if (monthly <= 0.0) return@mapNotNull null
                 IncomeLine(source.id, source.name, monthly)
             }
@@ -155,21 +171,21 @@ object ForecastHelper {
         avgFactByCategory: Map<Int, Double>,
         goalCategories: Set<Int>,
     ): Pair<List<ExpenseLine>, Double> {
-        val obligationsByCategory = obligationsMonthlyByCategory(inputs.obligations, ym)
-        val plansByCategory = inputs.monthlyPlans
-            .filter { it.year == ym.year && it.month == ym.monthValue && it.isEnabled && it.plannedAmount > 0.0 }
-            .associate { it.categoryId to it.plannedAmount }
+        val obligationsByCategory = obligationsMonthlyByCategory(inputs.obligations, ym, inputs.paidPeriods)
+        val monthPlans = inputs.monthlyPlans.filter { it.year == ym.year && it.month == ym.monthValue }.associateBy { it.categoryId }
+        val plansByCategory = monthPlans.filterValues { it.isEnabled }.mapValues { it.value.plannedAmount }
         val categories = (obligationsByCategory.keys + plansByCategory.keys + avgFactByCategory.keys)
         val lines = categories.mapNotNull { categoryId ->
+            if (monthPlans[categoryId]?.isEnabled == false && (obligationsByCategory[categoryId] ?: 0.0) <= 0.0) return@mapNotNull null
             val plan = plansByCategory[categoryId] ?: 0.0
             val obligation = obligationsByCategory[categoryId] ?: 0.0
-            val mandatory = PlannedObligationHelper.effectivePlan(plan, obligation)
+            val mandatory = maxOf(plan, obligation)
             val amount: Double
             val source: ExpenseSource
             when {
                 mandatory > 0.0 -> {
                     amount = mandatory
-                    source = if (plan > 0.0) ExpenseSource.PLAN else ExpenseSource.OBLIGATION
+                    source = if (plan >= obligation && plan > 0.0) ExpenseSource.PLAN else ExpenseSource.OBLIGATION
                 }
                 categoryId in goalCategories -> return@mapNotNull null
                 else -> {
@@ -183,10 +199,12 @@ object ForecastHelper {
                     source = ExpenseSource.AVG_FACT
                 }
             }
+            val spent = if (inputs.includeCurrentMonth && ym == YearMonth.from(inputs.today)) inputs.pastTransactions
+                .filter { it.type == "expense" && it.categoryId == categoryId && monthOf(it.date) == ym }.sumOf { it.amount } else 0.0
             ExpenseLine(
                 categoryId = categoryId,
                 name = inputs.categoryNames[categoryId].orEmpty(),
-                amount = MoneyFormat.roundMoney(amount),
+                amount = MoneyFormat.roundMoney((amount - spent).coerceAtLeast(0.0)),
                 source = source,
             )
         }
@@ -196,9 +214,11 @@ object ForecastHelper {
     private fun obligationsMonthlyByCategory(
         obligations: List<PlannedObligationEntity>,
         ym: YearMonth,
+        paidPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet(),
     ): Map<Int, Double> {
         val map = linkedMapOf<Int, Double>()
         obligations.filter { it.isActive && it.categoryId > 0 }.forEach { item ->
+            if (ObligationPaymentHelper.PeriodKey(item.id, ym.year, ym.monthValue) in paidPeriods) return@forEach
             val (applies, monthly) = when (item.periodType) {
                 PlannedObligationHelper.PERIOD_YEARLY ->
                     appliesInMonth(item.periodType, item.dueMonth, ym) to item.amount
@@ -219,19 +239,23 @@ object ForecastHelper {
         ym: YearMonth,
         mandatoryLines: List<ExpenseLine>,
     ): List<ExpenseLine> {
-        val obligationsMonthly = obligationsMonthlyByCategory(inputs.obligations, ym)
+        val contributions = mandatoryLines.groupBy { it.categoryId }.mapValues { it.value.sumOf { line -> line.amount } }.toMutableMap()
+        val allocated = mutableMapOf<Int, Double>()
         return inputs.goals
             .filter { it.isActive && it.categoryId > 0 }
             .mapNotNull { goal ->
                 val deadline = parseDeadline(goal.deadline) ?: return@mapNotNull null
                 if (deadline.isBefore(ym.atDay(1))) return@mapNotNull null
-                val balance = inputs.goalBalances[goal.categoryId] ?: 0.0
+                val balance = (inputs.goalBalances[goal.categoryId] ?: 0.0) + (allocated[goal.categoryId] ?: 0.0)
                 val remaining = goal.targetAmount - balance
                 if (remaining <= 0.0) return@mapNotNull null
                 val monthsLeft = java.time.temporal.ChronoUnit.MONTHS.between(ym, YearMonth.from(deadline)) + 1
                 val need = remaining / maxOf(1L, monthsLeft)
-                val obligationMonthly = obligationsMonthly[goal.categoryId] ?: 0.0
-                val outflow = (need - obligationMonthly).coerceIn(0.0, remaining)
+                val existing = contributions[goal.categoryId] ?: 0.0
+                val used = minOf(existing, remaining)
+                contributions[goal.categoryId] = existing - used
+                val outflow = (need - used).coerceIn(0.0, (remaining - used).coerceAtLeast(0.0))
+                allocated[goal.categoryId] = (allocated[goal.categoryId] ?: 0.0) + used + outflow
                 if (outflow <= 0.0) return@mapNotNull null
                 ExpenseLine(
                     categoryId = goal.categoryId,

@@ -5,7 +5,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import ru.mybudget.app.data.BudgetDatabase
 import ru.mybudget.app.data.BudgetRepository
-import ru.mybudget.app.data.PaymentReminderEntity
 import ru.mybudget.app.setup.RecurringPreferences
 import java.text.SimpleDateFormat
 import java.time.LocalDate
@@ -24,37 +23,41 @@ class RemindersWorker(
             val repository = BudgetRepository(dao)
             val notifier = ReminderNotification(applicationContext)
             val today = dateFormat.format(Calendar.getInstance().time)
-            for (entity in dao.getRemindersDueToday(today)) {
+            val delivered = applicationContext.getSharedPreferences("payment_notification_delivery", Context.MODE_PRIVATE)
+            for (entity in dao.getOpenRemindersThrough(today)) {
+                val due = runCatching { LocalDate.parse(entity.dueDate) }.getOrNull() ?: continue
+                if (entity.obligationId != null) {
+                    val obligation = dao.getPlannedObligationById(entity.obligationId)
+                    if (obligation == null || !obligation.isActive) continue
+                    if (dao.isObligationPeriodPaid(entity.obligationId, due.year, due.monthValue)) {
+                        PaymentExecution(BudgetDatabase.getInstance(applicationContext)).reminder(entity.id, entity.dueDate, false)
+                        continue
+                    }
+                    val linkedAuto = dao.getLinkedRecurring(entity.obligationId).any {
+                        it.isActive && runCatching {
+                            java.time.YearMonth.from(LocalDate.parse(it.nextDueDate)) == java.time.YearMonth.from(due)
+                        }.getOrDefault(false)
+                    }
+                    if (linkedAuto) continue
+                }
+                val deliveryKey = "reminder_${entity.id}"
+                val deliveryValue = "${entity.dueDate}:$today"
+                if (delivered.getString(deliveryKey, null) == deliveryValue) continue
                 val categoryName = repository.getCategoryName(entity.categoryId)
                 notifier.showReminderNotification(entity.toPaymentReminder(categoryName))
-                val next = computeNextDueDate(entity)
-                if (next != null) {
-                    repository.updateReminderDueDate(entity.id.toLong(), next)
-                } else {
-                    repository.deleteReminder(entity.id.toLong())
-                }
+                delivered.edit().putString(deliveryKey, deliveryValue).apply()
             }
             processRecurringTransactions(dao, repository, today)
             processInsuranceReminders()
             processMeterVerifications()
             MeterReadingReminderHelper.processReminder(applicationContext)
             Result.success()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             e.printStackTrace()
             Result.retry()
         }
-    }
-
-    private fun computeNextDueDate(entity: PaymentReminderEntity): String? {
-        val current = runCatching { dateFormat.parse(entity.dueDate) }.getOrNull() ?: return null
-        val calendar = Calendar.getInstance().apply { time = current }
-        when (entity.repeatType) {
-            "daily" -> calendar.add(Calendar.DAY_OF_YEAR, 1)
-            "weekly" -> calendar.add(Calendar.WEEK_OF_YEAR, 1)
-            PlannedObligationHelper.PERIOD_MONTHLY -> calendar.add(Calendar.MONTH, 1)
-            else -> return null
-        }
-        return dateFormat.format(calendar.time)
     }
 
     private suspend fun processRecurringTransactions(
@@ -65,11 +68,21 @@ class RemindersWorker(
         val due = dao.getRecurringDueBy(todayStr)
         val confirm = RecurringPreferences.isConfirmBeforeApply(applicationContext)
         for (recurring in due) {
+            if (recurring.obligationId != null) {
+                val obligation = dao.getPlannedObligationById(recurring.obligationId)
+                if (obligation == null || !obligation.isActive) continue
+                val date = runCatching { LocalDate.parse(recurring.nextDueDate) }.getOrNull() ?: continue
+                if (dao.isObligationPeriodPaid(recurring.obligationId, date.year, date.monthValue)) {
+                    PaymentExecution(BudgetDatabase.getInstance(applicationContext))
+                        .recurring(recurring.id, recurring.nextDueDate)
+                    continue
+                }
+            }
             if (confirm) {
                 val categoryName = repository.getCategoryName(recurring.categoryId)
                 RecurringNotification.showConfirmNotification(applicationContext, recurring, categoryName)
             } else {
-                RecurringHelper.applyAndAdvance(repository, dao, recurring, applicationContext)
+                RecurringHelper.applyAndAdvance(recurring, applicationContext)
             }
         }
     }

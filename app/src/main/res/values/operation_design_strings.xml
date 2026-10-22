@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="operation_income_amount">Сумма дохода, ₽</string>
+    <string name="operation_expense_amount">Сумма расхода, ₽</string>
+    <string name="operation_amount_hint">0,00</string>
+    <string name="operation_comment_optional">Комментарий · необязательно</string>
+    <string name="operation_comment_hint">На что потратили или откуда поступили деньги</string>
+    <string name="operation_choose_category">Выбрать другую статью</string>
+    <string name="operation_full_expense">Полная форма и распределение</string>
+    <string name="operation_save_income">Сохранить доход</string>
+    <string name="operation_save_expense">Сохранить расход</string>
+    <string name="operation_distribute_income">Распределить доход по статьям</string>
+    <string name="operation_distribute_expense">Распределить расход по статьям</string>
+    <string name="operation_save_error">Не удалось сохранить операцию. Данные остались в форме — повторите попытку.</string>
+    <string name="operation_categories_error">Не удалось загрузить статьи. Попробуйте открыть форму повторно.</string>
+    <string name="operation_missing_categories">Нет доступных статей. Добавьте статью в разделе «Бюджет».</string>
+    <string name="operation_amount_for_category">Сумма для статьи «%1$s», ₽</string>
+</resources>

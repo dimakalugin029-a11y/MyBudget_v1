@@ -46,20 +46,20 @@
                 android:layout_marginTop="@dimen/space_6"
                 style="@style/Text.MyBudget.Subtitle"/>
             <TextView
-                android:textSize="12sp"
                 android:id="@+id/incomeSourceDayLine"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_2"
                 style="@style/Text.MyBudget.Subtitle"/>
             <TextView
-                android:textSize="12sp"
                 android:id="@+id/incomeSourceObligationsLine"
                 android:visibility="gone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
                 style="@style/Text.MyBudget.Subtitle"/>
+            <TextView android:id="@+id/incomeSourceProgress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:textColor="@color/text_primary" android:textSize="13sp"/>
+            <TextView android:id="@+id/incomeSourceReceive" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:gravity="center_vertical" android:textColor="@color/md_theme_primary" android:textStyle="bold" android:text="@string/income_plan_receive"/>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

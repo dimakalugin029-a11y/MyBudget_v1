@@ -12,6 +12,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.room.withTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -30,7 +31,63 @@ import ru.mybudget.app.setup.SetupChecklistHelper
 import ru.mybudget.app.setup.SetupChecklistPreferences
 
 class MainActivity : AppCompatActivity() {
+    private var currentSection = TopLevelNavigation.Destination.OVERVIEW
+    private val sectionScroll = mutableMapOf<TopLevelNavigation.Destination, Int>()
+    private var recentRefreshJob: kotlinx.coroutines.Job? = null
+    private var planRefreshJob: kotlinx.coroutines.Job? = null
     private var monthStartLaunched = false
+    private var headerRefreshJob: kotlinx.coroutines.Job? = null
+    private var pendingRefreshJob: kotlinx.coroutines.Job? = null
+    private var dashboardDay = java.time.LocalDate.now()
+    private val dashboardObserver = object : androidx.room.InvalidationTracker.Observer(
+        "categories", "budget_profiles", "transactions", "payment_reminders", "recurring_transactions",
+        "planned_obligations", "obligation_payments", "planned_income_sources", "savings_goals",
+        "monthly_category_plans", "monthly_income_plans", "utility_properties", "utility_bills",
+        "utility_sections", "utility_line_items",
+    ) {
+        override fun onInvalidated(tables: Set<String>) {
+            runOnUiThread {
+                if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+                    pendingRefreshJob?.cancel()
+                    pendingRefreshJob = lifecycleScope.launch {
+                        kotlinx.coroutines.delay(250)
+                        refreshHeader()
+                    }
+                }
+            }
+        }
+    }
+    private val dateReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            val day = java.time.LocalDate.now()
+            if (day != dashboardDay || intent?.action != Intent.ACTION_TIME_TICK) {
+                dashboardDay = day
+                refreshHeader()
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        BudgetManager.getInstance(this).database.invalidationTracker.addObserver(dashboardObserver)
+        val filter = android.content.IntentFilter().apply {
+            addAction(Intent.ACTION_TIME_TICK)
+            addAction(Intent.ACTION_DATE_CHANGED)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        }
+        ContextCompat.registerReceiver(this, dateReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onStop() {
+        BudgetManager.getInstance(this).database.invalidationTracker.removeObserver(dashboardObserver)
+        unregisterReceiver(dateReceiver)
+        pendingRefreshJob?.cancel()
+        headerRefreshJob?.cancel()
+        recentRefreshJob?.cancel()
+        planRefreshJob?.cancel()
+        super.onStop()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,34 +102,49 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.mainProfilePicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = { refreshHeader() })
         }
+        findViewById<View>(R.id.mainPlanBudgetButton).setOnClickListener {
+            BudgetPicker.show(this, onSwitched = { refreshHeader() })
+        }
         findViewById<TextView>(R.id.mainActiveBalanceText).apply {
             setOnClickListener {
                 startActivity(Intent(this@MainActivity, BudgetActivity::class.java))
             }
             contentDescription = getString(R.string.main_balance_open_budget)
         }
-        findViewById<View>(R.id.incomeButton).setOnClickListener {
-            startActivity(Intent(this, IncomeActivity::class.java))
-        }
-        findViewById<View>(R.id.expenseButton).setOnClickListener {
-            startActivity(Intent(this, QuickExpenseActivity::class.java))
-        }
-        findViewById<View>(R.id.budgetButton).setOnClickListener {
-            startActivity(Intent(this, BudgetActivity::class.java))
+        findViewById<View>(R.id.mainAddOperationButton).setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle(R.string.main_add_operation)
+                .setItems(arrayOf(getString(R.string.main_primary_expense), getString(R.string.main_primary_income))) { _, which ->
+                    val target = if (which == 0) QuickExpenseActivity::class.java else IncomeActivity::class.java
+                    startActivity(Intent(this, target))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
         }
 
-        bindRow(R.id.transactionsButton, R.string.main_icon_transactions, R.string.main_menu_transactions, TransactionsActivity::class.java)
-        bindRow(R.id.statisticsButton, R.string.main_icon_statistics, R.string.main_menu_statistics, StatisticsActivity::class.java)
-        bindRow(R.id.expensePlanButton, R.string.main_icon_expense_plan, R.string.main_menu_expense_plan, ExpensePlanActivity::class.java)
-        bindRow(R.id.incomePlanButton, R.string.main_icon_income_plan, R.string.main_menu_income_plan, PlannedIncomeActivity::class.java)
-        bindRow(R.id.goalsButton, R.string.main_icon_goals, R.string.main_menu_goals, GoalsActivity::class.java)
-        bindRow(R.id.forecastButton, R.string.main_icon_statistics, R.string.stats_forecast, ForecastActivity::class.java)
-        bindRow(R.id.yearBudgetingButton, R.string.main_icon_expense_plan, R.string.main_menu_year_budgeting, YearBudgetingActivity::class.java)
-        bindRow(R.id.paymentCalendarButton, R.string.main_icon_payment_calendar, R.string.main_menu_payment_calendar, PaymentCalendarActivity::class.java)
-        bindRow(R.id.obligationsButton, R.string.main_icon_obligations, R.string.main_menu_obligations, PlannedObligationsActivity::class.java)
-        bindRow(R.id.recurringButton, R.string.main_icon_recurring, R.string.main_menu_recurring, RecurringActivity::class.java)
-        bindRow(R.id.utilitiesButton, R.string.main_icon_utilities, R.string.main_menu_utilities, UtilitiesActivity::class.java)
-        bindRow(R.id.autoButton, R.string.main_icon_auto, R.string.main_menu_auto, AutoActivity::class.java)
+        bindRow(R.id.transactionsButton, R.string.main_menu_transactions, TransactionsActivity::class.java)
+        bindRow(R.id.expensePlanButton, R.string.main_menu_expense_plan, ExpensePlanActivity::class.java)
+        bindRow(R.id.incomePlanButton, R.string.main_menu_income_plan, PlannedIncomeActivity::class.java)
+        bindRow(R.id.goalsButton, R.string.main_menu_goals, GoalsActivity::class.java)
+        bindRow(R.id.yearBudgetingButton, R.string.main_menu_year_budgeting, YearBudgetingActivity::class.java)
+        bindRow(R.id.paymentCalendarButton, R.string.main_menu_payment_calendar, PaymentCalendarActivity::class.java)
+        bindRow(R.id.obligationsButton, R.string.main_menu_obligations, PlannedObligationsActivity::class.java)
+        bindRow(R.id.recurringButton, R.string.main_menu_recurring, RecurringActivity::class.java)
+        bindRow(R.id.utilitiesButton, R.string.main_menu_utilities, UtilitiesActivity::class.java)
+        bindRow(R.id.autoButton, R.string.main_menu_auto, AutoActivity::class.java)
+        bindRow(R.id.mainFamilyRow, R.string.main_family_menu, FamilySyncWizardActivity::class.java)
+        bindRow(R.id.mainSettingsRow, R.string.main_menu_settings, SettingsActivity::class.java)
+        bindRow(R.id.mainHelpRow, R.string.help_title, HelpActivity::class.java)
+        TopLevelNavigation.bind(this, currentSection, { showDestination(it) }) {
+            findViewById<androidx.core.widget.NestedScrollView>(R.id.mainScroll).smoothScrollTo(0, 0)
+        }
+        for (destination in TopLevelNavigation.Destination.entries) {
+            sectionScroll[destination] = savedInstanceState?.getInt("scroll_${destination.name}") ?: 0
+        }
+        showDestination(TopLevelNavigation.Destination.fromName(
+            savedInstanceState?.getString("main_section") ?: intent.getStringExtra(TopLevelNavigation.EXTRA_DESTINATION),
+        ), rememberScroll = false)
+        intent.removeExtra(TopLevelNavigation.EXTRA_DESTINATION)
         ReminderScheduler.ensureScheduled(this)
         WeeklySummaryScheduler.ensureScheduled(this)
         val prefs = getSharedPreferences(BudgetApplication.PREFS_NAME, MODE_PRIVATE)
@@ -86,10 +158,52 @@ class MainActivity : AppCompatActivity() {
             this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    finishAffinity()
+                    if (currentSection != TopLevelNavigation.Destination.OVERVIEW) {
+                        showDestination(TopLevelNavigation.Destination.OVERVIEW)
+                    } else {
+                        finishAffinity()
+                    }
                 }
             },
         )
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        showDestination(TopLevelNavigation.Destination.fromName(intent.getStringExtra(TopLevelNavigation.EXTRA_DESTINATION)))
+        intent.removeExtra(TopLevelNavigation.EXTRA_DESTINATION)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        sectionScroll[currentSection] = findViewById<androidx.core.widget.NestedScrollView>(R.id.mainScroll).scrollY
+        outState.putString("main_section", currentSection.name)
+        sectionScroll.forEach { (section, y) -> outState.putInt("scroll_${section.name}", y) }
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun showDestination(destination: TopLevelNavigation.Destination, rememberScroll: Boolean = true) {
+        val scroll = findViewById<androidx.core.widget.NestedScrollView>(R.id.mainScroll)
+        if (rememberScroll) sectionScroll[currentSection] = scroll.scrollY
+        val local = when (destination) {
+            TopLevelNavigation.Destination.BUDGET, TopLevelNavigation.Destination.ANALYSIS -> TopLevelNavigation.Destination.OVERVIEW
+            else -> destination
+        }
+        currentSection = local
+        findViewById<View>(R.id.mainOverviewPanel).visibility = if (local == TopLevelNavigation.Destination.OVERVIEW) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.mainPlanPanel).visibility = if (local == TopLevelNavigation.Destination.PLAN) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.mainMorePanel).visibility = if (local == TopLevelNavigation.Destination.MORE) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.mainScreenTitle).setText(local.titleId)
+        TopLevelNavigation.select(this, local)
+        if (local == TopLevelNavigation.Destination.PLAN) refreshPlanOverview()
+        scroll.post {
+            if (currentSection == local) scroll.scrollTo(0, sectionScroll[local] ?: 0)
+        }
+        when (destination) {
+            TopLevelNavigation.Destination.BUDGET -> startActivity(Intent(this, BudgetActivity::class.java))
+            TopLevelNavigation.Destination.ANALYSIS -> startActivity(Intent(this, StatisticsActivity::class.java))
+            else -> Unit
+        }
     }
 
     override fun onResume() {
@@ -99,7 +213,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshHeader() {
-        lifecycleScope.launch {
+        if (currentSection == TopLevelNavigation.Destination.PLAN) refreshPlanOverview()
+        refreshRecentTransactions()
+        headerRefreshJob?.cancel()
+        headerRefreshJob = lifecycleScope.launch {
             val manager = BudgetManager.getInstance(this@MainActivity)
             manager.getCategoriesAsync(forceReload = true)
             val profiles = manager.getBudgetProfilesAsync()
@@ -107,6 +224,9 @@ class MainActivity : AppCompatActivity() {
             val profile = profiles.firstOrNull { it.id == activeId }
             findViewById<TextView>(R.id.mainProfileNameText).text =
                 profile?.name ?: getString(R.string.budget_profiles_default_name)
+            findViewById<TextView>(R.id.mainPlanBudgetButton).text = getString(
+                R.string.main_plan_budget, profile?.name ?: getString(R.string.budget_profiles_default_name),
+            )
             val balance = manager.getTotalBalance(activeId)
         findViewById<View>(R.id.mainBalanceCard).setOnClickListener {
             startActivity(Intent(this@MainActivity, BudgetActivity::class.java))
@@ -138,6 +258,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 MainDashboardHelper.loadSummary(this@MainActivity, manager)
             }
+            if (summary.budgetId != manager.getActiveBudgetId()) return@launch
             bindAttentionSection(summary)
             val safeToSpend = withContext(Dispatchers.IO) {
                 MainDashboardHelper.loadSafeToSpend(this@MainActivity, manager, balance)
@@ -316,6 +437,120 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun refreshPlanOverview() {
+        planRefreshJob?.cancel()
+        planRefreshJob = lifecycleScope.launch {
+            val manager = BudgetManager.getInstance(this@MainActivity)
+            val budgetId = manager.getActiveBudgetId()
+            val month = java.time.YearMonth.now()
+            val error = findViewById<TextView>(R.id.mainPlanStatus)
+            error.setText(R.string.plan_overview_loading)
+            error.visibility = View.VISIBLE
+            listOf(R.id.mainPlanIncomePlanned, R.id.mainPlanIncomeReceived, R.id.mainPlanIncomeRemaining,
+                R.id.mainPlanExpensePlanned, R.id.mainPlanExpenseSpent).forEach {
+                findViewById<TextView>(it).setText(R.string.analysis_value_pending)
+            }
+            try {
+                val summary = withContext(Dispatchers.IO) {
+                    manager.database.withTransaction {
+                        val dao = manager.database.budgetDao()
+                        val (from, to) = MonthlyPlanHelper.monthRangeMs(month.year, month.monthValue)
+                        // Linked receipts may be booked on another date but belong to this plan month.
+                        val transactions = (dao.getTransactionsInRange(from, to) + dao.getIncomePlanTransactions(budgetId))
+                            .distinctBy { it.id }
+                        PlanOverviewHelper.summarize(budgetId, month,
+                            dao.getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) },
+                            dao.getPlannedIncomeSourcesByBudgetOnce(budgetId), dao.getMonthlyIncomePlansForBudget(budgetId),
+                            dao.getMonthlyPlansForBudgetMonth(budgetId, month.year, month.monthValue), transactions)
+                    }
+                }
+                if (budgetId != manager.getActiveBudgetId() || month != java.time.YearMonth.now()) return@launch
+                findViewById<TextView>(R.id.mainPlanMonth).text = MonthlyPlanHelper.formatMonthLabel(month.year, month.monthValue)
+                findViewById<TextView>(R.id.mainPlanIncomePlanned).text = if (summary.hasIncomePlan)
+                    MoneyFormat.formatRub(summary.incomePlanned) else getString(R.string.plan_overview_unset)
+                findViewById<TextView>(R.id.mainPlanIncomeReceived).text = getString(R.string.plan_overview_received,
+                    MoneyFormat.formatRub(summary.incomeReceived))
+                findViewById<TextView>(R.id.mainPlanIncomeRemaining).text = getString(R.string.plan_overview_remaining,
+                    MoneyFormat.formatRub(summary.incomeRemaining))
+                findViewById<TextView>(R.id.mainPlanExpensePlanned).text = if (summary.hasExpensePlan)
+                    MoneyFormat.formatRub(summary.expensePlanned) else getString(R.string.plan_overview_unset)
+                findViewById<TextView>(R.id.mainPlanExpenseSpent).text = getString(R.string.plan_overview_spent,
+                    MoneyFormat.formatRub(summary.expenseSpent))
+                error.visibility = View.GONE
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (_: Exception) {
+                error.setText(R.string.plan_overview_error)
+            }
+        }
+    }
+
+    private fun refreshRecentTransactions() {
+        recentRefreshJob?.cancel()
+        recentRefreshJob = lifecycleScope.launch {
+            val manager = BudgetManager.getInstance(this@MainActivity)
+            val budgetId = manager.getActiveBudgetId()
+            val container = findViewById<LinearLayout>(R.id.mainRecentItems)
+            fun showMessage(message: Int) {
+                container.removeAllViews()
+                container.addView(TextView(this@MainActivity).apply {
+                    setText(message)
+                    setTextColor(ContextCompat.getColor(context, R.color.text_secondary))
+                    textSize = 14f
+                    val padding = resources.getDimensionPixelSize(R.dimen.space_16)
+                    setPadding(padding, padding, padding, padding)
+                })
+            }
+            showMessage(R.string.main_recent_loading)
+            val rows = try {
+                withContext(Dispatchers.IO) {
+                    manager.database.budgetDao().getRecentDashboardTransactions(budgetId, 3)
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (manager.getActiveBudgetId() == budgetId) showMessage(R.string.main_recent_error)
+                return@launch
+            }
+            if (manager.getActiveBudgetId() != budgetId) return@launch
+            if (rows.isEmpty()) {
+                showMessage(R.string.main_recent_empty)
+                return@launch
+            }
+            container.removeAllViews()
+            val dateFormat = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM)
+            for ((index, row) in rows.withIndex()) {
+                if (index > 0) container.addView(View(this@MainActivity).apply {
+                    setBackgroundColor(ContextCompat.getColor(context, R.color.border_light))
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1)))
+                val view = layoutInflater.inflate(R.layout.item_dashboard_transaction, container, false)
+                val income = row.netAmount >= 0.0
+                view.findViewById<TextView>(R.id.recentTitle).text = row.description.ifBlank {
+                    getString(when {
+                        row.mixedTypes -> R.string.main_recent_transfer
+                        income -> R.string.main_primary_income
+                        else -> R.string.main_primary_expense
+                    })
+                }
+                view.findViewById<TextView>(R.id.recentSubtitle).text = getString(
+                    R.string.main_recent_details,
+                    if (row.categoryCount > 1) getString(R.string.main_recent_categories, row.categoryCount) else row.categoryName,
+                    dateFormat.format(java.util.Date(row.date)),
+                )
+                view.findViewById<TextView>(R.id.recentAmount).apply {
+                    text = if (row.mixedTypes) getString(R.string.main_recent_transfer_amount, MoneyFormat.formatRub(row.netAmount))
+                        else getString(if (income) R.string.main_recent_amount_income else R.string.main_recent_amount_expense,
+                            MoneyFormat.formatRub(kotlin.math.abs(row.netAmount)))
+                    setTextColor(ContextCompat.getColor(context, when {
+                        row.mixedTypes -> R.color.text_primary
+                        income -> R.color.income_green
+                        else -> R.color.expense_red
+                    }))
+                }
+                container.addView(view)
+            }
+        }
+    }
+
     private fun bindSafeToSpend(info: SalaryCycleHelper.SafeToSpendInfo?) {
         val view = findViewById<TextView>(R.id.mainSafeToSpendText)
         if (info == null || info.dailyAmount <= 0.0) {
@@ -363,111 +598,80 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindAttentionSection(summary: MainDashboardSummary) {
-        bindAttentionRow(
-            containerId = R.id.mainAttentionPending,
-            rowId = R.id.mainAttentionPendingRow,
-            icon = "⚖️",
-            line = summary.pendingDistributionLine,
-        ) {
-            val pending = PendingDistributionPreferences.getPending(this) ?: return@bindAttentionRow
-            startActivity(
-                Intent(this, IncomeDistributionActivity::class.java)
-                    .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, pending.amount)
-                    .putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, pending.note)
-                    .putExtra(BudgetIntentExtras.BUDGET_ID, pending.budgetId),
-            )
-        }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionOverspend,
-            rowId = R.id.mainAttentionOverspendRow,
-            icon = "⚠️",
-            line = summary.overspendLine,
-        ) { startActivity(Intent(this, BudgetActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionIncomePlan,
-            rowId = R.id.mainAttentionIncomePlanRow,
-            icon = "💰",
-            line = summary.incomePlanLine,
-        ) { startActivity(Intent(this, PlannedIncomeActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionObligations,
-            rowId = R.id.mainAttentionObligationsRow,
-            icon = "📋",
-            line = summary.planSetupLine,
-        ) { startActivity(Intent(this, PlannedObligationsActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionUpcoming,
-            rowId = R.id.mainAttentionUpcomingRow,
-            icon = "📅",
-            line = summary.upcomingPaymentsLine,
-        ) { startActivity(Intent(this, PaymentCalendarActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionGoals,
-            rowId = R.id.mainAttentionGoalsRow,
-            icon = "🎯",
-            line = summary.goalsLine,
-        ) { startActivity(Intent(this, GoalsActivity::class.java)) }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionFamily,
-            rowId = R.id.mainAttentionFamilyRow,
-            icon = "👤",
-            line = summary.familyLine,
-        ) {
-            val name = ParticipantPreferences.getDefaultParticipant(this)
-            if (name.isNotBlank()) {
-                startActivity(
-                    Intent(this, TransactionsActivity::class.java)
-                        .putExtra(TransactionsActivity.EXTRA_PARTICIPANT_FILTER, name)
-                        .putExtra(
-                            TransactionsActivity.EXTRA_CATEGORY_TITLE,
-                            getString(R.string.transactions_participant_filter_title, name),
-                        ),
-                )
+        val container = findViewById<LinearLayout>(R.id.mainAttentionItems)
+        container.removeAllViews()
+        fun addRows(target: LinearLayout, items: List<AttentionItem>, onSelected: (AttentionItem) -> Unit) {
+            items.forEach { item ->
+                val row = layoutInflater.inflate(R.layout.include_main_attention_row, target, false)
+                val icon = when (item.target) {
+                    AttentionTarget.PAYMENT -> if (item.entry?.isGlobal == true) "🏠" else "📅"
+                    AttentionTarget.GOAL -> "🎯"
+                    AttentionTarget.BUDGET -> "⚠️"
+                    AttentionTarget.DISTRIBUTION -> "⚖️"
+                    AttentionTarget.OBLIGATIONS -> "📋"
+                    AttentionTarget.INCOME_PLAN -> "💰"
+                }
+                MenuRowHelper.bindAttention(row, icon, item.line.title, item.line.subtitle) { onSelected(item) }
+                target.addView(row)
             }
         }
-        bindAttentionRow(
-            containerId = R.id.mainAttentionUtilities,
-            rowId = R.id.mainAttentionUtilitiesRow,
-            icon = "🏠",
-            line = summary.utilitiesLine,
-        ) { startActivity(Intent(this, UtilitiesActivity::class.java)) }
-
-        val anyVisible = listOf(
-            R.id.mainAttentionPending,
-            R.id.mainAttentionOverspend,
-            R.id.mainAttentionIncomePlan,
-            R.id.mainAttentionObligations,
-            R.id.mainAttentionUpcoming,
-            R.id.mainAttentionGoals,
-            R.id.mainAttentionFamily,
-            R.id.mainAttentionUtilities,
-        ).any { findViewById<View>(it).visibility == View.VISIBLE }
+        addRows(container, summary.items.take(5)) { openAttention(it) }
         findViewById<View>(R.id.mainAttentionSection).visibility =
-            if (anyVisible) View.VISIBLE else View.GONE
+            if (summary.items.isEmpty()) View.GONE else View.VISIBLE
+        findViewById<android.widget.Button>(R.id.mainAttentionShowAll).apply {
+            visibility = if (summary.items.size > 5) View.VISIBLE else View.GONE
+            text = getString(R.string.attention_show_all_count, summary.items.size)
+            setOnClickListener {
+                val list = LinearLayout(this@MainActivity).apply { orientation = LinearLayout.VERTICAL }
+                val scroll = android.widget.ScrollView(this@MainActivity).apply { addView(list) }
+                val dialog = AlertDialog.Builder(this@MainActivity).setTitle(R.string.main_section_attention)
+                    .setView(scroll).setNegativeButton(android.R.string.ok, null).create()
+                addRows(list, summary.items) { item -> dialog.dismiss(); openAttention(item) }
+                dialog.show()
+            }
+        }
+        findViewById<TextView>(R.id.mainAttentionInformation).apply {
+            text = summary.information
+            visibility = if (summary.information.isBlank()) View.GONE else View.VISIBLE
+        }
     }
 
-    private fun bindAttentionRow(
-        containerId: Int,
-        rowId: Int,
-        icon: String,
-        line: AttentionLine?,
-        onClick: () -> Unit,
-    ) {
-        val visible = line != null
-        findViewById<View>(containerId).visibility = if (visible) View.VISIBLE else View.GONE
-        if (line == null) return
-        MenuRowHelper.bindAttention(
-            findViewById(rowId),
-            icon,
-            line.title,
-            line.subtitle,
-            onClick,
-        )
+    private fun openAttention(item: AttentionItem) {
+        when (item.target) {
+            AttentionTarget.PAYMENT -> startActivity(Intent(this, PaymentCalendarActivity::class.java)
+                .putExtra("attention_event_key", item.entry?.eventKey))
+            AttentionTarget.BUDGET -> startActivity(Intent(this, BudgetActivity::class.java))
+            AttentionTarget.OBLIGATIONS -> startActivity(Intent(this, PlannedObligationsActivity::class.java))
+            AttentionTarget.INCOME_PLAN -> startActivity(Intent(this, PlannedIncomeActivity::class.java))
+            AttentionTarget.GOAL -> startActivity(Intent(this, GoalsActivity::class.java)
+                .putExtra("attention_goal_id", item.goalId ?: -1))
+            AttentionTarget.DISTRIBUTION -> {
+                val pending = PendingDistributionPreferences.getPending(this) ?: return
+                startActivity(Intent(this, IncomeDistributionActivity::class.java)
+                    .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, pending.amount)
+                    .putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, pending.note)
+                    .putExtra(BudgetIntentExtras.BUDGET_ID, pending.budgetId))
+            }
+        }
     }
 
-    private fun bindRow(includeId: Int, iconRes: Int, titleRes: Int, target: Class<*>) {
+    private fun bindRow(includeId: Int, titleRes: Int, target: Class<*>) {
         val row = findViewById<View>(includeId)
-        row.findViewById<TextView>(R.id.rowIcon).setText(iconRes)
+        val drawable = when (includeId) {
+            R.id.transactionsButton -> R.drawable.ic_menu_journal
+            R.id.incomePlanButton -> R.drawable.ic_menu_income
+            R.id.expensePlanButton -> R.drawable.ic_menu_expense
+            R.id.goalsButton -> R.drawable.ic_menu_goals
+            R.id.paymentCalendarButton, R.id.yearBudgetingButton -> R.drawable.ic_nav_plan
+            R.id.recurringButton -> R.drawable.ic_menu_repeat
+            R.id.utilitiesButton -> R.drawable.ic_menu_home
+            R.id.autoButton -> R.drawable.ic_menu_auto
+            R.id.mainFamilyRow -> R.drawable.ic_menu_family
+            R.id.mainSettingsRow -> R.drawable.ic_settings
+            R.id.mainHelpRow -> R.drawable.ic_menu_help
+            else -> R.drawable.ic_menu_journal
+        }
+        row.findViewById<android.widget.ImageView>(R.id.dashboardRowIcon).setImageResource(drawable)
         row.findViewById<TextView>(R.id.rowTitle).setText(titleRes)
         row.setOnClickListener { startActivity(Intent(this, target)) }
     }

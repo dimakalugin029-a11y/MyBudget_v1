@@ -69,9 +69,8 @@
                 android:minHeight="@dimen/touch_min_size"
                 android:text="@string/lock_unlock"
                 android:textColor="@color/main_hero_text_primary"
-                app:backgroundTint="@color/budget_blue"
-                app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button" />
+                app:cornerRadius="@dimen/radius_12"
+                style="@style/Widget.MyBudget.Button" />
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/lockBiometricButton"
                 android:layout_width="match_parent"
@@ -80,8 +79,8 @@
                 android:minHeight="@dimen/touch_min_size"
                 android:text="@string/lock_use_biometric"
                 android:textColor="@color/main_hero_text_primary"
-                app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button.TextButton" />
+                app:cornerRadius="@dimen/radius_12"
+                style="@style/Widget.MyBudget.Button.Text" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 </LinearLayout>

@@ -48,7 +48,6 @@ object AutoBackupHelper {
                     message = appContext.getString(R.string.auto_backup_encrypt_unavailable),
                 )
             }
-            pruneOldBackups(tree)
             val stamp = LocalDateTime.now().format(fileStamp)
             val suffix = if (encrypt) "_encrypted" else ""
             val displayName = "MyBudget_auto_${stamp}$suffix.json"
@@ -57,7 +56,20 @@ object AutoBackupHelper {
                     success = false,
                     message = appContext.getString(R.string.auto_backup_write_failed),
                 )
-            val ok = BackupManager(appContext).exportToFile(file.uri, password)
+            val ok = runCatching {
+                val payload = BackupManager(appContext).exportToJson(password).toByteArray(Charsets.UTF_8)
+                appContext.contentResolver.openOutputStream(file.uri)?.use { it.write(payload) } ?: error("cannot write backup")
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                appContext.contentResolver.openInputStream(file.uri)?.use { input ->
+                    val buffer = ByteArray(8192)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        digest.update(buffer, 0, count)
+                    }
+                } ?: error("cannot verify backup")
+                java.security.MessageDigest.isEqual(digest.digest(), java.security.MessageDigest.getInstance("SHA-256").digest(payload))
+            }.getOrDefault(false)
             if (!ok) {
                 file.delete()
                 return@withContext AutoExportResult(
@@ -65,6 +77,7 @@ object AutoBackupHelper {
                     message = appContext.getString(R.string.auto_backup_write_failed),
                 )
             }
+            pruneOldBackups(tree, file.uri)
             AutoBackupPreferences.setLastAutoExportMs(appContext, now)
             appContext.getSharedPreferences(BudgetApplication.PREFS_NAME, Context.MODE_PRIVATE)
                 .edit()
@@ -73,16 +86,16 @@ object AutoBackupHelper {
             AutoExportResult(success = true, filename = displayName)
         }
 
-    private fun pruneOldBackups(tree: DocumentFile) {
+    private fun pruneOldBackups(tree: DocumentFile, protectedUri: android.net.Uri) {
         val existing = tree.listFiles()
             .filter { file ->
                 val name = file.name.orEmpty()
                 name.startsWith("MyBudget_auto_") && name.endsWith(".json")
             }
             .sortedBy { it.lastModified() }
-        val overflow = existing.size - 2
+        val overflow = existing.size - 3
         if (overflow > 0) {
-            existing.take(overflow).forEach { it.delete() }
+            existing.filter { it.uri != protectedUri }.take(overflow).forEach { it.delete() }
         }
     }
 }

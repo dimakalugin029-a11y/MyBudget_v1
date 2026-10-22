@@ -27,11 +27,11 @@
             android:minWidth="0dp"
             android:paddingHorizontal="@dimen/space_12"
             android:text="@string/year_budget_prev_year"
-            android:textColor="@color/main_hero_text_primary"
+            android:textColor="@color/md_theme_primary"
             android:textSize="14sp"
-            app:cornerRadius="@dimen/radius_10"
-            app:strokeColor="@color/main_hero_text_primary"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            app:cornerRadius="@dimen/radius_12"
+            app:strokeColor="@color/md_theme_outline"
+            style="@style/Widget.MyBudget.Button.Outlined"/>
         <TextView
             android:id="@+id/yearBudgetYearLabel"
             android:layout_width="0dp"
@@ -40,7 +40,7 @@
             android:gravity="center"
             android:textStyle="bold"
             android:textSize="17sp"
-            android:textColor="@color/main_hero_text_primary"/>
+            android:textColor="@color/text_primary"/>
         <com.google.android.material.button.MaterialButton
             android:id="@+id/yearBudgetNextYear"
             android:layout_width="wrap_content"
@@ -49,11 +49,11 @@
             android:minWidth="0dp"
             android:paddingHorizontal="@dimen/space_12"
             android:text="@string/year_budget_next_year"
-            android:textColor="@color/main_hero_text_primary"
+            android:textColor="@color/md_theme_primary"
             android:textSize="14sp"
-            app:cornerRadius="@dimen/radius_10"
-            app:strokeColor="@color/main_hero_text_primary"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            app:cornerRadius="@dimen/radius_12"
+            app:strokeColor="@color/md_theme_outline"
+            style="@style/Widget.MyBudget.Button.Outlined"/>
     </LinearLayout>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
@@ -66,8 +66,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="@dimen/space_12"
-            android:textSize="13sp"
-            android:textColor="@color/main_hero_text_primary"/>
+            android:textSize="14sp"
+            android:textColor="@color/text_primary"/>
     </androidx.cardview.widget.CardView>
     <com.google.android.material.button.MaterialButton
         android:id="@+id/yearBudgetCategoryToggle"
@@ -75,9 +75,11 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_8"
         android:text="@string/year_budget_category_toggle_show"
-        android:textSize="13sp"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+        android:textColor="@color/md_theme_primary"
+        android:textSize="14sp"
+        app:strokeColor="@color/md_theme_outline"
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button.Outlined"/>
     <androidx.cardview.widget.CardView
         android:id="@+id/yearBudgetCategorySummaryCard"
         android:layout_width="match_parent"
@@ -94,8 +96,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="@dimen/space_12"
-                android:textSize="13sp"
-                android:textColor="@color/main_hero_text_primary"/>
+                android:textSize="14sp"
+                android:textColor="@color/text_primary"/>
         </ScrollView>
     </androidx.cardview.widget.CardView>
     <TextView

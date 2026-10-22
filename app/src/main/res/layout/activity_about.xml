@@ -41,7 +41,7 @@
                         android:text="@string/about_button"
                         android:textAllCaps="true"
                         android:textColor="@color/main_hero_text_secondary"
-                        android:textSize="11sp" />
+                        android:textSize="14sp" />
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -57,7 +57,6 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/space_4"
                         android:textColor="@color/main_hero_text_secondary"
-                        android:textSize="13sp"
                         style="@style/Text.MyBudget.Subtitle" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -101,7 +100,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
                 android:text="@string/help_open_from_about"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                style="@style/Widget.MyBudget.Button.Text"/>
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

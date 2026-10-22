@@ -1,98 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Card.MyBudget.Surface"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="4dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="1dp">
-
+    android:layout_marginBottom="@dimen/space_8"
+    android:foreground="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="10dp">
-
+        android:orientation="vertical"
+        android:padding="@dimen/space_16">
         <TextView
             android:id="@+id/recordNumber"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minWidth="28dp"
-            android:gravity="center"
-            android:textSize="13sp"
-            android:textStyle="bold"/>
-
-        <LinearLayout
-            android:layout_width="0dp"
+            android:visibility="gone" />
+        <TextView
+            android:id="@+id/recordType"
+            style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/recordTitle"
+            style="@style/Text.MyBudget.Section"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:id="@+id/recordType"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="6dp"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:paddingTop="2dp"
-                    android:paddingBottom="2dp"
-                    android:background="#E0E0E0"
-                    android:textColor="#333333"
-                    android:textSize="11sp"
-                    android:textStyle="bold"/>
-
-                <TextView
-                    android:id="@+id/recordTitle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:textSize="14sp"
-                    android:textStyle="bold"/>
-
-                <TextView
-                    android:id="@+id/recordStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
-                    android:textSize="11sp"/>
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/recordSubtitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textSize="12sp"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_marginTop="@dimen/space_4" />
+        <TextView
+            android:id="@+id/recordAmount"
+            style="@style/Text.MyBudget.Title"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="end">
-
-            <TextView
-                android:id="@+id/recordAmount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="14sp"
-                android:textStyle="bold"/>
-
-            <TextView
-                android:id="@+id/recordDate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="12sp"/>
-        </LinearLayout>
+            android:textSize="22sp"
+            android:layout_marginTop="@dimen/space_8" />
+        <TextView
+            android:id="@+id/recordStatus"
+            style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_4" />
+        <TextView
+            android:id="@+id/recordSubtitle"
+            style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_4" />
+        <TextView
+            android:id="@+id/recordDate"
+            style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_4" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

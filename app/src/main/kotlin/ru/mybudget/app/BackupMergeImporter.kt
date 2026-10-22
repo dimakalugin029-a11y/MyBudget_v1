@@ -1,6 +1,7 @@
 package ru.mybudget.app
 
 import android.content.Context
+import ru.mybudget.app.data.AutoDao
 import ru.mybudget.app.data.BudgetDao
 import ru.mybudget.app.data.BudgetCategoryEntity
 import ru.mybudget.app.data.BudgetProfileEntity
@@ -32,6 +33,7 @@ internal class BackupMergeImporter(
     private val appContext: Context,
     private val dao: BudgetDao,
     private val utilityDao: UtilityDao,
+    private val autoDao: AutoDao,
 ) {
     suspend fun import(data: BackupData, photoBytes: Map<String, ByteArray>): Int {
         val defaultBudgetName = appContext.getString(R.string.budget_profiles_default_name)
@@ -55,7 +57,6 @@ internal class BackupMergeImporter(
                 profile.copy(id = 0, name = profile.name.ifBlank { defaultBudgetName }, isActive = true),
             ).toInt()
             if (profile.id > 0) profileIdMap[profile.id] = insertedId
-            profileIdMap[insertedId] = insertedId
         }
         val fallbackProfileId = ActiveBudgetPreferences.getActiveBudgetId(appContext)
             .takeIf { it in profileIdMap.values }
@@ -68,7 +69,6 @@ internal class BackupMergeImporter(
         val categoryByKey = linkedMapOf<String, Int>()
         var nextCategoryId = existingCategories.maxOfOrNull { it.id } ?: 0
         existingCategories.forEach { category ->
-            categoryIdMap[category.id] = category.id
             categoryByKey[BackupMergeHelper.categoryKey(category)] = category.id
         }
         for (category in data.categories) {
@@ -86,16 +86,17 @@ internal class BackupMergeImporter(
                 parentId = remapParentId(normalized.parentId, categoryIdMap),
             )
             dao.insertCategory(toInsert)
-            categoryIdMap[nextCategoryId] = nextCategoryId
             if (category.id > 0) categoryIdMap[category.id] = nextCategoryId
             categoryByKey[key] = nextCategoryId
         }
 
         val insertedCategoryIds = categoryIdMap.values.toSet()
+        val transactionIdMap = mutableMapOf<Long, Long>()
         for (transaction in data.transactions) {
             val categoryId = categoryIdMap[transaction.categoryId] ?: transaction.categoryId
             if (categoryId in insertedCategoryIds) {
-                dao.insertTransaction(normalizeTransaction(transaction).copy(categoryId = categoryId))
+                transactionIdMap[transaction.id.toLong()] =
+                    dao.insertTransaction(normalizeTransaction(transaction).copy(categoryId = categoryId))
             }
         }
 
@@ -107,6 +108,11 @@ internal class BackupMergeImporter(
             val newId = dao.insertPlannedIncomeSource(incomeSource.copy(id = 0, budgetId = budgetId)).toInt()
             if (sourceId > 0) incomeSourceIdMap[sourceId] = newId
         }
+        BackupAdditionalDataImporter.import(
+            data, dao, autoDao, profileIdMap, fallbackProfileId,
+            data.categories.associate { it.id to requireNotNull(categoryIdMap[it.id]) },
+            transactionIdMap, incomeSourceIdMap,
+        )
         for (obligation in data.plannedObligations) {
             val budgetId = remapId(obligation.budgetId, profileIdMap, validProfileIds, fallbackProfileId)
             val sourceId = obligation.id
@@ -117,6 +123,7 @@ internal class BackupMergeImporter(
                     budgetId = budgetId,
                     obligationKind = PlannedObligationHelper.normalizeKind(obligation.obligationKind),
                     linkedIncomeSourceId = linkedIncomeSourceId,
+                    attentionStartMonth = PaymentTracking.importedStartMonth(obligation.attentionStartMonth),
                 ),
             ).toInt()
             if (sourceId > 0) obligationIdMap[sourceId] = newId
@@ -128,7 +135,7 @@ internal class BackupMergeImporter(
         for (payment in data.obligationPayments) {
             val obligationId = remapObligationId(payment.obligationId) ?: continue
             runCatching {
-                dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId))
+                dao.insertObligationPayment(payment.copy(id = 0, obligationId = obligationId, transactionId = payment.transactionId?.let { transactionIdMap[it.toLong()]?.toInt() }))
             }
         }
         for (snapshot in data.balanceSnapshots) {

@@ -49,9 +49,9 @@ class CategoryTrendsActivity : AppCompatActivity() {
 
     private suspend fun loadRows(): List<TrendRow> {
         val txs = manager.repository.getAllTransactions().first()
-        val categories = manager.getCategoriesAsync()
+        val categories = manager.database.budgetDao().getAllCategoriesForExport().map { BudgetCategory.fromEntity(it) }
         val parents = categories.associate { it.id to it.name }
-        val leaves = categories.filter { it.isActive && !manager.hasSubcategories(it.id) }
+        val leaves = categories.filter { category -> categories.none { it.parentId == category.id } }
         val months = MonthBudgetComparisonHelper.recentMonths().take(6).reversed()
         val ranges = months.map { (year, month) ->
             MonthBudgetComparisonHelper.monthRangeMs(year, month)

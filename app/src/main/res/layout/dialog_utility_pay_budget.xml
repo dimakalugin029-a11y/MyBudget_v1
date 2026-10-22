@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
     <LinearLayout
@@ -32,7 +34,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_8"
                     android:textColor="@color/utilities_hero_text_secondary"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -46,13 +48,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_4"
-            android:padding="@dimen/space_4" />
+            android:padding="@dimen/space_4"
+            android:background="@drawable/operation_input_bg"
+            android:minHeight="56dp" />
         <TextView
             android:id="@+id/payPrimaryBalance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_4"
-            android:textSize="12sp"
+            android:textSize="14sp"
             style="@style/Text.MyBudget.Subtitle" />
         <LinearLayout
             android:id="@+id/payShortfallPanel"
@@ -65,8 +69,8 @@
                 android:id="@+id/payShortfallText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/settings_orange"
-                android:textSize="13sp"
+                android:textColor="@color/module_warning_text"
+                android:textSize="14sp"
                 style="@style/Text.MyBudget.Section" />
             <TextView
                 android:layout_width="match_parent"
@@ -79,13 +83,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:padding="@dimen/space_4" />
+                android:padding="@dimen/space_4"
+                android:background="@drawable/operation_input_bg"
+                android:minHeight="56dp" />
             <TextView
                 android:id="@+id/payExtraBalance"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
-                android:textSize="12sp"
+                android:textSize="14sp"
                 style="@style/Text.MyBudget.Subtitle" />
         </LinearLayout>
     </LinearLayout>

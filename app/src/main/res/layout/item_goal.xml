@@ -1,140 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_12"
-    style="@style/Card.MyBudget.Surface">
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <View
-            android:layout_width="4dp"
-            android:layout_height="match_parent"
-            android:background="@drawable/goal_item_accent" />
-        <LinearLayout
-            android:orientation="vertical"
-            android:padding="@dimen/space_16"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <TextView
-                android:id="@+id/goalName"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                style="@style/Text.MyBudget.Section"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/budget_blue"
-                android:id="@+id/editGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goal_edit_label"
-                android:contentDescription="@string/goal_edit_content_description"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/expense_red"
-                android:id="@+id/deleteGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goal_delete_label"
-                android:contentDescription="@string/goal_delete_content_description"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-        </LinearLayout>
-        <ProgressBar
-            android:id="@+id/goalProgressBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_8"
-            android:max="100"
-            android:progress="0"
-            style="@android:style/Widget.ProgressBar.Horizontal"/>
-        <TextView
-            android:textSize="13sp"
-            android:id="@+id/goalProgress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_4"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <TextView
-            android:textSize="12sp"
-            android:id="@+id/goalDeadline"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_4"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <TextView
-            android:textSize="12sp"
-            android:id="@+id/goalMonthlyHint"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_2"
-            style="@style/Text.MyBudget.Subtitle"/>
-        <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/income_green"
-                android:id="@+id/depositGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goals_deposit"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/budget_blue"
-                android:id="@+id/withdrawGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goals_withdraw"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/expense_red"
-                android:id="@+id/archiveGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goals_archive"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:textSize="13sp"
-                android:textColor="@color/income_green"
-                android:id="@+id/restoreGoalButton"
-                android:padding="@dimen/space_8"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/goals_restore"
-                android:visibility="gone"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
-        </LinearLayout>
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_12" style="@style/Card.MyBudget.Surface">
+    <LinearLayout android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <View android:layout_width="4dp" android:layout_height="match_parent" android:background="@drawable/goal_item_accent" />
+        <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView android:id="@+id/goalName" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" style="@style/Text.MyBudget.Section" />
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/md_theme_primary" android:id="@+id/editGoalButton" android:padding="@dimen/space_8" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goal_edit_label" android:contentDescription="@string/goal_edit_content_description" style="@style/Widget.MyBudget.Button.Text" />
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/expense_red" android:id="@+id/deleteGoalButton" android:padding="@dimen/space_8" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goal_delete_label" android:contentDescription="@string/goal_delete_content_description" style="@style/Widget.MyBudget.Button.Text" />
+            </LinearLayout>
+            <ProgressBar android:id="@+id/goalProgressBar" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:max="100" android:progress="0" style="@android:style/Widget.ProgressBar.Horizontal" />
+            <TextView android:id="@+id/goalProgress" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" style="@style/Text.MyBudget.Subtitle" />
+            <TextView android:id="@+id/goalDeadline" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" style="@style/Text.MyBudget.Subtitle" />
+            <TextView android:id="@+id/goalMonthlyHint" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" style="@style/Text.MyBudget.Subtitle" />
+            <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/income_green" android:id="@+id/depositGoalButton" android:padding="@dimen/space_8" android:layout_width="match_parent" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goals_deposit" style="@style/Widget.MyBudget.Button.Text" />
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/md_theme_primary" android:id="@+id/withdrawGoalButton" android:padding="@dimen/space_8" android:layout_width="match_parent" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goals_withdraw" style="@style/Widget.MyBudget.Button.Text" />
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/expense_red" android:id="@+id/archiveGoalButton" android:padding="@dimen/space_8" android:layout_width="match_parent" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goals_archive" style="@style/Widget.MyBudget.Button.Text" />
+                <com.google.android.material.button.MaterialButton android:textSize="14sp" android:textColor="@color/income_green" android:id="@+id/restoreGoalButton" android:padding="@dimen/space_8" android:layout_width="match_parent" android:layout_height="wrap_content" android:minWidth="0dp" android:minHeight="@dimen/touch_min_size" android:text="@string/goals_restore" android:visibility="gone" style="@style/Widget.MyBudget.Button.Text" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

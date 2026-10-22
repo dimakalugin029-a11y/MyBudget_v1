@@ -35,7 +35,6 @@
                         android:layout_height="wrap_content"
                         style="@style/Text.MyBudget.Section"/>
                     <TextView
-                        android:textSize="11sp"
                         android:id="@+id/expensePlanParentName"
                         android:visibility="gone"
                         android:layout_width="match_parent"
@@ -52,8 +51,8 @@
                     android:paddingVertical="@dimen/space_4"
                     android:text="@string/expense_plan_remove"
                     android:textSize="11sp"
-                    app:cornerRadius="@dimen/radius_10"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                    app:cornerRadius="@dimen/radius_12"
+                    style="@style/Widget.MyBudget.Button.Text"/>
             </LinearLayout>
             <LinearLayout
                 android:gravity="center_vertical"
@@ -66,11 +65,11 @@
                     android:layout_height="wrap_content"
                     android:text="@string/expense_plan_amount_label"
                     style="@style/Text.MyBudget.SectionLabel"/>
-                <EditText
+                <EditText style="@style/Widget.MyBudget.OperationInput"
                     android:textSize="14sp"
                     android:id="@+id/expensePlanAmountInput"
-                    android:background="@drawable/edittext_border"
-                    android:padding="@dimen/space_8"
+                    android:background="@drawable/operation_input_bg"
+                    android:padding="@dimen/space_12"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -85,7 +84,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_6">
                 <TextView
-                    android:textSize="12sp"
                     android:id="@+id/expensePlanSpentText"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

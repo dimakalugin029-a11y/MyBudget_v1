@@ -57,6 +57,12 @@ class DistributionLinesAdapter(
 
         init {
             amount.addTextChangedListener(watcher)
+            amount.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                    ImeHelper.hideKeyboard(amount.context, amount)
+                    true
+                } else false
+            }
             amount.setOnFocusChangeListener { _, hasFocus ->
                 if (!hasFocus) return@setOnFocusChangeListener
                 onAmountFocused()
@@ -71,6 +77,7 @@ class DistributionLinesAdapter(
         fun bind(line: Line) {
             boundId = 0
             name.text = line.title
+            amount.contentDescription = amount.context.getString(R.string.operation_amount_for_category, line.title)
             balance.text = line.balanceHint
             if (amount.text.toString() != line.amountText) {
                 amount.setText(line.amountText)

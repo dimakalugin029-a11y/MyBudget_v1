@@ -53,7 +53,6 @@
                     android:layout_height="wrap_content"
                     style="@style/Text.MyBudget.Section"/>
                 <TextView
-                    android:textSize="11sp"
                     android:id="@+id/categoryPlanned"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -83,7 +82,6 @@
                 android:max="100"
                 style="@android:style/Widget.ProgressBar.Horizontal"/>
             <TextView
-                android:textSize="11sp"
                 android:id="@+id/categoryPlanText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

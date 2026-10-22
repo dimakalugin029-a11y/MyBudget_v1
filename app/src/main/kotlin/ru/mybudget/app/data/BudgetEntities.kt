@@ -6,6 +6,9 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
+@Entity(tableName = "money_commands")
+data class MoneyCommandEntity(@PrimaryKey val requestId: String, val createdAt: Long = System.currentTimeMillis())
+
 @Entity(tableName = "budget_profiles")
 data class BudgetProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -62,6 +65,8 @@ data class TransactionEntity(
     val date: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "NULL") val groupId: String? = null,
     val participantLabel: String = "",
+    @ColumnInfo(defaultValue = "NULL") val plannedIncomeSourceId: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val plannedIncomeMonth: String? = null,
 )
 
 @Entity(
@@ -180,6 +185,7 @@ data class PlannedObligationEntity(
     @ColumnInfo(defaultValue = "0") val autoPostEnabled: Boolean = false,
     @ColumnInfo(defaultValue = "'other'") val obligationKind: String = "other",
     @ColumnInfo(defaultValue = "NULL") val linkedIncomeSourceId: Int? = null,
+    @ColumnInfo(defaultValue = "''") val attentionStartMonth: String = "",
 )
 
 @Entity(
@@ -204,6 +210,8 @@ data class ObligationPaymentEntity(
     val periodMonth: Int,
     val amount: Double,
     val paidAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "NULL") val transactionId: Int? = null,
+    @ColumnInfo(defaultValue = "NULL") val dueDate: String? = null,
 )
 
 @Entity(

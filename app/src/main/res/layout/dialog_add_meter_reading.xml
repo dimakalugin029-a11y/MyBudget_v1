@@ -10,19 +10,19 @@
         android:layout_marginBottom="@dimen/space_4"
         android:text="@string/meter_reading_date_label"
         style="@style/Text.MyBudget.SectionLabel" />
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:id="@+id/readingDateInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
-        android:background="@drawable/edittext_border"
+        android:background="@drawable/operation_input_bg"
         android:clickable="true"
         android:cursorVisible="false"
         android:focusable="false"
         android:hint="@string/meter_reading_date_pick"
         android:importantForAutofill="no"
         android:inputType="none"
-        android:padding="@dimen/space_8"
+        android:padding="@dimen/space_12"
         android:textColor="@color/text_primary" />
     <TextView
         android:layout_width="match_parent"
@@ -31,16 +31,16 @@
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/meter_reading_value"
         style="@style/Text.MyBudget.SectionLabel" />
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:id="@+id/readingValueInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
-        android:background="@drawable/edittext_border"
+        android:background="@drawable/operation_input_bg"
         android:hint="@string/meter_reading_value"
         android:importantForAutofill="no"
         android:inputType="numberDecimal"
-        android:padding="@dimen/space_8"
+        android:padding="@dimen/space_12"
         android:textColor="@color/text_primary" />
     <TextView
         android:layout_width="match_parent"
@@ -49,15 +49,15 @@
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/meter_reading_consumption"
         style="@style/Text.MyBudget.SectionLabel" />
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:id="@+id/readingConsumptionInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
-        android:background="@drawable/edittext_border"
+        android:background="@drawable/operation_input_bg"
         android:hint="@string/meter_reading_consumption"
         android:importantForAutofill="no"
         android:inputType="numberDecimal"
-        android:padding="@dimen/space_8"
+        android:padding="@dimen/space_12"
         android:textColor="@color/text_primary" />
 </LinearLayout>

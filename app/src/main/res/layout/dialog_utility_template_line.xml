@@ -10,11 +10,11 @@
         android:layout_height="wrap_content"
         android:text="@string/utility_template_line_name"
         style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:textColor="@color/text_primary"
         android:id="@+id/lineNameInput"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:background="@drawable/operation_input_bg"
+        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
@@ -27,11 +27,11 @@
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/utility_template_group_label"
         style="@style/Text.MyBudget.SectionLabel"/>
-    <EditText
+    <EditText style="@style/Widget.MyBudget.OperationInput"
         android:textColor="@color/text_primary"
         android:id="@+id/lineGroupInput"
-        android:background="@drawable/edittext_border"
-        android:padding="@dimen/space_8"
+        android:background="@drawable/operation_input_bg"
+        android:padding="@dimen/space_12"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/space_4"
@@ -44,7 +44,7 @@
         android:layout_marginTop="@dimen/space_12"
         android:text="@string/utility_template_line_type"
         style="@style/Text.MyBudget.SectionLabel"/>
-    <Spinner
+    <Spinner android:minHeight="@dimen/touch_min_size"
         android:id="@+id/lineTypeSpinner"
         android:padding="@dimen/space_4"
         android:layout_width="match_parent"

@@ -1,5 +1,12 @@
 package ru.mybudget.app
 
+import ru.mybudget.app.data.MonthlyIncomePlanEntity
+import ru.mybudget.app.data.ForecastSnapshotEntity
+import ru.mybudget.app.data.VehicleEntity
+import ru.mybudget.app.data.VehicleServiceLogEntity
+import ru.mybudget.app.data.VehicleInsuranceEntity
+import ru.mybudget.app.data.VehicleFuelLogEntity
+import ru.mybudget.app.data.VehicleRepairEntity
 import com.google.gson.annotations.SerializedName
 import ru.mybudget.app.data.AuditActionEntity
 import ru.mybudget.app.data.BalanceSnapshotEntity
@@ -25,6 +32,13 @@ import ru.mybudget.app.data.UtilityTemplateLineEntity
 import ru.mybudget.app.data.UtilityTemplateSectionEntity
 
 internal data class BackupDataDto(
+    @SerializedName("monthlyIncomePlans") val monthlyIncomePlans: List<MonthlyIncomePlanEntity>? = null,
+    @SerializedName("forecastSnapshots") val forecastSnapshots: List<ForecastSnapshotEntity>? = null,
+    @SerializedName("vehicles") val vehicles: List<VehicleEntity>? = null,
+    @SerializedName("vehicleServiceLogs") val vehicleServiceLogs: List<VehicleServiceLogEntity>? = null,
+    @SerializedName("vehicleInsurances") val vehicleInsurances: List<VehicleInsuranceEntity>? = null,
+    @SerializedName("vehicleFuelLogs") val vehicleFuelLogs: List<VehicleFuelLogEntity>? = null,
+    @SerializedName("vehicleRepairs") val vehicleRepairs: List<VehicleRepairEntity>? = null,
     @SerializedName("version") val version: Int? = null,
     @SerializedName("exportedAt") val exportedAt: Long? = null,
     @SerializedName("budgetProfiles") val budgetProfiles: List<BudgetProfileEntity>? = null,
@@ -53,6 +67,13 @@ internal data class BackupDataDto(
 )
 
 data class BackupData(
+    @SerializedName("monthlyIncomePlans") val monthlyIncomePlans: List<MonthlyIncomePlanEntity> = emptyList(),
+    @SerializedName("forecastSnapshots") val forecastSnapshots: List<ForecastSnapshotEntity> = emptyList(),
+    @SerializedName("vehicles") val vehicles: List<VehicleEntity> = emptyList(),
+    @SerializedName("vehicleServiceLogs") val vehicleServiceLogs: List<VehicleServiceLogEntity> = emptyList(),
+    @SerializedName("vehicleInsurances") val vehicleInsurances: List<VehicleInsuranceEntity> = emptyList(),
+    @SerializedName("vehicleFuelLogs") val vehicleFuelLogs: List<VehicleFuelLogEntity> = emptyList(),
+    @SerializedName("vehicleRepairs") val vehicleRepairs: List<VehicleRepairEntity> = emptyList(),
     @SerializedName("version") val version: Int = CURRENT_VERSION,
     @SerializedName("exportedAt") val exportedAt: Long = System.currentTimeMillis(),
     @SerializedName("budgetProfiles") val budgetProfiles: List<BudgetProfileEntity> = emptyList(),
@@ -80,7 +101,7 @@ data class BackupData(
     @SerializedName("participantNames") val participantNames: List<String> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 19
+        const val CURRENT_VERSION = 24
     }
 }
 

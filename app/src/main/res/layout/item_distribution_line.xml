@@ -1,59 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Card.MyBudget.Surface"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_4"
-    style="@style/Card.MyBudget.Surface">
+    android:layout_marginBottom="@dimen/space_8">
     <LinearLayout
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <View
-            android:layout_width="4dp"
-            android:layout_height="match_parent"
-            android:background="@drawable/distribution_line_accent" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/space_12">
         <LinearLayout
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="@dimen/space_12"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
             <TextView
                 android:id="@+id/categoryName"
-                android:layout_width="match_parent"
+                style="@style/Text.MyBudget.Section"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                style="@style/Text.MyBudget.Section"/>
-            <TextView
-                android:textSize="13sp"
-                android:id="@+id/subBalanceText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_4"
-                style="@style/Text.MyBudget.Subtitle"/>
+                android:layout_weight="1" />
+            <ImageButton
+                android:id="@+id/removeCategoryButton"
+                android:layout_width="@dimen/touch_min_size"
+                android:layout_height="@dimen/touch_min_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:contentDescription="@string/distribution_remove_category"
+                android:padding="@dimen/space_12"
+                app:tint="@color/text_secondary" />
         </LinearLayout>
+        <TextView
+            android:id="@+id/subBalanceText"
+            style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/space_8" />
         <EditText
             android:id="@+id/amountInput"
-            android:background="@drawable/edittext_border"
-            android:padding="@dimen/space_8"
-            android:layout_width="100dp"
+            style="@style/Widget.MyBudget.OperationInput"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/budget_amount_hint"
             android:inputType="numberDecimal"
-            android:layout_marginEnd="@dimen/space_4"/>
-        <ImageButton
-            android:id="@+id/removeCategoryButton"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="@dimen/touch_min_size"
-            android:layout_height="@dimen/touch_min_size"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="@string/distribution_remove_category"
-            app:tint="@color/text_secondary"/>
-        </LinearLayout>
+            android:singleLine="true"
+            android:imeOptions="actionDone"
+            android:hint="@string/operation_amount_hint" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>

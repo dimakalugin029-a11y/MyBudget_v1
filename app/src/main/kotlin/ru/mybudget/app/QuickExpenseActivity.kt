@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -29,35 +28,48 @@ class QuickExpenseActivity : AppCompatActivity() {
     private var categoryOptions: List<QuickCategoryOption> = emptyList()
     private var selectedCategoryId: Int = -1
     private var prefilledApplied = false
+    private var availableCategories: List<BudgetCategory> = emptyList()
+    private var saving = false
+    private var requestId = java.util.UUID.randomUUID().toString()
+    private var categoriesJob: kotlinx.coroutines.Job? = null
+    private var categoriesLoading = false
+    private var categoryLoadGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_quick_expense)
         manager = BudgetManager.getInstance(this)
+        selectedCategoryId = savedInstanceState?.getInt("quick_category", -1) ?: -1
+        prefilledApplied = savedInstanceState?.getBoolean("quick_prefill") ?: false
+        requestId = savedInstanceState?.getString("quick_request") ?: requestId
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.quick_expense_title),
-            getString(R.string.main_icon_expense),
         )
         amountInput = findViewById(R.id.quickExpenseAmount)
         descriptionInput = findViewById(R.id.quickExpenseDescription)
         categoryContainer = findViewById(R.id.quickExpenseCategoryContainer)
         repeatButton = findViewById(R.id.quickExpenseRepeatButton)
+        findViewById<View>(R.id.transactionBudgetPicker).setOnClickListener {
+            if (!saving && !categoriesLoading) BudgetPicker.show(this, onSwitched = {
+                selectedCategoryId = -1
+                loadCategories()
+            })
+        }
+        findViewById<View>(R.id.quickExpensePickCategory).setOnClickListener { chooseCategory() }
         findViewById<View>(R.id.quickExpenseFullFormLink).setOnClickListener {
-            startActivity(Intent(this, ExpenseActivity::class.java))
+            if (saving || categoriesLoading) return@setOnClickListener
+            startActivity(Intent(this, ExpenseActivity::class.java)
+                .putExtra(BudgetIntentExtras.CATEGORY_ID, selectedCategoryId)
+                .putExtra(BudgetIntentExtras.OPERATION_AMOUNT_TEXT, amountInput.text.toString())
+                .putExtra(BudgetIntentExtras.OPERATION_DESCRIPTION, descriptionInput.text.toString())
+                .putExtra(BudgetIntentExtras.OPERATION_REQUEST_ID, requestId))
             finish()
         }
         findViewById<MaterialButton>(R.id.quickExpenseSaveButton).setOnClickListener { save() }
         findViewById<MaterialButton>(R.id.quickExpenseSaveShortcutButton).setOnClickListener { saveShortcut() }
         repeatButton.setOnClickListener { applyRepeatLast() }
-        amountInput.setOnEditorActionListener { _, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_DONE) {
-                save()
-                true
-            } else {
-                false
-            }
-        }
+        OperationFormUi.bindAmount(this, amountInput) { chooseCategory() }
         amountInput.requestFocus()
     }
 
@@ -68,13 +80,28 @@ class QuickExpenseActivity : AppCompatActivity() {
     }
 
     private fun loadCategories() {
-        lifecycleScope.launch {
+        val generation = ++categoryLoadGeneration
+        categoriesJob?.cancel()
+        categoriesLoading = true
+        findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = false
+        categoriesJob = lifecycleScope.launch {
+          try {
             manager.getCategoriesAsync()
-            val leaves = manager.getCategoriesForExpenses()
+            val activeId = manager.getActiveBudgetId()
+            val profiles = manager.getBudgetProfilesAsync()
+            if (activeId != manager.getActiveBudgetId()) return@launch
+            findViewById<TextView>(R.id.transactionBudgetNameText).text = profiles.firstOrNull { it.id == activeId }?.name
+                ?: getString(R.string.budget_profiles_default_name)
+            val leaves = manager.getCategoriesForExpenses().filter { it.isActive }
+            availableCategories = leaves
             if (leaves.isEmpty()) {
                 categoryContainer.removeAllViews()
                 selectedCategoryId = -1
-                Toast.makeText(this@QuickExpenseActivity, R.string.error_no_categories, Toast.LENGTH_LONG).show()
+                findViewById<TextView>(R.id.selectedBalanceText).apply {
+                    setText(R.string.operation_missing_categories)
+                    visibility = View.VISIBLE
+                }
+                repeatButton.visibility = View.GONE
                 return@launch
             }
             val recentIds = manager.repository.getRecentExpenseCategoryIds(limit = 5)
@@ -89,13 +116,20 @@ class QuickExpenseActivity : AppCompatActivity() {
                     QuickCategoryOption(leaf, formatCategoryLabel(leaf))
                 }
             }
-            if (categoryOptions.isEmpty()) {
-                val fallback = leaves.first()
-                categoryOptions = listOf(QuickCategoryOption(fallback, formatCategoryLabel(fallback)))
-            }
-            selectedCategoryId = categoryOptions.firstOrNull()?.category?.id ?: -1
-            renderCategoryChips()
+            if (selectedCategoryId !in leaves.map { it.id }) selectedCategoryId = categoryOptions.firstOrNull()?.category?.id ?: leaves.first().id
             applyPrefillIfNeeded()
+            renderCategoryChips()
+            updateRepeatButton()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            availableCategories = emptyList()
+            Toast.makeText(this@QuickExpenseActivity, R.string.operation_categories_error, Toast.LENGTH_LONG).show()
+          } finally {
+            if (generation == categoryLoadGeneration) {
+                categoriesLoading = false
+                findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = !saving && availableCategories.isNotEmpty()
+            }
+          }
         }
     }
 
@@ -104,8 +138,7 @@ class QuickExpenseActivity : AppCompatActivity() {
         prefilledApplied = true
         val categoryId = intent.getIntExtra(EXTRA_CATEGORY_ID, -1)
         if (categoryId > 0) {
-            selectedCategoryId = categoryId
-            renderCategoryChips()
+            selectedCategoryId = categoryId.takeIf { id -> availableCategories.any { it.id == id } } ?: -1
         }
         intent.getDoubleExtra(EXTRA_AMOUNT, -1.0).takeIf { it > 0.0 }?.let { amount ->
             amountInput.setText(MoneyFormat.format(amount))
@@ -122,6 +155,10 @@ class QuickExpenseActivity : AppCompatActivity() {
 
     private fun renderCategoryChips() {
         categoryContainer.removeAllViews()
+        val selected = availableCategories.firstOrNull { it.id == selectedCategoryId }
+        if (selected != null && categoryOptions.none { it.category.id == selectedCategoryId }) {
+            categoryOptions = (listOf(QuickCategoryOption(selected, formatCategoryLabel(selected))) + categoryOptions).take(6)
+        }
         val margin = resources.getDimensionPixelSize(R.dimen.space_8)
         for (option in categoryOptions) {
             val chip = TextView(this, null, 0, R.style.Chip_MyBudget_Filter).apply {
@@ -131,6 +168,7 @@ class QuickExpenseActivity : AppCompatActivity() {
                 isFocusable = true
                 updateChipStyle(this, isSelected)
                 setOnClickListener {
+                    if (saving || categoriesLoading) return@setOnClickListener
                     selectedCategoryId = option.category.id
                     renderCategoryChips()
                 }
@@ -143,6 +181,34 @@ class QuickExpenseActivity : AppCompatActivity() {
             }
             categoryContainer.addView(chip, params)
         }
+        findViewById<TextView>(R.id.selectedBalanceText).apply {
+            visibility = View.VISIBLE
+            text = if (selected == null) getString(R.string.error_select_leaf_category)
+                else getString(R.string.subcategory_balance_hint, MoneyFormat.formatRub(selected.currentBalance))
+        }
+    }
+
+    private fun chooseCategory() {
+        if (saving || categoriesLoading) return
+        if (availableCategories.isEmpty()) {
+            Toast.makeText(this, R.string.operation_missing_categories, Toast.LENGTH_LONG).show()
+            return
+        }
+        ImeHelper.hideKeyboard(this, amountInput)
+        val options = availableCategories.toList()
+        AlertDialog.Builder(this)
+            .setTitle(R.string.quick_expense_category_label)
+            .setSingleChoiceItems(options.map(::formatCategoryLabel).toTypedArray(),
+                options.indexOfFirst { it.id == selectedCategoryId }) { dialog, index ->
+                val selectedId = options[index].id
+                if (!saving && !categoriesLoading && availableCategories.any { it.id == selectedId }) {
+                    selectedCategoryId = selectedId
+                    renderCategoryChips()
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun updateChipStyle(chip: TextView, selected: Boolean) {
@@ -151,13 +217,15 @@ class QuickExpenseActivity : AppCompatActivity() {
         chip.setTextColor(
             ContextCompat.getColor(
                 this,
-                if (selected) R.color.white else R.color.text_primary,
+                if (selected) R.color.md_theme_onPrimary else R.color.text_primary,
             ),
         )
     }
 
     private fun updateRepeatButton() {
-        val hasRepeat = QuickExpensePreferences.hasRepeatableExpense(this)
+        val hasRepeat = QuickExpensePreferences.hasRepeatableExpense(this) && availableCategories.any {
+            it.id == QuickExpensePreferences.getLastCategoryId(this)
+        }
         repeatButton.visibility = if (hasRepeat) View.VISIBLE else View.GONE
         if (!hasRepeat) return
         val amount = QuickExpensePreferences.getLastAmount(this) ?: return
@@ -170,8 +238,10 @@ class QuickExpenseActivity : AppCompatActivity() {
     }
 
     private fun applyRepeatLast() {
+        if (saving || categoriesLoading) return
         val amount = QuickExpensePreferences.getLastAmount(this) ?: return
         val categoryId = QuickExpensePreferences.getLastCategoryId(this)
+        if (availableCategories.none { it.id == categoryId }) return
         amountInput.setText(MoneyFormat.format(amount))
         QuickExpensePreferences.getLastDescription(this)?.let { descriptionInput.setText(it) }
         if (categoryId > 0) {
@@ -181,9 +251,9 @@ class QuickExpenseActivity : AppCompatActivity() {
     }
 
     private fun saveShortcut() {
+        if (saving || categoriesLoading) return
         val amount = parseAmount() ?: return
-        val categoryId = selectedCategoryId.takeIf { it > 0 }
-            ?: categoryOptions.firstOrNull()?.category?.id
+        val categoryId = selectedCategoryId.takeIf { id -> availableCategories.any { it.id == id } }
             ?: run {
                 Toast.makeText(this, R.string.error_select_leaf_category, Toast.LENGTH_SHORT).show()
                 return
@@ -199,9 +269,9 @@ class QuickExpenseActivity : AppCompatActivity() {
     }
 
     private fun save() {
+        if (saving || categoriesLoading) return
         val amount = parseAmount() ?: return
-        val categoryId = selectedCategoryId.takeIf { it > 0 }
-            ?: categoryOptions.firstOrNull()?.category?.id
+        val categoryId = selectedCategoryId.takeIf { id -> availableCategories.any { it.id == id } }
         if (categoryId == null) {
             Toast.makeText(this, R.string.error_select_leaf_category, Toast.LENGTH_SHORT).show()
             return
@@ -209,9 +279,14 @@ class QuickExpenseActivity : AppCompatActivity() {
         val description = descriptionInput.text.toString().trim().ifBlank {
             getString(R.string.transaction_expense)
         }
+        saving = true
+        amountInput.isEnabled = false
+        descriptionInput.isEnabled = false
+        findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = false
         lifecycleScope.launch {
+          try {
             val participant = ParticipantPreferences.getDefaultParticipant(this@QuickExpenseActivity)
-            manager.recordTransaction(categoryId, amount, "expense", description, participant)
+            manager.recordTransaction(categoryId, amount, "expense", description, participant, requestId)
             QuickExpensePreferences.saveLastExpense(this@QuickExpenseActivity, categoryId, amount, description)
             val category = manager.getCategoryById(categoryId)
             val label = category?.let { formatCategoryLabel(it) } ?: getString(R.string.transaction_expense)
@@ -221,21 +296,27 @@ class QuickExpenseActivity : AppCompatActivity() {
                 Toast.LENGTH_SHORT,
             ).show()
             finish()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            Toast.makeText(this@QuickExpenseActivity, R.string.operation_save_error, Toast.LENGTH_LONG).show()
+          } finally {
+            saving = false
+            amountInput.isEnabled = true
+            descriptionInput.isEnabled = true
+            findViewById<View>(R.id.quickExpenseSaveButton).isEnabled = !categoriesLoading && availableCategories.isNotEmpty()
+          }
         }
     }
 
     private fun parseAmount(): Double? {
-        val amountText = amountInput.text.toString()
-        if (amountText.isBlank()) {
-            Toast.makeText(this, R.string.expense_enter_amount, Toast.LENGTH_SHORT).show()
-            return null
-        }
-        val amount = MoneyFormat.parse(amountText)
-        if (amount == null || amount <= 0.0) {
-            Toast.makeText(this, R.string.error_invalid_amount, Toast.LENGTH_SHORT).show()
-            return null
-        }
-        return amount
+        return OperationFormUi.amount(amountInput, R.string.expense_enter_amount)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putInt("quick_category", selectedCategoryId)
+        outState.putBoolean("quick_prefill", prefilledApplied)
+        outState.putString("quick_request", requestId)
+        super.onSaveInstanceState(outState)
     }
 
     private data class QuickCategoryOption(val category: BudgetCategory, val label: String)

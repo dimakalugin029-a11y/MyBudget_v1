@@ -25,7 +25,7 @@
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-                <Spinner
+                <Spinner android:minHeight="@dimen/touch_min_size"
                     android:id="@+id/monthCompareSpinnerA"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -36,7 +36,7 @@
                     android:layout_gravity="center"
                     android:paddingHorizontal="@dimen/space_8"
                     android:text="@string/utility_compare_arrow"/>
-                <Spinner
+                <Spinner android:minHeight="@dimen/touch_min_size"
                     android:id="@+id/monthCompareSpinnerB"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

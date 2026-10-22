@@ -10,8 +10,8 @@ class StatisticsChartHelperTest {
 
     @Test
     fun buildBalanceSeries_endPointMatchesCurrentBalance() {
-        val from = 10L * dayMs
-        val to = 12L * dayMs + dayMs - 1
+        val from = localStart(10L)
+        val to = localStart(13L)
         val txs = listOf(
             tx(day = 11, type = "income", amount = 3_000.0),
             tx(day = 12, type = "expense", amount = 1_000.0),
@@ -32,8 +32,8 @@ class StatisticsChartHelperTest {
 
     @Test
     fun buildBalanceSeries_flatWhenNoTransactions() {
-        val from = 5L * dayMs
-        val to = 7L * dayMs
+        val from = localStart(5L)
+        val to = localStart(8L)
 
         val series = StatisticsChartHelper.buildBalanceSeries(
             transactions = emptyList(),
@@ -51,8 +51,8 @@ class StatisticsChartHelperTest {
 
     @Test
     fun buildBalanceSeries_usesSnapshotForDay() {
-        val from = 10L * dayMs
-        val to = 12L * dayMs
+        val from = localStart(10L)
+        val to = localStart(13L)
         val txs = listOf(
             tx(day = 11, type = "income", amount = 5_000.0),
         )
@@ -72,8 +72,8 @@ class StatisticsChartHelperTest {
 
     @Test
     fun buildDailyFlowSeries_returnsNetPerDay() {
-        val from = 10L * dayMs
-        val to = 12L * dayMs
+        val from = localStart(10L)
+        val to = localStart(13L)
         val txs = listOf(
             tx(day = 10, type = "income", amount = 2_000.0),
             tx(day = 11, type = "expense", amount = 500.0),
@@ -88,13 +88,15 @@ class StatisticsChartHelperTest {
         assertEquals(0.0, series.points[2].value, 0.01)
     }
 
+    private fun localStart(day: Long): Long = java.time.LocalDate.ofEpochDay(day).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+
     private fun tx(day: Long, type: String, amount: Double): TransactionEntity {
         return TransactionEntity(
             categoryId = 1,
             amount = amount,
             type = type,
             description = "",
-            date = day * dayMs + 12 * 3_600_000L,
+            date = localStart(day) + 12 * 3_600_000L,
         )
     }
 }

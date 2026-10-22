@@ -8,6 +8,18 @@ import androidx.room.Update
 
 @Dao
 interface AutoDao {
+    @Query("DELETE FROM vehicles")
+    suspend fun deleteAllVehicles()
+
+    @Query("SELECT * FROM vehicle_service_logs ORDER BY id")
+    suspend fun getAllServiceLogsForExport(): List<VehicleServiceLogEntity>
+
+    @Query("SELECT * FROM vehicle_fuel_logs ORDER BY id")
+    suspend fun getAllFuelLogsForExport(): List<VehicleFuelLogEntity>
+
+    @Query("SELECT * FROM vehicle_repairs ORDER BY id")
+    suspend fun getAllRepairsForExport(): List<VehicleRepairEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVehicle(vehicle: VehicleEntity): Long
 

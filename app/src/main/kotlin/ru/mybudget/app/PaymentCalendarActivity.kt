@@ -163,14 +163,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
     private fun updateCalendarHint() {
         calendarHint.text = when (currentHorizon) {
             TimeHorizon.WEEK -> {
-                val weekEnd = todayEpochDay + 7
-                val weekEntries = allEntries.filter { it.epochDay in todayEpochDay..weekEnd }
-                val total = PaymentCalendarHelper.weekPaymentTotal(weekEntries)
-                if (total > 0.0) {
-                    getString(R.string.payment_calendar_week_total_hint, MoneyFormat.formatRub(total))
-                } else {
-                    getString(R.string.upcoming_payments_horizon_week_hint)
-                }
+                val weekEntries = allEntries.filter { it.epochDay <= todayEpochDay + 6 }
+                PaymentEventLoader.totalsText(this, weekEntries)
             }
             TimeHorizon.ALL -> getString(R.string.payment_calendar_tap_hint)
         }
@@ -208,10 +202,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
 
     private fun baseEntries(): List<PaymentCalendarHelper.Entry> {
         val horizonEnd = when (currentHorizon) {
-            TimeHorizon.WEEK -> todayEpochDay + 7
+            TimeHorizon.WEEK -> todayEpochDay + 6
             TimeHorizon.ALL -> todayEpochDay + 60
         }
-        val byHorizon = allEntries.filter { it.epochDay in todayEpochDay..horizonEnd }
+        val byHorizon = allEntries.filter { it.epochDay <= horizonEnd }
         return when (currentFilter) {
             CalendarFilter.ALL -> byHorizon
             CalendarFilter.REMINDER -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.REMINDER }
@@ -221,7 +215,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                     it.kind == PaymentCalendarHelper.EntryKind.UTILITY_FORECAST
             }
             CalendarFilter.OBLIGATION -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.OBLIGATION }
-            CalendarFilter.INCOME -> byHorizon.filter { it.kind == PaymentCalendarHelper.EntryKind.INCOME }
+            CalendarFilter.INCOME -> byHorizon.filter { it.isIncome }
         }
     }
 
@@ -358,6 +352,10 @@ class PaymentCalendarActivity : AppCompatActivity() {
                 handlers += { startActivity(Intent(this, RemindersActivity::class.java)) }
             }
             PaymentCalendarHelper.EntryKind.RECURRING -> {
+                labels += getString(R.string.recurring_execute)
+                handlers += { executeRecurringEntry(entry, false) }
+                labels += getString(R.string.recurring_notify_skip)
+                handlers += { executeRecurringEntry(entry, true) }
                 if (entry.sourceRef.recurringId != null) {
                     labels += getString(R.string.payment_calendar_entry_change_date)
                     handlers += { changeEntryDate(entry) }
@@ -452,6 +450,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
             intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT, amount)
         }
         intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_NAME, entry.title)
+        intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH,
+            java.time.YearMonth.from(java.time.LocalDate.ofEpochDay(entry.epochDay)).toString())
         entry.sourceRef.incomeSourceId?.let {
             intent.putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, it)
         }
@@ -471,7 +471,8 @@ class PaymentCalendarActivity : AppCompatActivity() {
             )
             .setPositiveButton(R.string.reminder_mark_paid) { _, _ ->
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val ok = ReminderPaymentHelper.payReminder(budgetManager, id)
+                    val ok = ReminderPaymentHelper.payReminder(budgetManager, id,
+                        java.time.LocalDate.ofEpochDay(entry.epochDay).toString())
                     withContext(Dispatchers.Main) {
                         if (ok) {
                             Toast.makeText(this@PaymentCalendarActivity, R.string.payment_calendar_paid_done, Toast.LENGTH_SHORT).show()
@@ -482,6 +483,35 @@ class PaymentCalendarActivity : AppCompatActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun executeRecurringEntry(entry: PaymentCalendarHelper.Entry, skip: Boolean) {
+        val id = entry.sourceRef.recurringId ?: return
+        AlertDialog.Builder(this)
+            .setTitle(if (skip) R.string.recurring_notify_skip else R.string.recurring_execute)
+            .setMessage("${entry.title} · ${entry.dateLabel} · ${MoneyFormat.formatRub(entry.amount ?: 0.0)}")
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                lifecycleScope.launch {
+                    try {
+                        val applied = withContext(Dispatchers.IO) {
+                            PaymentExecution(BudgetDatabase.getInstance(this@PaymentCalendarActivity))
+                                .recurring(id, java.time.LocalDate.ofEpochDay(entry.epochDay).toString(), skip)
+                        }
+                        budgetManager.reloadCategoriesFromDatabase()
+                        BudgetWidgetProvider.updateAll(this@PaymentCalendarActivity)
+                        if (applied && !skip && !entry.isIncome) {
+                            OverspendNotifier.checkAfterExpense(applicationContext, entry.categoryId)
+                        }
+                        if (!applied) Toast.makeText(this@PaymentCalendarActivity,
+                            R.string.attention_event_changed, Toast.LENGTH_LONG).show()
+                        loadEntries()
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Toast.makeText(this@PaymentCalendarActivity, R.string.attention_operation_failed, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }.setNegativeButton(android.R.string.cancel, null).show()
     }
 
     private fun completeEntry(entry: PaymentCalendarHelper.Entry) {
@@ -506,6 +536,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
                     ReminderPaymentHelper.completeReminder(
                         budgetManager,
                         entry.sourceRef.reminderId ?: return@launch,
+                        java.time.LocalDate.ofEpochDay(entry.epochDay).toString(),
                     )
                 PaymentCalendarHelper.EntryKind.OBLIGATION ->
                     ObligationPaymentHelper.completeObligation(
@@ -600,75 +631,24 @@ class PaymentCalendarActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    private var entriesJob: kotlinx.coroutines.Job? = null
     private fun loadEntries() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val db = BudgetDatabase.getInstance(this@PaymentCalendarActivity)
-            val dao = db.budgetDao()
-            val categories = budgetManager.getCategoriesAsync()
-            val categoryNames = categories.associate { it.id to it.name }
-            val fmt = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            val today = LocalDate.now()
-            todayEpochDay = today.toEpochDay()
-            val todayStr = fmt.format(Calendar.getInstance().time)
-            val endCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 60) }
-            val endStr = fmt.format(endCal.time)
-            val reminders = dao.getRemindersInRange(todayStr, endStr)
-            val recurring = dao.getRecurringInRange(todayStr, endStr)
-            val totals = db.utilityDao().getBillGrandTotals().associate { it.billId to it.total }
-            val propertyNames = db.utilityDao().getAllProperties().associate { it.id to it.name }
-            val unpaid = db.utilityDao().getAllBills().mapNotNull { bill ->
-                val total = totals[bill.id] ?: 0.0
-                if (bill.budgetPaidAt == null && total > 0.0) {
-                    PaymentCalendarHelper.UnpaidUtilityBill(
-                        bill = bill,
-                        total = total,
-                        propertyName = propertyNames[bill.propertyId].orEmpty(),
-                    )
-                } else {
-                    null
-                }
+        entriesJob?.cancel()
+        entriesJob = lifecycleScope.launch {
+            val activeId = budgetManager.getActiveBudgetId()
+            val snapshot = withContext(Dispatchers.IO) {
+                PaymentEventLoader.load(this@PaymentCalendarActivity, activeId)
             }
-            val obligations = dao.getPlannedObligationsByBudgetOnce(budgetManager.getActiveBudgetId())
-            val paidObligationPeriods = ObligationPaymentHelper.paidKeys(
-                dao.getObligationPaymentsByBudget(budgetManager.getActiveBudgetId()),
-            )
-            val plannedIncome = dao.getPlannedIncomeSourcesByBudgetOnce(budgetManager.getActiveBudgetId())
-            val incomeById = plannedIncome.associateBy { it.id }
-            val utilityPaymentDays = db.utilityDao().getAllProperties().associate { property ->
-                property.id to UtilityPaymentReminderPreferences.paymentDay(this@PaymentCalendarActivity, property.id)
-            }
-            val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
-                this@PaymentCalendarActivity,
-                db.utilityDao(),
-                today,
-            )
-            val entries = PaymentCalendarHelper.buildEntries(
-                reminders,
-                recurring,
-                unpaid,
-                obligations,
-                plannedIncome,
-                categoryNames,
-                today.toEpochDay(),
-                utilityPaymentDays = utilityPaymentDays,
-                paidObligationPeriods = paidObligationPeriods,
-                utilityForecasts = utilityForecasts,
-            ).map { entry ->
-                if (entry.kind != PaymentCalendarHelper.EntryKind.INCOME || entry.subtitle.isNotBlank()) {
-                    entry
-                } else {
-                    val source = entry.sourceRef.incomeSourceId?.let { incomeById[it] }
-                    if (source == null) {
-                        entry
-                    } else {
-                        entry.copy(subtitle = PlannedIncomeHelper.calendarSubtitle(this@PaymentCalendarActivity, source))
-                    }
-                }
-            }
-            withContext(Dispatchers.Main) {
-                allEntries = entries
-                updateCalendarHint()
-                publishFiltered()
+            if (activeId != budgetManager.getActiveBudgetId()) return@launch
+            todayEpochDay = snapshot.today.toEpochDay()
+            allEntries = snapshot.entries
+            updateCalendarHint()
+            publishFiltered()
+            intent.getStringExtra("attention_event_key")?.let { key ->
+                intent.removeExtra("attention_event_key")
+                val event = allEntries.firstOrNull { it.eventKey == key }
+                if (event != null) showEntryActions(event)
+                else Toast.makeText(this@PaymentCalendarActivity, R.string.attention_event_changed, Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -706,7 +686,7 @@ class PaymentCalendarActivity : AppCompatActivity() {
             val item = items[position]
             val ctx = holder.itemView.context
             val daysUntil = (item.epochDay - todayEpochDay).toInt()
-            val isIncome = item.kind == PaymentCalendarHelper.EntryKind.INCOME
+            val isIncome = item.isIncome
             val urgencyColor = PaymentCalendarUrgencyHelper.accentColor(daysUntil, isIncome)
             holder.date.text = item.dateLabel
             holder.date.setTextColor(urgencyColor)

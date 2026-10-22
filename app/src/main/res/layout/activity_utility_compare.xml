@@ -30,7 +30,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal">
-                <Spinner
+                <Spinner android:minHeight="@dimen/touch_min_size"
                     android:id="@+id/compareMonthASpinner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -44,7 +44,7 @@
                     android:textColor="@color/main_hero_text_primary"
                     android:textSize="18sp"
                     style="@style/Text.MyBudget.Section" />
-                <Spinner
+                <Spinner android:minHeight="@dimen/touch_min_size"
                     android:id="@+id/compareMonthBSpinner"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

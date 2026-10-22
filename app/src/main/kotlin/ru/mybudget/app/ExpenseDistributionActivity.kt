@@ -26,15 +26,17 @@ class ExpenseDistributionActivity : AppCompatActivity() {
     private val amounts = mutableMapOf<Int, Double>()
     private var leaves: List<BudgetCategory> = emptyList()
     private var parents: Map<Int, String> = emptyMap()
+    private var submitting = false
+    private var requestId = java.util.UUID.randomUUID().toString()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_expense_distribution)
         manager = BudgetManager.getInstance(this)
+        requestId = savedInstanceState?.getString("expense_request") ?: requestId
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.expense_distribution_title),
-            getString(R.string.ui_receipt),
         )
         findViewById<View>(R.id.expenseDistributionHint)?.let {
             ScreenHintHelper.bind(
@@ -172,20 +174,30 @@ class ExpenseDistributionActivity : AppCompatActivity() {
     }
 
     private fun submit() {
+        if (submitting) return
         if (!submitButton.isEnabled) {
             Toast.makeText(this, R.string.expense_distribution_under_limit, Toast.LENGTH_SHORT).show()
             return
         }
         val items = amounts.filter { it.value > 0.0 }.map { it.key to it.value }
         val note = noteInput.text.toString().trim().ifBlank { getString(R.string.transaction_expense_distribution) }
+        submitting = true
+        submitButton.isEnabled = false
         lifecycleScope.launch {
-            manager.applyTransactionGroup(items, "expense", note)
+          try {
+            manager.applyTransactionGroup(items, "expense", note, requestId)
             Toast.makeText(
                 this@ExpenseDistributionActivity,
                 getString(R.string.expense_distribution_done, MoneyFormat.format(totalAmount())),
                 Toast.LENGTH_SHORT,
             ).show()
             finish()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (error: Exception) {
+            Toast.makeText(this@ExpenseDistributionActivity, error.message.orEmpty(), Toast.LENGTH_LONG).show()
+            submitting = false
+            updateTotals()
+          }
         }
     }
 
@@ -194,5 +206,9 @@ class ExpenseDistributionActivity : AppCompatActivity() {
         const val EXTRA_TOTAL_EXPENSE = "total_expense"
         const val EXTRA_PREFILL_CATEGORY_IDS = "prefill_category_ids"
         const val EXTRA_PREFILL_AMOUNTS = "prefill_amounts"
+    }
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("expense_request", requestId)
+        super.onSaveInstanceState(outState)
     }
 }

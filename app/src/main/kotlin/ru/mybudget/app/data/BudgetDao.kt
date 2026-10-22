@@ -10,6 +10,135 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class BudgetDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun claimMoneyCommand(command: MoneyCommandEntity): Long
+    @Query("SELECT * FROM obligation_payments WHERE transactionId = :transactionId")
+    abstract suspend fun getPaymentsForTransaction(transactionId: Int): List<ObligationPaymentEntity>
+
+    @Query("DELETE FROM obligation_payments WHERE transactionId = :transactionId")
+    abstract suspend fun deletePaymentsForTransaction(transactionId: Int)
+
+    @Query("DELETE FROM obligation_payments WHERE id = :id")
+    abstract suspend fun deleteObligationPaymentById(id: Int)
+
+    @Query("SELECT * FROM obligation_payments WHERE id = :id")
+    abstract suspend fun getObligationPaymentById(id: Int): ObligationPaymentEntity?
+
+    @Transaction
+    open suspend fun reopenObligationPayment(id: Int) {
+        val payment = getObligationPaymentById(id) ?: return
+        val transaction = payment.transactionId?.let { getTransactionById(it) }
+        if (transaction != null) { revertAndDeleteTransaction(transaction); return }
+        val obligation = getPlannedObligationById(payment.obligationId)
+        if (obligation != null) {
+            val due = payment.dueDate ?: ru.mybudget.app.PlannedObligationHelper.dueLocalDate(
+                java.time.YearMonth.of(payment.periodYear, payment.periodMonth), obligation.dueDay).toString()
+            getLinkedReminders(payment.obligationId).filter { it.dueDate > due }.forEach { updateReminderDueDate(it.id, due) }
+            getLinkedRecurring(payment.obligationId).filter { it.nextDueDate > due }.forEach { updateRecurringNextDate(it.id, due) }
+        }
+        deleteObligationPaymentById(id)
+    }
+
+    @Query("UPDATE obligation_payments SET amount = :amount WHERE transactionId = :transactionId")
+    abstract suspend fun updatePaymentAmount(transactionId: Int, amount: Double)
+
+    @Query("UPDATE vehicle_service_logs SET paymentMethod = 'unpaid', paidTransactionId = NULL WHERE paidTransactionId = :id")
+    abstract suspend fun unlinkServicePayment(id: Int)
+    @Query("UPDATE vehicle_insurances SET paymentMethod = 'unpaid', paidTransactionId = NULL WHERE paidTransactionId = :id")
+    abstract suspend fun unlinkInsurancePayment(id: Int)
+    @Query("UPDATE vehicle_fuel_logs SET paymentMethod = 'unpaid', paidTransactionId = NULL WHERE paidTransactionId = :id")
+    abstract suspend fun unlinkFuelPayment(id: Int)
+    @Query("UPDATE vehicle_repairs SET paymentMethod = 'unpaid', paidTransactionId = NULL WHERE paidTransactionId = :id")
+    abstract suspend fun unlinkRepairPayment(id: Int)
+    @Query("UPDATE vehicle_service_logs SET amount = :amount, categoryId = :categoryId WHERE paidTransactionId = :id")
+    abstract suspend fun correctServicePayment(id: Int, amount: Double, categoryId: Int)
+    @Query("UPDATE vehicle_insurances SET amount = :amount, categoryId = :categoryId WHERE paidTransactionId = :id")
+    abstract suspend fun correctInsurancePayment(id: Int, amount: Double, categoryId: Int)
+    @Query("UPDATE vehicle_fuel_logs SET amount = :amount, categoryId = :categoryId WHERE paidTransactionId = :id")
+    abstract suspend fun correctFuelPayment(id: Int, amount: Double, categoryId: Int)
+    @Query("UPDATE vehicle_repairs SET amount = :amount, categoryId = :categoryId WHERE paidTransactionId = :id")
+    abstract suspend fun correctRepairPayment(id: Int, amount: Double, categoryId: Int)
+
+    private suspend fun undoPaymentLinks(transactionId: Int) {
+        for (payment in getPaymentsForTransaction(transactionId)) {
+            val obligation = getPlannedObligationById(payment.obligationId) ?: continue
+            val due = payment.dueDate ?: ru.mybudget.app.PlannedObligationHelper.dueLocalDate(
+                java.time.YearMonth.of(payment.periodYear, payment.periodMonth), obligation.dueDay).toString()
+            getLinkedReminders(payment.obligationId).filter { it.dueDate > due }.forEach { updateReminderDueDate(it.id, due) }
+            getLinkedRecurring(payment.obligationId).filter { it.nextDueDate > due }.forEach { updateRecurringNextDate(it.id, due) }
+        }
+        deletePaymentsForTransaction(transactionId)
+        unlinkServicePayment(transactionId); unlinkInsurancePayment(transactionId)
+        unlinkFuelPayment(transactionId); unlinkRepairPayment(transactionId)
+    }
+
+    @Query("SELECT * FROM planned_income_sources WHERE id = :id")
+    abstract suspend fun getIncomeSourceById(id: Int): PlannedIncomeSourceEntity?
+
+    @Query("SELECT t.* FROM transactions t INNER JOIN categories c ON c.id = t.categoryId WHERE c.budgetId = :budgetId AND t.type = 'income' AND t.plannedIncomeSourceId IS NOT NULL")
+    abstract suspend fun getIncomePlanTransactions(budgetId: Int): List<TransactionEntity>
+
+    @Query("SELECT * FROM payment_reminders WHERE obligationId = :obligationId")
+    abstract suspend fun getLinkedReminders(obligationId: Int): List<PaymentReminderEntity>
+
+    @Query("SELECT * FROM recurring_transactions WHERE obligationId = :obligationId")
+    abstract suspend fun getLinkedRecurring(obligationId: Int): List<RecurringTransactionEntity>
+
+    @Query("SELECT * FROM payment_reminders WHERE isActive = 1 AND dueDate <= :through ORDER BY dueDate")
+    abstract suspend fun getOpenRemindersThrough(through: String): List<PaymentReminderEntity>
+
+    @Query("SELECT * FROM recurring_transactions WHERE isActive = 1 AND nextDueDate <= :through ORDER BY nextDueDate")
+    abstract suspend fun getOpenRecurringThrough(through: String): List<RecurringTransactionEntity>
+    @Query("SELECT * FROM monthly_income_plans")
+    abstract suspend fun getAllMonthlyIncomePlansForExport(): List<MonthlyIncomePlanEntity>
+
+    @Query("DELETE FROM monthly_income_plans")
+    abstract suspend fun deleteAllMonthlyIncomePlans()
+
+    @Query("SELECT * FROM forecast_snapshots")
+    abstract suspend fun getAllForecastSnapshotsForExport(): List<ForecastSnapshotEntity>
+
+    @Query("DELETE FROM forecast_snapshots")
+    abstract suspend fun deleteAllForecastSnapshots()
+
+    @Transaction
+    open suspend fun correctTransaction(
+        transactionId: Int,
+        newCategoryId: Int,
+        newAmount: Double,
+        newType: String,
+        newDescription: String,
+        newParticipantLabel: String,
+    ) {
+        require(newAmount.isFinite() && newAmount > 0.0) { "Invalid transaction amount" }
+        require(newType == "income" || newType == "expense") { "Invalid transaction type" }
+        val current = requireNotNull(getTransactionById(transactionId)) { "Transaction no longer exists" }
+        val oldCategory = requireNotNull(getCategoryByIdAny(current.categoryId)) { "Original category is unavailable" }
+        val newCategory = requireNotNull(getCategoryById(newCategoryId)) { "New category is unavailable" }
+        val rounded = ru.mybudget.app.MoneyFormat.roundMoney(newAmount)
+        require(rounded.isFinite() && rounded > 0.0) { "Invalid rounded amount" }
+        val revert = if (current.type == "income") -current.amount else current.amount
+        applyBalanceDelta(current.categoryId, revert)
+        applyBalanceDelta(newCategoryId, if (newType == "income") rounded else -rounded)
+        updateTransaction(current.copy(
+            categoryId = newCategoryId,
+            amount = rounded,
+            type = newType,
+            description = newDescription,
+            participantLabel = newParticipantLabel.trim(),
+            plannedIncomeSourceId = current.plannedIncomeSourceId.takeIf { newType == "income" && oldCategory.budgetId == newCategory.budgetId },
+            plannedIncomeMonth = current.plannedIncomeMonth.takeIf { newType == "income" && oldCategory.budgetId == newCategory.budgetId },
+        ))
+        if (newType != "expense") undoPaymentLinks(transactionId)
+        else {
+            updatePaymentAmount(transactionId, rounded)
+            correctServicePayment(transactionId, rounded, newCategoryId)
+            correctInsurancePayment(transactionId, rounded, newCategoryId)
+            correctFuelPayment(transactionId, rounded, newCategoryId)
+            correctRepairPayment(transactionId, rounded, newCategoryId)
+        }
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertBudgetProfile(profile: BudgetProfileEntity): Long
 
@@ -187,6 +316,23 @@ abstract class BudgetDao {
 
     @Query("SELECT * FROM transactions WHERE type = 'expense' ORDER BY date DESC LIMIT :limit")
     abstract suspend fun getRecentExpenseTransactions(limit: Int): List<TransactionEntity>
+
+    @Query("""
+        SELECT
+            CASE WHEN MIN(t.description) = MAX(t.description) THEN MIN(t.description) ELSE '' END AS description,
+            MIN(c.name) AS categoryName,
+            COUNT(DISTINCT c.id) AS categoryCount,
+            SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE -t.amount END) AS netAmount,
+            MAX(t.date) AS date,
+            COUNT(DISTINCT t.type) > 1 AS mixedTypes,
+            CASE WHEN t.groupId IS NULL OR TRIM(t.groupId) = '' THEN 'tx:' || t.id ELSE 'group:' || t.groupId END AS entryKey
+        FROM transactions t
+        INNER JOIN categories c ON c.id = t.categoryId
+        WHERE c.budgetId = :budgetId
+        GROUP BY entryKey
+        ORDER BY date DESC, MAX(t.id) DESC LIMIT :limit
+    """)
+    abstract suspend fun getRecentDashboardTransactions(budgetId: Int, limit: Int): List<RecentDashboardTransaction>
 
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY date DESC")
     abstract fun getTransactionsByCategory(categoryId: Int): Flow<List<TransactionEntity>>
@@ -500,7 +646,7 @@ abstract class BudgetDao {
     @Transaction
     open suspend fun recordBalanceSnapshotForBudget(budgetId: Int) {
         val total = getRootBalanceSumForBudget(budgetId)
-        val dayKey = System.currentTimeMillis() / 86_400_000L
+        val dayKey = java.time.LocalDate.now().toEpochDay()
         upsertBalanceSnapshot(
             BalanceSnapshotEntity(
                 budgetId = budgetId,
@@ -532,10 +678,10 @@ abstract class BudgetDao {
 
     @Transaction
     open suspend fun applyBalanceDelta(categoryId: Int, amount: Double) {
-        val category = getCategoryById(categoryId) ?: return
+        val category = getCategoryByIdAny(categoryId) ?: error("Статья операции отсутствует")
         updateCategory(category.copy(currentBalance = category.currentBalance + amount))
         if (category.parentId != 0) {
-            val parent = getCategoryById(category.parentId) ?: return
+            val parent = requireNotNull(getCategoryByIdAny(category.parentId)) { "Родительская статья отсутствует" }
             updateCategory(parent.copy(currentBalance = parent.currentBalance + amount))
         }
         recordBalanceSnapshotForCategory(categoryId)
@@ -551,6 +697,8 @@ abstract class BudgetDao {
         date: Long = System.currentTimeMillis(),
         participantLabel: String = "",
     ) {
+        require(amount.isFinite() && amount > 0.0 && type in listOf("income", "expense")) { "Некорректная операция" }
+        requireNotNull(getCategoryById(categoryId)) { "Статья недоступна" }
         insertTransaction(
             TransactionEntity(
                 categoryId = categoryId,
@@ -567,18 +715,26 @@ abstract class BudgetDao {
     }
 
     @Transaction
+    open suspend fun recordSingleWithRequest(categoryId: Int, amount: Double, type: String,
+        description: String, participantLabel: String, requestId: String) {
+        if (getTransactionsByGroupId(requestId).isNotEmpty() || claimMoneyCommand(MoneyCommandEntity(requestId)) == -1L) return
+        recordTransaction(categoryId, amount, type, description, groupId = requestId, participantLabel = participantLabel)
+    }
+
+    @Transaction
     open suspend fun revertAndDeleteTransaction(transaction: TransactionEntity) {
-        val delta = if (transaction.type == "income") -transaction.amount else transaction.amount
-        applyBalanceDelta(transaction.categoryId, delta)
-        deleteTransaction(transaction.id)
+        val current = getTransactionById(transaction.id) ?: return
+        val delta = if (current.type == "income") -current.amount else current.amount
+        applyBalanceDelta(current.categoryId, delta)
+        undoPaymentLinks(current.id)
+        deleteTransaction(current.id)
     }
 
     @Transaction
     open suspend fun cancelTransactionGroup(groupId: String) {
         val txs = getTransactionsByGroupId(groupId)
         for (transaction in txs) {
-            val delta = if (transaction.type == "income") -transaction.amount else transaction.amount
-            applyBalanceDelta(transaction.categoryId, delta)
+            revertAndDeleteTransaction(transaction)
         }
         deleteTransactionsByGroupId(groupId)
     }
@@ -592,6 +748,8 @@ abstract class BudgetDao {
         groupId: String,
         date: Long,
     ) {
+        if (getTransactionsByGroupId(groupId).isNotEmpty()) return
+        require(categoryIds.size == amounts.size && categoryIds.isNotEmpty())
         for (index in categoryIds.indices) {
             recordTransaction(
                 categoryId = categoryIds[index],
@@ -605,7 +763,30 @@ abstract class BudgetDao {
     }
 
     @Transaction
-    open suspend fun transferBetweenLeafCategories(fromId: Int, toId: Int, amount: Double) {
+    open suspend fun transferBetweenLeafCategories(fromId: Int, toId: Int, amount: Double, requestId: String? = null) {
+        if (requestId != null && claimMoneyCommand(MoneyCommandEntity(requestId)) == -1L) return
+        require(amount.isFinite() && amount > 0.0 && fromId != toId)
+        val from = requireNotNull(getCategoryById(fromId))
+        requireNotNull(getCategoryById(toId))
+        require(from.currentBalance + 0.001 >= amount) { "Недостаточно средств" }
+        applyBalanceDelta(fromId, -amount)
+        applyBalanceDelta(toId, amount)
+    }
+
+    @Transaction
+    open suspend fun distributeBalance(fromId: Int, ids: IntArray, amounts: DoubleArray, requestId: String? = null) {
+        if (requestId != null && claimMoneyCommand(MoneyCommandEntity(requestId)) == -1L) return
+        require(ids.isNotEmpty() && ids.size == amounts.size)
+        val from = requireNotNull(getCategoryById(fromId))
+        require(amounts.all { it.isFinite() && it > 0.0 } && ids.none { it == fromId })
+        require(from.currentBalance + 0.001 >= amounts.sum()) { "Недостаточно средств" }
+        for (index in ids.indices) transferBetweenLeafCategories(fromId, ids[index], amounts[index])
+    }
+
+    @Transaction
+    open suspend fun relocateCategoryBalance(fromId: Int, toId: Int, amount: Double) {
+        require(amount.isFinite() && fromId != toId)
+        requireNotNull(getCategoryById(fromId)); requireNotNull(getCategoryById(toId))
         applyBalanceDelta(fromId, -amount)
         applyBalanceDelta(toId, amount)
     }

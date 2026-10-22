@@ -39,7 +39,6 @@ class UtilityPropertiesActivity : AppCompatActivity() {
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.utility_properties_title),
-            getString(R.string.main_icon_utilities),
         )
         adapter = PropertiesAdapter()
         findViewById<RecyclerView>(R.id.utilityPropertiesRecycler).apply {

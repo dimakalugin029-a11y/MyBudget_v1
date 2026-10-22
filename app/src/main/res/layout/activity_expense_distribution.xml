@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:id="@+id/expenseDistributionRoot"
     android:background="@color/background_light"
@@ -9,114 +11,140 @@
     android:paddingBottom="@dimen/space_8"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingHorizontal="@dimen/space_16">
+    android:paddingHorizontal="@dimen/space_16"
+    android:fitsSystemWindows="true">
     <include
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="@dimen/space_12"
-        layout="@layout/include_screen_header"/>
-    <include
-        android:id="@+id/expenseDistributionHint"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        layout="@layout/include_dismissible_hint"/>
-    <androidx.cardview.widget.CardView
-        android:id="@+id/distributionFormGroup"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="@dimen/space_12"
-        app:cardBackgroundColor="@android:color/transparent"
-        app:cardElevation="0dp">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/transaction_hero_card_bg_expense"
-            android:orientation="vertical"
-            android:padding="@dimen/space_16">
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:letterSpacing="0.06"
-                android:text="@string/expense_distribution_total_label"
-                android:textAllCaps="true"
-                android:textColor="@color/transaction_hero_expense_text_secondary"
-                android:textSize="11sp" />
-            <EditText
-                android:id="@+id/totalExpenseInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_8"
-                android:background="@drawable/transaction_hero_amount_field"
-                android:hint="@string/expense_distribution_total_hint"
-                android:inputType="numberDecimal"
-                android:padding="@dimen/space_12"
-                android:textColor="@color/transaction_hero_text_primary"
-                android:textColorHint="@color/transaction_hero_text_hint"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_16"
-                android:letterSpacing="0.06"
-                android:text="@string/expense_distribution_note_label"
-                android:textAllCaps="true"
-                android:textColor="@color/transaction_hero_expense_text_secondary"
-                android:textSize="11sp" />
-            <EditText
-                android:id="@+id/expenseNoteInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_8"
-                android:background="@drawable/transaction_hero_amount_field"
-                android:hint="@string/expense_distribution_note_hint"
-                android:padding="@dimen/space_12"
-                android:textColor="@color/transaction_hero_text_primary"
-                android:textColorHint="@color/transaction_hero_text_hint"
-                android:textSize="16sp" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-    <LinearLayout
-        android:orientation="vertical"
-        android:id="@+id/distributionControlsGroup"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <LinearLayout
-            android:orientation="horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8">
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/addCategoryButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/distribution_add_categories"
-                android:layout_weight="1"
-                android:layout_marginEnd="@dimen/space_6"
-                app:cornerRadius="@dimen/radius_10"
-                app:strokeColor="@color/budget_blue"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/distributeRemainderButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/expense_distribution_remainder"
-                android:layout_weight="1"
-                android:layout_marginStart="@dimen/space_6"
-                app:cornerRadius="@dimen/radius_10"
-                app:strokeColor="@color/expense_red"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        </LinearLayout>
-    </LinearLayout>
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/categoriesRecyclerView"
-        android:paddingBottom="@dimen/space_8"
-        android:clipToPadding="false"
+        layout="@layout/include_screen_header" />
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/expenseDistributionScroll"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:fillViewport="true">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/space_16">
+            <include
+                android:id="@+id/expenseDistributionHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                layout="@layout/include_dismissible_hint" />
+            <androidx.cardview.widget.CardView
+                android:id="@+id/distributionFormGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/space_12"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardElevation="0dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/card_background"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_16">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:letterSpacing="0.06"
+                        android:text="@string/expense_distribution_total_label"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+                    <EditText
+                        android:id="@+id/totalExpenseInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_8"
+                        android:background="@drawable/operation_input_bg"
+                        android:hint="@string/expense_distribution_total_hint"
+                        android:inputType="numberDecimal"
+                        android:padding="@dimen/space_12"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        style="@style/Widget.MyBudget.OperationInput"
+                        android:minHeight="56dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_16"
+                        android:letterSpacing="0.06"
+                        android:text="@string/expense_distribution_note_label"
+                        android:textAllCaps="false"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp" />
+                    <EditText
+                        android:id="@+id/expenseNoteInput"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_8"
+                        android:background="@drawable/operation_input_bg"
+                        android:hint="@string/expense_distribution_note_hint"
+                        android:padding="@dimen/space_12"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_secondary"
+                        android:textSize="16sp"
+                        style="@style/Widget.MyBudget.OperationInput"
+                        android:minHeight="56dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+            <LinearLayout
+                android:orientation="vertical"
+                android:id="@+id/distributionControlsGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <LinearLayout
+                    android:orientation="horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_8">
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/addCategoryButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_min_size"
+                        android:text="@string/distribution_add_categories"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="@dimen/space_6"
+                        app:cornerRadius="@dimen/radius_12"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/distributeRemainderButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="@dimen/touch_min_size"
+                        android:text="@string/expense_distribution_remainder"
+                        android:layout_weight="1"
+                        android:layout_marginStart="@dimen/space_6"
+                        app:cornerRadius="@dimen/radius_12"
+                        style="@style/Widget.Material3.Button.OutlinedButton" />
+                </LinearLayout>
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/categoriesRecyclerView"
+                android:paddingBottom="@dimen/space_8"
+                android:clipToPadding="false"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false" />
+            <TextView
+                android:textSize="16sp"
+                android:gravity="center"
+                android:layout_gravity="center"
+                android:id="@+id/emptyText"
+                android:visibility="gone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/distribution_add_categories_hint"
+                style="@style/Text.MyBudget.Subtitle" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -135,7 +163,7 @@
             android:textColor="@color/main_hero_text_primary"
             android:textSize="16sp"
             android:textStyle="bold"
-            style="@style/Text.MyBudget.Section"/>
+            style="@style/Text.MyBudget.Section" />
     </androidx.cardview.widget.CardView>
     <com.google.android.material.button.MaterialButton
         android:enabled="false"
@@ -144,24 +172,13 @@
         android:layout_height="wrap_content"
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/expense_distribution_submit"
-        app:backgroundTint="@color/expense_red"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button" />
     <ProgressBar
         android:layout_gravity="center"
         android:id="@+id/progressBar"
         android:visibility="gone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_24"/>
-    <TextView
-        android:textSize="16sp"
-        android:gravity="center"
-        android:layout_gravity="center"
-        android:id="@+id/emptyText"
-        android:visibility="gone"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/distribution_add_categories_hint"
-        style="@style/Text.MyBudget.Subtitle"/>
+        android:layout_marginTop="@dimen/space_24" />
 </LinearLayout>

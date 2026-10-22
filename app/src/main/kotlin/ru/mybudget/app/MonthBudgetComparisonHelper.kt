@@ -42,7 +42,7 @@ object MonthBudgetComparisonHelper {
         }
         val startMs = startCal.timeInMillis
         startCal.add(Calendar.MONTH, 1)
-        val endMs = startCal.timeInMillis - 1
+        val endMs = startCal.timeInMillis
         return startMs to endMs
     }
 
@@ -64,7 +64,7 @@ object MonthBudgetComparisonHelper {
         fromMs: Long,
         toMs: Long,
     ): MonthSnapshot {
-        val inPeriod = transactions.filter { it.date in fromMs..toMs }
+        val inPeriod = transactions.filter { it.date >= fromMs && it.date < toMs }
         val totals = StatisticsPeriodComparisonHelper.periodTotals(inPeriod)
         val topExpenses = topExpenseCategories(inPeriod, categories, limit = 5)
         return MonthSnapshot(

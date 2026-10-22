@@ -22,15 +22,24 @@ class ExpenseActivity : AppCompatActivity() {
     private lateinit var selectedBalanceText: TextView
     private lateinit var budgetNameText: TextView
     private var leafOptions: List<LeafOption> = emptyList()
+    private var saving = false
+    private var requestId = java.util.UUID.randomUUID().toString()
+    private var selectedCategoryId = -1
+    private var categoriesJob: kotlinx.coroutines.Job? = null
+    private var categoriesLoading = false
+    private var categoryLoadGeneration = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_expense)
         manager = BudgetManager.getInstance(this)
+        requestId = savedInstanceState?.getString("expense_request")
+            ?: intent.getStringExtra(BudgetIntentExtras.OPERATION_REQUEST_ID) ?: requestId
+        selectedCategoryId = savedInstanceState?.getInt("expense_category", -1)
+            ?: intent.getIntExtra(BudgetIntentExtras.CATEGORY_ID, -1)
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.budget_add_expense_title),
-            getString(R.string.main_icon_expense),
         )
         findViewById<View>(R.id.expenseHint)?.let {
             ScreenHintHelper.bind(this, it, ScreenHintHelper.Keys.EXPENSE, R.string.hint_expense, showHelpLink = false)
@@ -38,15 +47,21 @@ class ExpenseActivity : AppCompatActivity() {
         amountInput = findViewById(R.id.expenseAmount)
         categorySpinner = findViewById(R.id.expenseCategory)
         descriptionInput = findViewById(R.id.expenseDescription)
+        if (savedInstanceState == null) {
+            intent.getStringExtra(BudgetIntentExtras.OPERATION_AMOUNT_TEXT)?.let { amountInput.setText(it) }
+            intent.getStringExtra(BudgetIntentExtras.OPERATION_DESCRIPTION)?.let { descriptionInput.setText(it) }
+        }
+        OperationFormUi.bindAmount(this, amountInput) { categorySpinner.performClick() }
         selectedBalanceText = findViewById(R.id.selectedBalanceText)
         budgetNameText = findViewById(R.id.transactionBudgetNameText)
         findViewById<View>(R.id.transactionBudgetPicker).setOnClickListener {
-            BudgetPicker.show(this, onSwitched = { loadCategories() })
+            if (!saving && !categoriesLoading) BudgetPicker.show(this, onSwitched = { selectedCategoryId = -1; loadCategories() })
         }
         findViewById<View>(R.id.saveExpenseButton).setOnClickListener { save() }
         findViewById<View>(R.id.distributeExpenseButton).setOnClickListener { openDistribution() }
         categorySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                selectedCategoryId = leafOptions.getOrNull(position)?.category?.id ?: -1
                 updateBalanceHint()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -59,14 +74,20 @@ class ExpenseActivity : AppCompatActivity() {
     }
 
     private fun loadCategories() {
-        lifecycleScope.launch {
+        val generation = ++categoryLoadGeneration
+        categoriesJob?.cancel()
+        categoriesLoading = true
+        findViewById<View>(R.id.saveExpenseButton).isEnabled = false
+        findViewById<View>(R.id.distributeExpenseButton).isEnabled = false
+        categoriesJob = lifecycleScope.launch {
+          try {
             manager.getCategoriesAsync()
             val profiles = manager.getBudgetProfilesAsync()
             val activeId = manager.getActiveBudgetId()
             budgetNameText.text = profiles.firstOrNull { it.id == activeId }?.name
                 ?: getString(R.string.budget_profiles_default_name)
-            val preferredId = intent.getIntExtra(BudgetIntentExtras.CATEGORY_ID, -1)
-            val leaves = manager.getCategoriesForExpenses()
+            val preferredId = selectedCategoryId
+            val leaves = manager.getCategoriesForExpenses().filter { it.isActive }
             leafOptions = leaves.map { leaf ->
                 val parentName = manager.getCategories().firstOrNull { it.id == leaf.parentId }?.name
                 LeafOption(leaf, if (parentName.isNullOrBlank()) leaf.name else "$parentName → ${leaf.name}")
@@ -74,20 +95,33 @@ class ExpenseActivity : AppCompatActivity() {
             if (leafOptions.isEmpty()) {
                 categorySpinner.adapter = ArrayAdapter(
                     this@ExpenseActivity,
-                    android.R.layout.simple_spinner_dropdown_item,
-                    listOf(getString(R.string.error_no_categories)),
+                    R.layout.item_operation_spinner,
+                    listOf(getString(R.string.operation_missing_categories)),
                 )
+                categorySpinner.isEnabled = false
                 selectedBalanceText.visibility = View.GONE
                 return@launch
             }
             categorySpinner.adapter = ArrayAdapter(
                 this@ExpenseActivity,
-                android.R.layout.simple_spinner_dropdown_item,
+                R.layout.item_operation_spinner,
                 leafOptions.map { it.label },
-            )
+            ).apply { setDropDownViewResource(R.layout.item_operation_spinner_dropdown) }
+            categorySpinner.isEnabled = true
             val index = leafOptions.indexOfFirst { it.category.id == preferredId }.takeIf { it >= 0 } ?: 0
             categorySpinner.setSelection(index)
             updateBalanceHint()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (_: Exception) {
+            leafOptions = emptyList()
+            Toast.makeText(this@ExpenseActivity, R.string.operation_categories_error, Toast.LENGTH_LONG).show()
+          } finally {
+            if (generation == categoryLoadGeneration) {
+                categoriesLoading = false
+                findViewById<View>(R.id.saveExpenseButton).isEnabled = !saving && leafOptions.isNotEmpty()
+                findViewById<View>(R.id.distributeExpenseButton).isEnabled = !saving
+            }
+          }
         }
     }
 
@@ -104,16 +138,8 @@ class ExpenseActivity : AppCompatActivity() {
     }
 
     private fun save() {
-        val amountText = amountInput.text.toString()
-        if (amountText.isBlank()) {
-            Toast.makeText(this, R.string.expense_enter_amount, Toast.LENGTH_SHORT).show()
-            return
-        }
-        val amount = MoneyFormat.parse(amountText)
-        if (amount == null || amount <= 0.0) {
-            Toast.makeText(this, R.string.error_invalid_amount, Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (saving || categoriesLoading) return
+        val amount = OperationFormUi.amount(amountInput, R.string.expense_enter_amount) ?: return
         val option = selectedOption()
         if (option == null) {
             Toast.makeText(this, R.string.error_select_leaf_category, Toast.LENGTH_SHORT).show()
@@ -122,8 +148,14 @@ class ExpenseActivity : AppCompatActivity() {
         val description = descriptionInput.text.toString().trim().ifBlank {
             getString(R.string.transaction_expense)
         }
+        saving = true
+        categorySpinner.isEnabled = false
+        amountInput.isEnabled = false
+        descriptionInput.isEnabled = false
+        findViewById<View>(R.id.saveExpenseButton).isEnabled = false
         lifecycleScope.launch {
-            manager.recordTransaction(option.category.id, amount, "expense", description)
+          try {
+            manager.recordTransaction(option.category.id, amount, "expense", description, requestId = requestId)
             QuickExpensePreferences.saveLastExpense(
                 this@ExpenseActivity,
                 option.category.id,
@@ -146,13 +178,25 @@ class ExpenseActivity : AppCompatActivity() {
             ).show()
             amountInput.text.clear()
             descriptionInput.text.clear()
+            requestId = java.util.UUID.randomUUID().toString()
             loadCategories()
+          } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+          } catch (error: Exception) {
+            Toast.makeText(this@ExpenseActivity, R.string.operation_save_error, Toast.LENGTH_LONG).show()
+          } finally {
+            saving = false
+            categorySpinner.isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
+            amountInput.isEnabled = true
+            descriptionInput.isEnabled = true
+            findViewById<View>(R.id.saveExpenseButton).isEnabled = !categoriesLoading && leafOptions.isNotEmpty()
+          }
         }
     }
 
     private fun selectedOption(): LeafOption? = leafOptions.getOrNull(categorySpinner.selectedItemPosition)
 
     private fun openDistribution() {
+        if (saving || categoriesLoading) return
         val intent = Intent(this, ExpenseDistributionActivity::class.java)
             .putExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
         MoneyFormat.parse(amountInput.text)?.takeIf { it > 0.0 }?.let {
@@ -166,4 +210,9 @@ class ExpenseActivity : AppCompatActivity() {
     }
 
     private data class LeafOption(val category: BudgetCategory, val label: String)
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("expense_request", requestId)
+        outState.putInt("expense_category", selectedOption()?.category?.id ?: selectedCategoryId)
+        super.onSaveInstanceState(outState)
+    }
 }

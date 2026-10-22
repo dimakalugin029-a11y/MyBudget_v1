@@ -20,7 +20,7 @@ object StatisticsPeriodComparisonHelper {
 
     fun previousRange(fromMs: Long, toMs: Long): Pair<Long, Long> {
         val duration = (toMs - fromMs).coerceAtLeast(0L)
-        val prevTo = fromMs - 1
+        val prevTo = fromMs
         val prevFrom = prevTo - duration
         return prevFrom to prevTo
     }

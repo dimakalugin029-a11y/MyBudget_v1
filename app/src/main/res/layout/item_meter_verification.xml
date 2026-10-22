@@ -34,7 +34,6 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_2"
                     android:text="@string/meter_verification_caption"
-                    android:textSize="12sp"
                     style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
             <TextView

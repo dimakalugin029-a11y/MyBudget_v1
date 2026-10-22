@@ -39,7 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/space_8"
             android:text="@string/forecast_show_details"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            style="@style/Widget.MyBudget.Button.Outlined"/>
         <TextView
             android:id="@+id/forecastVsFactDetails"
             android:layout_width="match_parent"

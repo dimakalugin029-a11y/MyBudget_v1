@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="budget_order">Порядок</string>
+    <string name="budget_order_done">Готово</string>
+    <string name="budget_order_hint">Удерживайте ≡ и перетаскивайте. Нажмите ≡, чтобы переместить вверх или вниз. Для сортировки показаны все статьи.</string>
+    <string name="budget_order_named">Изменить порядок: %1$s</string>
+    <string name="budget_order_failed">Не удалось сохранить порядок. Повторите попытку.</string>
+    <string name="budget_expand_all_label">Развернуть всё</string>
+    <string name="budget_collapse_all_label">Свернуть всё</string>
+    <string name="budget_expand_named">Развернуть подстатьи: %1$s</string>
+    <string name="budget_collapse_named">Свернуть подстатьи: %1$s</string>
+    <string name="budget_category_actions">Действия: %1$s</string>
+    <string name="budget_row_balance">Остаток: %1$s</string>
+    <string name="budget_row_usage">Потрачено: %1$s из %2$s</string>
+    <string name="budget_filter_empty">Нет статей по этому фильтру. Выберите «Все» или другой фильтр.</string>
+</resources>

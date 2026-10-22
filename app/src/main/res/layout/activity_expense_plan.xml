@@ -58,7 +58,7 @@
                         android:maxLines="1"
                         android:text="@string/budget_profiles_default_name"
                         android:textColor="@color/main_hero_text_primary"
-                        android:textSize="13sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
                     <TextView
                         android:layout_width="wrap_content"
@@ -66,7 +66,7 @@
                         android:layout_marginStart="@dimen/space_4"
                         android:text="@string/ui_chevron_down"
                         android:textColor="@color/screen_hero_blue_text_secondary"
-                        android:textSize="11sp" />
+                        android:textSize="14sp" />
                 </LinearLayout>
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/expensePlanPrevMonth"
@@ -78,10 +78,10 @@
                     android:paddingHorizontal="@dimen/space_8"
                     android:text="@string/expense_plan_prev_month"
                     android:textColor="@color/main_hero_text_primary"
-                    android:textSize="13sp"
-                    app:cornerRadius="@dimen/radius_10"
+                    android:textSize="14sp"
+                    app:cornerRadius="@dimen/radius_12"
                     app:strokeColor="@color/main_hero_text_primary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
                 <TextView
                     android:id="@+id/expensePlanMonthLabel"
                     android:layout_width="wrap_content"
@@ -102,10 +102,10 @@
                     android:paddingHorizontal="@dimen/space_8"
                     android:text="@string/expense_plan_next_month"
                     android:textColor="@color/main_hero_text_primary"
-                    android:textSize="13sp"
-                    app:cornerRadius="@dimen/radius_10"
+                    android:textSize="14sp"
+                    app:cornerRadius="@dimen/radius_12"
                     app:strokeColor="@color/main_hero_text_primary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
             </LinearLayout>
             <TextView
                 android:id="@+id/expensePlanSummaryLine"
@@ -113,7 +113,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_6"
                 android:textColor="@color/main_hero_text_primary"
-                android:textSize="13sp"
                 style="@style/Text.MyBudget.Subtitle"/>
             <TextView
                 android:id="@+id/expensePlanSelectHint"
@@ -122,7 +121,6 @@
                 android:layout_marginTop="@dimen/space_4"
                 android:text="@string/expense_plan_select_hint"
                 android:textColor="@color/screen_hero_blue_text_secondary"
-                android:textSize="12sp"
                 style="@style/Text.MyBudget.Subtitle"/>
             <LinearLayout
                 android:id="@+id/expensePlanActions"
@@ -139,10 +137,10 @@
                     android:minHeight="@dimen/chip_height"
                     android:text="@string/expense_plan_fill_defaults"
                     android:textColor="@color/main_hero_text_primary"
-                    android:textSize="11sp"
-                    app:cornerRadius="@dimen/radius_10"
+                    android:textSize="14sp"
+                    app:cornerRadius="@dimen/radius_12"
                     app:strokeColor="@color/main_hero_text_primary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/expensePlanSaveDefaults"
                     android:layout_width="0dp"
@@ -152,10 +150,10 @@
                     android:minHeight="@dimen/chip_height"
                     android:text="@string/expense_plan_save_defaults"
                     android:textColor="@color/main_hero_text_primary"
-                    android:textSize="11sp"
-                    app:cornerRadius="@dimen/radius_10"
+                    android:textSize="14sp"
+                    app:cornerRadius="@dimen/radius_12"
                     app:strokeColor="@color/main_hero_text_primary"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
@@ -167,9 +165,8 @@
         android:minHeight="@dimen/touch_min_size"
         android:text="@string/expense_plan_add_categories"
         android:visibility="gone"
-        app:backgroundTint="@color/income_green"
-        app:cornerRadius="@dimen/radius_10"
-        style="@style/Widget.MaterialComponents.Button"/>
+        app:cornerRadius="@dimen/radius_12"
+        style="@style/Widget.MyBudget.Button"/>
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/expensePlanRecycler"
         android:paddingBottom="@dimen/space_8"

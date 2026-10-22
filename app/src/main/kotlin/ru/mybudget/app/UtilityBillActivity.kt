@@ -55,7 +55,6 @@ class UtilityBillActivity : AppCompatActivity() {
         ScreenHeaderHelper.setup(
             this,
             getString(R.string.utility_bill_screen_title),
-            getString(R.string.main_icon_utilities),
         )
         billId = intent.getIntExtra(UtilitiesActivity.EXTRA_BILL_ID, 0)
         if (savedInstanceState != null) {
@@ -180,6 +179,11 @@ class UtilityBillActivity : AppCompatActivity() {
     }
 
     private fun updatePayButtonState(bill: UtilityBillEntity) {
+        findViewById<TextView>(R.id.billPaymentStatusText).setText(when {
+            UtilityLegacyPaymentHelper.isLegacyPaid(bill) -> R.string.utility_paid_legacy_summary
+            bill.budgetPaidAt != null -> R.string.design_utility_paid
+            else -> R.string.design_utility_unmarked
+        })
         val btn = findViewById<MaterialButton>(R.id.payFromBudgetButton)
         if (bill.budgetPaidAt != null) {
             btn.setText(R.string.utility_edit_payment)

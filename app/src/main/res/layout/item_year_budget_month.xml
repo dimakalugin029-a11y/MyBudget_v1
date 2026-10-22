@@ -20,16 +20,17 @@
                 android:layout_height="wrap_content"
                 android:textStyle="bold"
                 android:textSize="15sp"
-                android:textColor="@color/main_hero_text_primary"/>
+                android:textColor="@color/text_primary"/>
             <TextView
                 android:id="@+id/yearBudgetMonthTotals"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_4"
                 android:textSize="13sp"
-                android:textColor="@color/main_hero_text_primary"/>
+                android:textColor="@color/text_primary"/>
             <TextView
                 android:id="@+id/yearBudgetMonthDelta"
+                android:textColor="@color/text_primary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_2"
@@ -37,6 +38,7 @@
                 android:visibility="gone"/>
             <TextView
                 android:id="@+id/yearBudgetMonthDetails"
+                android:textColor="@color/text_primary"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_6"
@@ -56,9 +58,11 @@
                     android:minWidth="0dp"
                     android:paddingHorizontal="@dimen/space_12"
                     android:text="@string/year_budget_edit_month"
+                    android:textColor="@color/md_theme_primary"
                     android:textSize="13sp"
-                    app:cornerRadius="@dimen/radius_10"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    app:strokeColor="@color/md_theme_outline"
+                    app:cornerRadius="@dimen/radius_12"
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/yearBudgetMonthToggle"
                     android:layout_width="wrap_content"
@@ -66,9 +70,11 @@
                     android:minWidth="0dp"
                     android:paddingHorizontal="@dimen/space_12"
                     android:text="@string/forecast_show_details"
+                    android:textColor="@color/md_theme_primary"
                     android:textSize="13sp"
-                    app:cornerRadius="@dimen/radius_10"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    app:strokeColor="@color/md_theme_outline"
+                    app:cornerRadius="@dimen/radius_12"
+                    style="@style/Widget.MyBudget.Button.Outlined"/>
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>

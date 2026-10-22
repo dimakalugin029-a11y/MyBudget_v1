@@ -1,108 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginStart="@dimen/budget_child_indent"
-    android:layout_marginEnd="@dimen/space_4"
-    android:layout_marginBottom="@dimen/space_6"
-    android:background="@drawable/budget_leaf_row_bg"
-    android:foreground="?attr/selectableItemBackground"
-    android:paddingHorizontal="@dimen/space_10"
-    android:paddingVertical="@dimen/space_8">
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="top">
-        <View
-            android:id="@+id/colorStrip"
-            android:layout_width="4dp"
-            android:layout_height="match_parent"
-            android:layout_gravity="fill_vertical"
-            android:minHeight="36dp"
-            android:layout_marginEnd="@dimen/space_8"
-            android:visibility="gone"/>
-        <LinearLayout
-            android:id="@+id/leafMainArea"
-            android:orientation="vertical"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1">
-            <LinearLayout
-                android:orientation="horizontal"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top">
-                <TextView
-                    android:id="@+id/categoryName"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:maxLines="4"
-                    android:textSize="15sp"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:id="@+id/categoryBalance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/space_8"
-                    android:textSize="15sp"
-                    style="@style/Text.MyBudget.Amount"/>
-            </LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
+    android:layout_marginStart="@dimen/space_16" android:layout_marginBottom="@dimen/space_6"
+    android:background="@drawable/budget_leaf_row_bg" android:foreground="?attr/selectableItemBackground"
+    android:padding="@dimen/space_12">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <View android:id="@+id/colorStrip" android:layout_width="4dp" android:layout_height="match_parent"
+            android:minHeight="48dp" android:layout_marginEnd="@dimen/space_10" android:visibility="gone" />
+        <LinearLayout android:id="@+id/leafMainArea" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/categoryName" style="@style/Text.MyBudget.Section" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:textSize="16sp" />
+            <TextView android:id="@+id/categoryBalance" style="@style/Text.MyBudget.Amount" android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:textSize="16sp" />
         </LinearLayout>
-        <ImageButton
-            android:id="@+id/addIncomeButton"
-            android:layout_width="@dimen/touch_min_size"
-            android:layout_height="@dimen/touch_min_size"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/budget_quick_income"
-            android:padding="@dimen/space_6"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_input_add"
-            app:tint="@color/income_green"/>
-        <TextView
-            android:id="@+id/addExpenseButton"
-            android:layout_width="@dimen/touch_min_size"
-            android:layout_height="@dimen/touch_min_size"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/budget_quick_expense"
-            android:gravity="center"
-            android:text="@string/ui_expense_minus"
-            android:textColor="@color/expense_red"
-            android:textSize="18sp"/>
-        <ImageButton
-            android:id="@+id/dragHandle"
-            android:layout_width="@dimen/touch_min_size"
-            android:layout_height="@dimen/touch_min_size"
-            android:layout_gravity="top"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/budget_drag_handle"
-            android:padding="@dimen/space_6"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_menu_more"
-            app:tint="@color/text_secondary"/>
+        <ImageButton android:id="@+id/categoryMenuButton" android:layout_width="@dimen/touch_min_size" android:layout_height="@dimen/touch_min_size"
+            android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_nav_more"
+            android:padding="@dimen/space_12" app:tint="@color/text_secondary" />
+        <ImageButton android:id="@+id/dragHandle" android:layout_width="@dimen/touch_min_size" android:layout_height="@dimen/touch_min_size"
+            android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_drag_handle"
+            android:contentDescription="@string/budget_drag_handle_desc" android:visibility="gone"
+            android:padding="@dimen/space_12" app:tint="@color/text_secondary" />
     </LinearLayout>
-    <LinearLayout
-        android:id="@+id/categoryPlanRow"
-        android:orientation="vertical"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_6"
-        android:visibility="gone">
-        <ProgressBar
-            android:id="@+id/categoryPlanProgress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100"
-            style="@android:style/Widget.ProgressBar.Horizontal"/>
-        <TextView
-            android:id="@+id/categoryPlanText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_2"
-            android:textSize="11sp"
-            style="@style/Text.MyBudget.Subtitle"/>
+    <LinearLayout android:id="@+id/categoryPlanRow" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:layout_marginTop="@dimen/space_8" android:visibility="gone">
+        <TextView android:id="@+id/categoryPlanText" style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_4" />
+        <ProgressBar android:id="@+id/categoryPlanProgress" style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent" android:layout_height="4dp" android:max="100"
+            android:progressBackgroundTint="@color/border_light" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/categoryQuickActions" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/space_8" android:orientation="horizontal">
+        <com.google.android.material.button.MaterialButton android:id="@+id/addIncomeButton" style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:minHeight="@dimen/touch_min_size"
+            android:text="@string/main_primary_income" android:textColor="@color/income_green" app:icon="@drawable/ic_nav_add"
+            app:iconTint="@color/income_green" app:iconGravity="textStart" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/addExpenseButton" style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:minHeight="@dimen/touch_min_size"
+            android:text="@string/main_primary_expense" android:textColor="@color/expense_red" app:icon="@drawable/ic_budget_minus"
+            app:iconTint="@color/expense_red" app:iconGravity="textStart" />
     </LinearLayout>
 </LinearLayout>

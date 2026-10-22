@@ -39,7 +39,6 @@
                 android:layout_marginTop="@dimen/space_4"
                 style="@style/Text.MyBudget.Amount"/>
             <TextView
-                android:textSize="12sp"
                 android:textColor="@color/primary_green"
                 android:id="@+id/budgetProfileActiveBadge"
                 android:visibility="gone"

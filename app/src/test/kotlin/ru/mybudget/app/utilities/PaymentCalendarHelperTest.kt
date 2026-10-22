@@ -10,7 +10,7 @@ import ru.mybudget.app.utilities.PaymentCalendarHelper.EntryKind
 
 class PaymentCalendarHelperTest {
     @Test
-    fun dedupeOverlappingEntries_hidesReminderWhenObligationMatches() {
+    fun dedupeOverlappingEntries_keepsIndependentPaymentsWithMatchingValues() {
         val obligation = PaymentCalendarHelper.Entry(
             epochDay = 100L,
             dateLabel = "01.09.2026",
@@ -34,10 +34,10 @@ class PaymentCalendarHelperTest {
 
         val result = PaymentCalendarHelper.dedupeOverlappingEntries(listOf(obligation, reminder, utility))
 
-        assertEquals(2, result.size)
+        assertEquals(3, result.size)
         assertTrue(result.any { it.kind == EntryKind.OBLIGATION })
         assertTrue(result.any { it.kind == EntryKind.UTILITY })
-        assertTrue(result.none { it.kind == EntryKind.REMINDER })
+        assertTrue(result.any { it.kind == EntryKind.REMINDER })
     }
 
     @Test
@@ -168,6 +168,7 @@ class PaymentCalendarHelperTest {
             paychecksPerMonth = 1,
             dueMonth = 9,
             dueDay = 15,
+            attentionStartMonth = "2026-08",
         )
 
         val result = PaymentCalendarHelper.buildEntries(

@@ -35,7 +35,6 @@
                 app:tint="@color/text_secondary"/>
         </LinearLayout>
         <TextView
-            android:textSize="13sp"
             android:textColor="@color/black"
             android:id="@+id/utilitySetupStep1"
             android:layout_width="match_parent"
@@ -44,7 +43,6 @@
             android:lineSpacingExtra="@dimen/space_2"
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
-            android:textSize="13sp"
             android:textColor="@color/black"
             android:id="@+id/utilitySetupStep2"
             android:layout_width="match_parent"
@@ -53,7 +51,6 @@
             android:lineSpacingExtra="@dimen/space_2"
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
-            android:textSize="13sp"
             android:textColor="@color/black"
             android:id="@+id/utilitySetupStep3"
             android:layout_width="match_parent"
@@ -62,7 +59,6 @@
             android:lineSpacingExtra="@dimen/space_2"
             style="@style/Text.MyBudget.Subtitle"/>
         <TextView
-            android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:id="@+id/utilitySetupNote"
             android:visibility="gone"

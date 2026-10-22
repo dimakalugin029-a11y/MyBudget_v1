@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/incomeDistributionRoot"
     android:background="@color/background_light"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
     <LinearLayout
         android:orientation="vertical"
         android:id="@+id/incomeDistributionContent"
@@ -18,40 +21,62 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"
-            layout="@layout/include_screen_header"/>
-        <include
-            android:id="@+id/incomeDistributionHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            layout="@layout/include_dismissible_hint"/>
-        <TextView
-            android:id="@+id/distributionModeHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/income_distribution_choose_mode"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <com.google.android.material.button.MaterialButton
-            android:textSize="14sp"
-            android:id="@+id/addCategoryButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:minHeight="@dimen/touch_min_size"
-            android:text="@string/distribution_add_categories"
-            app:cornerRadius="@dimen/radius_10"
-            app:icon="@android:drawable/ic_input_add"
-            app:iconGravity="textStart"
-            app:strokeColor="@color/budget_blue"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/categoriesRecyclerView"
-            android:paddingBottom="@dimen/space_8"
-            android:clipToPadding="false"
+            layout="@layout/include_screen_header" />
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/incomeDistributionScroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:fillViewport="true">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="@dimen/space_16">
+                <include
+                    android:id="@+id/incomeDistributionHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_8"
+                    layout="@layout/include_dismissible_hint" />
+                <TextView
+                    android:id="@+id/distributionModeHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_8"
+                    android:text="@string/income_distribution_choose_mode"
+                    style="@style/Text.MyBudget.SectionLabel" />
+                <com.google.android.material.button.MaterialButton
+                    android:textSize="14sp"
+                    android:id="@+id/addCategoryButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_8"
+                    android:minHeight="@dimen/touch_min_size"
+                    android:text="@string/distribution_add_categories"
+                    app:cornerRadius="@dimen/radius_12"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconGravity="textStart"
+                    style="@style/Widget.Material3.Button.OutlinedButton" />
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/categoriesRecyclerView"
+                    android:paddingBottom="@dimen/space_8"
+                    android:clipToPadding="false"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false" />
+                <TextView
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:layout_gravity="center"
+                    android:id="@+id/emptyText"
+                    android:visibility="gone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/distribution_add_categories_hint"
+                    style="@style/Text.MyBudget.Subtitle" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -70,7 +95,7 @@
                 android:textColor="@color/main_hero_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                style="@style/Text.MyBudget.Section"/>
+                style="@style/Text.MyBudget.Section" />
         </androidx.cardview.widget.CardView>
         <com.google.android.material.button.MaterialButton
             android:textSize="15sp"
@@ -79,25 +104,15 @@
             android:layout_height="wrap_content"
             android:minHeight="@dimen/touch_min_size"
             android:text="@string/income_distribution_submit"
-            app:backgroundTint="@color/income_green"
-            app:cornerRadius="@dimen/radius_10"/>
+            app:cornerRadius="@dimen/radius_12"
+            style="@style/Widget.MyBudget.Button" />
         <ProgressBar
             android:layout_gravity="center"
             android:id="@+id/progressBar"
             android:visibility="gone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_24"/>
-        <TextView
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:id="@+id/emptyText"
-            android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/distribution_add_categories_hint"
-            style="@style/Text.MyBudget.Subtitle"/>
+            android:layout_marginTop="@dimen/space_24" />
     </LinearLayout>
     <LinearLayout
         android:orientation="vertical"
@@ -110,7 +125,7 @@
         app:behavior_hideable="false"
         app:behavior_peekHeight="64dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
-        <include layout="@layout/include_bottom_sheet_handle"/>
+        <include layout="@layout/include_bottom_sheet_handle" />
         <LinearLayout
             android:orientation="vertical"
             android:id="@+id/distributionControlsGroup"
@@ -128,44 +143,32 @@
                     android:orientation="vertical"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
-                    <include
-                        android:id="@+id/incomeDistributionPlanRow"
-                        layout="@layout/include_main_list_row"/>
+                    <include android:id="@+id/incomeDistributionPlanRow" layout="@layout/include_main_list_row" />
                     <View
                         android:background="@color/border_light"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"/>
-                    <include
-                        android:id="@+id/incomeDistributionObligationsRow"
-                        layout="@layout/include_main_list_row"/>
+                        android:layout_height="1dp" />
+                    <include android:id="@+id/incomeDistributionObligationsRow" layout="@layout/include_main_list_row" />
                     <View
                         android:background="@color/border_light"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"/>
-                    <include
-                        android:id="@+id/incomeDistributionGoalsRow"
-                        layout="@layout/include_main_list_row"/>
+                        android:layout_height="1dp" />
+                    <include android:id="@+id/incomeDistributionGoalsRow" layout="@layout/include_main_list_row" />
                     <View
                         android:background="@color/border_light"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"/>
-                    <include
-                        android:id="@+id/incomeDistributionDefaultsRow"
-                        layout="@layout/include_main_list_row"/>
+                        android:layout_height="1dp" />
+                    <include android:id="@+id/incomeDistributionDefaultsRow" layout="@layout/include_main_list_row" />
                     <View
                         android:background="@color/border_light"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"/>
-                    <include
-                        android:id="@+id/incomeDistributionRemainderRow"
-                        layout="@layout/include_main_list_row"/>
+                        android:layout_height="1dp" />
+                    <include android:id="@+id/incomeDistributionRemainderRow" layout="@layout/include_main_list_row" />
                     <View
                         android:background="@color/border_light"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"/>
-                    <include
-                        android:id="@+id/incomeDistributionTemplateRow"
-                        layout="@layout/include_main_list_row"/>
+                        android:layout_height="1dp" />
+                    <include android:id="@+id/incomeDistributionTemplateRow" layout="@layout/include_main_list_row" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
         </LinearLayout>

@@ -3,298 +3,139 @@ package ru.mybudget.app
 import android.content.Context
 import kotlinx.coroutines.flow.first
 import ru.mybudget.app.data.BudgetDatabase
-import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.setup.ParticipantPreferences
 import ru.mybudget.app.setup.PendingDistributionPreferences
-import ru.mybudget.app.setup.UtilityPaymentReminderPreferences
+import ru.mybudget.app.setup.OverspendPreferences
 import ru.mybudget.app.utilities.PaymentCalendarHelper
-import ru.mybudget.app.utilities.UtilityAttentionHelper
-import ru.mybudget.app.utilities.UtilityCalendarForecastHelper
-import java.text.SimpleDateFormat
 import java.time.LocalDate
-import java.util.Calendar
-import java.util.Locale
 
-data class AttentionLine(
-    val title: String,
-    val subtitle: String? = null,
+data class AttentionLine(val title: String, val subtitle: String? = null)
+enum class AttentionTarget { PAYMENT, BUDGET, DISTRIBUTION, OBLIGATIONS, INCOME_PLAN, GOAL }
+data class AttentionItem(
+    val key: String, val line: AttentionLine, val target: AttentionTarget,
+    val priority: Int, val epochDay: Long = Long.MAX_VALUE,
+    val entry: PaymentCalendarHelper.Entry? = null, val goalId: Int? = null,
 )
-
 data class MainDashboardSummary(
-    val overspendLine: AttentionLine? = null,
-    val utilitiesLine: AttentionLine? = null,
-    val pendingDistributionLine: AttentionLine? = null,
-    val incomePlanLine: AttentionLine? = null,
-    val planSetupLine: AttentionLine? = null,
-    val upcomingPaymentsLine: AttentionLine? = null,
+    val budgetId: Int,
+    val items: List<AttentionItem>,
+    val information: String,
     val goalsLine: AttentionLine? = null,
-    val familyLine: AttentionLine? = null,
 )
 
 object MainDashboardHelper {
     suspend fun loadSummary(context: Context, budgetManager: BudgetManager): MainDashboardSummary {
         val db = BudgetDatabase.getInstance(context)
-        val dao = db.budgetDao()
-        val utilityDao = db.utilityDao()
-        val todayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val today = todayFmt.format(Calendar.getInstance().time)
-
-        val overspendCount = countOverspentCategories(context, budgetManager)
-        val overspendLine = if (overspendCount > 0) {
-            AttentionLine(
-                context.resources.getQuantityString(R.plurals.main_overspend_summary, overspendCount, overspendCount),
-            )
-        } else {
-            null
+        val active = budgetManager.getActiveBudgetId()
+        val snapshot = PaymentEventLoader.load(context, active, horizonDays = 6)
+        val today = snapshot.today.toEpochDay()
+        val actions = mutableListOf<AttentionItem>()
+        snapshot.entries.filter { !it.isIncome && !it.isForecast }.forEach { event ->
+            val status = when {
+                event.epochDay < today -> context.getString(R.string.attention_overdue)
+                event.epochDay == today -> context.getString(R.string.attention_today)
+                else -> context.getString(R.string.attention_soon)
+            }
+            val subtitle = listOf(status, event.dateLabel, event.amount?.let { MoneyFormat.formatRub(it) }.orEmpty(),
+                event.subtitle).filter { it.isNotBlank() }.joinToString(" · ")
+            actions += AttentionItem(event.eventKey, AttentionLine(event.title, subtitle), AttentionTarget.PAYMENT,
+                if (event.epochDay < today) 0 else if (event.epochDay == today) 1 else 2,
+                event.epochDay, entry = event)
         }
-
-        val utilitiesText = UtilityAttentionHelper.buildAttentionLine(context, utilityDao)
-        val utilitiesLine = utilitiesText?.let {
-            AttentionLine(context.getString(R.string.main_attention_utilities_title), it)
+        val ids = snapshot.categories.map { it.id }.toSet()
+        val plans = db.budgetDao().getMonthlyPlansForBudgetMonth(active, snapshot.today.year, snapshot.today.monthValue).associateBy { it.categoryId }
+        val spent = db.budgetDao().getExpenseSumsSince(BudgetPlanHelper.monthStartMillis()).associate { it.categoryId to it.total }
+        val parentIds = snapshot.categories.map { it.parentId }.toSet()
+        val leaves = snapshot.categories.filter { it.id !in parentIds }
+        val threshold = OverspendPreferences.getThresholdPercent(context)
+        val limits = leaves.count {
+            BudgetPlanHelper.isCategoryOverspent(BudgetCategory.fromEntity(it), spent[it.id] ?: 0.0, threshold,
+                MonthlyPlanHelper.effectivePlannedAmount(BudgetCategory.fromEntity(it), plans[it.id]))
         }
-
-        val activeId = budgetManager.getActiveBudgetId()
-        val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
-        val incomeSources = dao.getPlannedIncomeSourcesByBudgetOnce(activeId)
-        val incomeMonthly = PlannedIncomeHelper.monthlyTotal(incomeSources)
-        val obligationsMonthly = PlannedObligationHelper.totalMonthly(obligations)
-        val incomePlanLine = PlannedIncomeHelper.buildDashboardAttention(
-            context,
-            incomeMonthly,
-            obligationsMonthly,
-        )
-        val planSetupLine = PlannedObligationHelper.buildPlanSetupAttention(
-            context,
-            obligations,
-        )
-
+        if (limits > 0) actions += AttentionItem("limits:$active", AttentionLine(
+            context.getString(R.string.attention_check_limits, limits),
+            context.getString(R.string.attention_limits_hint, threshold)), AttentionTarget.BUDGET, 3)
         val pending = PendingDistributionPreferences.getPending(context)
-        val pendingDistributionLine = if (pending != null && pending.budgetId == activeId && pending.amount > 0.01) {
-            AttentionLine(context.getString(R.string.main_pending_distribution, MoneyFormat.formatRub(pending.amount)))
-        } else {
-            null
+        if (pending != null && pending.budgetId == active && pending.amount > 0.01) {
+            actions += AttentionItem("distribution:$active", AttentionLine(
+                context.getString(R.string.main_pending_distribution, MoneyFormat.formatRub(pending.amount))),
+                AttentionTarget.DISTRIBUTION, 4)
         }
-
-        val endCal = Calendar.getInstance().apply { add(Calendar.DATE, 7) }
-        val endStr = todayFmt.format(endCal.time)
-        val remindersWeek = dao.getRemindersInRange(today, endStr)
-        val recurringWeek = dao.getRecurringInRange(today, endStr)
-        val categories = budgetManager.getCategoriesAsync()
-        val categoryNames = categories.associate { it.id to it.name }
-        val totals = utilityDao.getBillGrandTotals().associate { it.billId to it.total }
-        val propertyNames = utilityDao.getAllProperties().associate { it.id to it.name }
-        val unpaidUtilityBills = utilityDao.getAllBills().mapNotNull { bill ->
-            val total = totals[bill.id] ?: 0.0
-            if (bill.budgetPaidAt == null && total > 0.0) {
-                PaymentCalendarHelper.UnpaidUtilityBill(
-                    bill = bill,
-                    total = total,
-                    propertyName = propertyNames[bill.propertyId].orEmpty(),
-                )
-            } else {
-                null
+        val noCategory = snapshot.obligations.count { it.categoryId !in ids }
+        if (noCategory > 0) actions += AttentionItem("setup:$active", AttentionLine(
+            context.getString(R.string.main_attention_plan_setup_title),
+            context.getString(R.string.attention_unlinked_count, noCategory)), AttentionTarget.OBLIGATIONS, 5)
+        if (snapshot.obligations.isNotEmpty() && snapshot.incomeSources.none { it.isActive }) {
+            actions += AttentionItem("income-setup:$active", AttentionLine(
+                context.getString(R.string.main_attention_income_plan_title),
+                context.getString(R.string.attention_income_setup)), AttentionTarget.INCOME_PLAN, 5)
+        }
+        val goalLines = mutableListOf<String>()
+        for (goal in db.budgetDao().getAllSavingsGoalsForExport().filter { it.isActive && it.categoryId in ids }) {
+            val balance = snapshot.categories.firstOrNull { it.id == goal.categoryId }?.currentBalance ?: 0.0
+            if (!AttentionRules.goalNeedsAction(balance, goal.targetAmount, goal.deadline, snapshot.today)) continue
+            val deadline = goal.deadline ?: continue
+            val due = runCatching { LocalDate.parse(deadline) }.getOrNull() ?: continue
+            val days = (due.toEpochDay() - today).toInt()
+            if (days > 6) continue
+            val progress = GoalProgressHelper.progressPercent(balance, goal.targetAmount)
+            val status = if (days < 0) context.getString(R.string.attention_overdue)
+                else if (days == 0) context.getString(R.string.attention_today) else context.getString(R.string.attention_soon)
+            val line = "${goal.name}: $progress% · $status"
+            goalLines += line
+            actions += AttentionItem("goal:${goal.id}", AttentionLine(goal.name, "$progress% · $status"),
+                AttentionTarget.GOAL, if (days < 0) 0 else if (days == 0) 1 else 2, due.toEpochDay(), goalId = goal.id)
+        }
+        val info = mutableListOf<String>()
+        val incomeOverrides = db.budgetDao().getMonthlyIncomePlansForMonth(active, snapshot.today.year, snapshot.today.monthValue)
+        val receipts = db.budgetDao().getIncomePlanTransactions(active)
+        val month = java.time.YearMonth.from(snapshot.today)
+        val progress = snapshot.incomeSources.map { source ->
+            IncomePlanAmounts.progress(source, month, incomeOverrides, receipts)
+        }
+        if (progress.isNotEmpty()) {
+            info += context.getString(R.string.income_plan_dashboard, month.toString(),
+                MoneyFormat.formatRub(progress.sumOf { it.planned }), MoneyFormat.formatRub(progress.sumOf { it.received }),
+                MoneyFormat.formatRub(progress.sumOf { it.remaining }))
+        }
+        if (snapshot.entries.any { !it.isIncome && !it.isForecast }) {
+            info += PaymentEventLoader.totalsText(context, snapshot.entries.filter { !it.isForecast })
+        }
+        val income = snapshot.entries.filter { it.isIncome }.sumOf { it.amount ?: 0.0 }
+        if (income > 0.0) info += context.getString(R.string.attention_expected_income, MoneyFormat.formatRub(income))
+        val forecast = PaymentCalendarHelper.forecastTotal(snapshot.entries)
+        if (forecast > 0.0) info += context.getString(R.string.attention_forecast_total, MoneyFormat.formatRub(forecast))
+        val participant = ParticipantPreferences.getDefaultParticipant(context)
+        if (participant.isNotBlank()) {
+            val expenses = db.budgetDao().getTransactionsInRange(BudgetPlanHelper.monthStartMillis(), System.currentTimeMillis() + 1)
+                .filter { it.categoryId in ids }
+            ParticipantFamilyHelper.buildSummary(expenses, BudgetPlanHelper.monthStartMillis(), participant)?.let {
+                info += context.getString(R.string.main_family_my_expenses, it.participantName, MoneyFormat.formatRub(it.myExpenseTotal))
             }
         }
-        val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
-            property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
-        }
-        val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
-        val todayEpochDay = LocalDate.now().toEpochDay()
-        val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
-            context,
-            utilityDao,
-            LocalDate.now(),
-            horizonDays = 7,
-        )
-        val calendarEntries = PaymentCalendarHelper.buildEntries(
-            reminders = remindersWeek,
-            recurring = recurringWeek,
-            unpaidUtilityBills = unpaidUtilityBills,
-            obligations = obligations,
-            plannedIncome = incomeSources,
-            categoryNames = categoryNames,
-            todayEpochDay = todayEpochDay,
-            horizonDays = 7,
-            utilityPaymentDays = utilityPaymentDays,
-            paidObligationPeriods = paidObligationPeriods,
-            utilityForecasts = utilityForecasts,
-        )
-        val calendarCount = calendarEntries.size
-        val weekTotal = PaymentCalendarHelper.weekPaymentTotal(calendarEntries)
-        val upcomingPaymentsLine = if (calendarCount > 0) {
-            val subtitle = if (weekTotal > 0.0) {
-                context.getString(R.string.main_upcoming_week_total, MoneyFormat.formatRub(weekTotal))
-            } else {
-                null
+        return MainDashboardSummary(active, actions.distinctBy { it.key }
+            .sortedWith(compareBy({ it.priority }, { it.epochDay }, { it.key })), info.joinToString("\n"),
+            goalLines.takeIf { it.isNotEmpty() }?.let { AttentionLine(context.getString(R.string.main_attention_goals_title), it.joinToString("\n")) })
+    }
+
+    suspend fun loadMonthForecast(budgetManager: BudgetManager, totalBalance: Double): MonthForecastHelper.MonthForecast? {
+        val inputs = ForecastDataLoader.load(budgetManager, budgetManager.getActiveBudgetId(),
+            ForecastHelper.Horizon.QUARTER, ForecastHelper.Scenario.OPTIMISTIC)
+        val month = ForecastHelper.build(inputs).months.firstOrNull() ?: return null
+        val today = inputs.today
+        val daysLeft = (today.lengthOfMonth() - today.dayOfMonth).coerceAtLeast(1)
+        return MonthForecastHelper.MonthForecast(month.projectedEndBalance,
+            today.withDayOfMonth(today.lengthOfMonth()).format(java.time.format.DateTimeFormatter.ofPattern("d.MM")),
+            MoneyFormat.roundMoney(month.net / daysLeft))
+    }
+    suspend fun loadSafeToSpend(context: Context, budgetManager: BudgetManager, totalBalance: Double): SalaryCycleHelper.SafeToSpendInfo? {
+        val snapshot = PaymentEventLoader.load(context, budgetManager.getActiveBudgetId(), horizonDays = 60)
+        return SalaryCycleHelper.compute(totalBalance, snapshot.incomeSources,
+            snapshot.entries.filterNot { it.isGlobal || it.isForecast }, snapshot.today, useCalendarIncome = true)
+            ?: run {
+                val end = snapshot.today.withDayOfMonth(snapshot.today.lengthOfMonth()).toEpochDay()
+                val committed = PaymentCalendarHelper.weekPaymentTotal(snapshot.entries.filter { it.epochDay <= end })
+                SalaryCycleHelper.computeMonthFallback((totalBalance - committed).coerceAtLeast(0.0))
             }
-            AttentionLine(
-                context.resources.getQuantityString(
-                    R.plurals.main_upcoming_payments_summary,
-                    calendarCount,
-                    calendarCount,
-                ),
-                subtitle,
-            )
-        } else {
-            null
-        }
-
-        return MainDashboardSummary(
-            overspendLine = overspendLine,
-            utilitiesLine = utilitiesLine,
-            pendingDistributionLine = pendingDistributionLine,
-            incomePlanLine = incomePlanLine,
-            planSetupLine = planSetupLine,
-            upcomingPaymentsLine = upcomingPaymentsLine,
-            goalsLine = buildUrgentGoalsLine(context, budgetManager),
-            familyLine = buildFamilyLine(context, budgetManager),
-        )
-    }
-
-    private suspend fun buildFamilyLine(context: Context, budgetManager: BudgetManager): AttentionLine? {
-        val defaultParticipant = ParticipantPreferences.getDefaultParticipant(context)
-        if (defaultParticipant.isBlank()) return null
-        val monthStart = BudgetPlanHelper.monthStartMillis()
-        val transactions = budgetManager.repository.getAllTransactions().first()
-        val summary = ParticipantFamilyHelper.buildSummary(transactions, monthStart, defaultParticipant)
-            ?: return null
-        val subtitle = if (summary.allExpenseTotal > summary.myExpenseTotal + 0.01) {
-            context.getString(R.string.main_family_all_expenses, MoneyFormat.formatRub(summary.allExpenseTotal))
-        } else {
-            null
-        }
-        return AttentionLine(
-            context.getString(
-                R.string.main_family_my_expenses,
-                summary.participantName,
-                MoneyFormat.formatRub(summary.myExpenseTotal),
-            ),
-            subtitle,
-        )
-    }
-
-    suspend fun loadMonthForecast(
-        budgetManager: BudgetManager,
-        totalBalance: Double,
-    ): MonthForecastHelper.MonthForecast? {
-        val monthStart = BudgetPlanHelper.monthStartMillis()
-        val transactions = budgetManager.repository.getAllTransactions().first()
-        val monthTransactions = transactions.filter { it.date >= monthStart }
-        return MonthForecastHelper.build(
-            currentBalance = totalBalance,
-            monthTransactions = monthTransactions,
-        )
-    }
-
-    suspend fun loadSafeToSpend(
-        context: Context,
-        budgetManager: BudgetManager,
-        totalBalance: Double,
-    ): SalaryCycleHelper.SafeToSpendInfo? {
-        val db = BudgetDatabase.getInstance(context)
-        val dao = db.budgetDao()
-        val utilityDao = db.utilityDao()
-        val activeId = budgetManager.getActiveBudgetId()
-        val incomeSources = dao.getPlannedIncomeSourcesByBudgetOnce(activeId)
-        val hasFixedPayday = incomeSources.any { it.isActive && it.dayOfMonth > 0 }
-        if (!hasFixedPayday) {
-            return SalaryCycleHelper.computeMonthFallback(totalBalance)
-        }
-
-        val todayFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val today = LocalDate.now()
-        val todayEpoch = today.toEpochDay()
-        val nextPayday = PlannedIncomeHelper.occurrencesInHorizon(incomeSources, todayEpoch, 45)
-            .firstOrNull { it.epochDay >= todayEpoch }
-            ?: return SalaryCycleHelper.computeMonthFallback(totalBalance)
-        val horizonDays = (nextPayday.epochDay - todayEpoch).toInt().coerceIn(1, 60)
-
-        val todayStr = todayFmt.format(Calendar.getInstance().time)
-        val endCal = Calendar.getInstance().apply { add(Calendar.DATE, horizonDays) }
-        val endStr = todayFmt.format(endCal.time)
-        val obligations = dao.getPlannedObligationsByBudgetOnce(activeId)
-        val categories = budgetManager.getCategoriesAsync()
-        val categoryNames = categories.associate { it.id to it.name }
-        val totals = utilityDao.getBillGrandTotals().associate { it.billId to it.total }
-        val propertyNames = utilityDao.getAllProperties().associate { it.id to it.name }
-        val unpaidUtilityBills = utilityDao.getAllBills().mapNotNull { bill ->
-            val total = totals[bill.id] ?: 0.0
-            if (bill.budgetPaidAt == null && total > 0.0) {
-                PaymentCalendarHelper.UnpaidUtilityBill(
-                    bill = bill,
-                    total = total,
-                    propertyName = propertyNames[bill.propertyId].orEmpty(),
-                )
-            } else {
-                null
-            }
-        }
-        val utilityPaymentDays = utilityDao.getAllProperties().associate { property ->
-            property.id to UtilityPaymentReminderPreferences.paymentDay(context, property.id)
-        }
-        val paidObligationPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(activeId))
-        val utilityForecasts = UtilityCalendarForecastHelper.loadForecasts(
-            context,
-            utilityDao,
-            today,
-            horizonDays = horizonDays,
-        )
-        val entries = PaymentCalendarHelper.buildEntries(
-            reminders = dao.getRemindersInRange(todayStr, endStr),
-            recurring = dao.getRecurringInRange(todayStr, endStr),
-            unpaidUtilityBills = unpaidUtilityBills,
-            obligations = obligations,
-            plannedIncome = incomeSources,
-            categoryNames = categoryNames,
-            todayEpochDay = todayEpoch,
-            horizonDays = horizonDays,
-            utilityPaymentDays = utilityPaymentDays,
-            paidObligationPeriods = paidObligationPeriods,
-            utilityForecasts = utilityForecasts,
-        )
-        return SalaryCycleHelper.compute(totalBalance, incomeSources, entries, today)
-            ?: SalaryCycleHelper.computeMonthFallback(totalBalance)
-    }
-
-    private suspend fun countOverspentCategories(context: Context, budgetManager: BudgetManager): Int {
-        if (!OverspendPreferences.isEnabled(context)) return 0
-        val threshold = OverspendPreferences.getThresholdPercent(context) / 100.0
-        val monthStart = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }.timeInMillis
-        val expenseByCategory = BudgetDatabase.getInstance(context)
-            .budgetDao()
-            .getExpenseSumsSince(monthStart)
-            .associate { it.categoryId to it.total }
-        val categories = budgetManager.getCategoriesAsync()
-        return categories.count { category ->
-            !budgetManager.hasSubcategories(category.id) &&
-                category.plannedAmount > 0.0 &&
-                (expenseByCategory[category.id] ?: 0.0) >= category.plannedAmount * threshold
-        }
-    }
-
-    private suspend fun buildUrgentGoalsLine(context: Context, budgetManager: BudgetManager): AttentionLine? {
-        val goals = budgetManager.repository.getAllSavingsGoals().first().filter { it.isActive }
-        val lines = goals.mapNotNull { goal ->
-            val progress = GoalProgressHelper.progressPercent(
-                budgetManager.getCategoryBalanceWithSubcategories(goal.categoryId),
-                goal.targetAmount,
-            )
-            val days = GoalProgressHelper.daysUntilDeadline(goal.deadline) ?: return@mapNotNull null
-            if (days > 7 && progress >= 20) return@mapNotNull null
-            val deadlineLabel = when {
-                days == 0 -> context.getString(R.string.goals_deadline_today)
-                days > 0 -> context.getString(R.string.goals_days_left, days)
-                else -> context.getString(R.string.goals_days_overdue, -days)
-            }
-            "${goal.name}: $progress% • $deadlineLabel"
-        }.take(2)
-        val subtitle = lines.joinToString("\n").ifBlank { return null }
-        return AttentionLine(context.getString(R.string.main_attention_goals_title), subtitle)
     }
 }

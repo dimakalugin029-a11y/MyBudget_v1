@@ -51,7 +51,7 @@
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".BudgetProfilesActivity" android:exported="false" />
         <activity android:name=".BudgetActivity" android:exported="false" />
-        <activity android:name=".IncomeActivity" android:exported="false" />
+        <activity android:name=".IncomeActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".IncomeDistributionActivity"
             android:exported="false"
@@ -62,7 +62,7 @@
             android:name=".QuickExpenseActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
-        <activity android:name=".ExpenseActivity" android:exported="false" />
+        <activity android:name=".ExpenseActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".ExpenseDistributionActivity"
             android:exported="false"
@@ -85,6 +85,7 @@
         <activity android:name=".RecurringActivity" android:exported="false" />
         <activity android:name=".UtilitiesActivity" android:exported="false" />
         <activity android:name=".AutoActivity" android:exported="false" />
+        <activity android:name=".AutoStatisticsActivity" android:exported="false" />
         <activity android:name=".UtilityPropertiesActivity" android:exported="false" />
         <activity android:name=".UtilityBillActivity" android:exported="false" />
         <activity android:name=".UtilityBillPhotosActivity" android:exported="false" />

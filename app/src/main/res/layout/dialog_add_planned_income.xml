@@ -37,7 +37,7 @@
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_type"
             style="@style/Text.MyBudget.Subtitle"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/incomeSourceTypeSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -49,7 +49,7 @@
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_period"
             style="@style/Text.MyBudget.Subtitle"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/incomeSourcePeriodSpinner"
             android:visibility="gone"
             android:layout_width="match_parent"
@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_month"
             style="@style/Text.MyBudget.Subtitle"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/incomeSourceMonthSpinner"
             android:visibility="gone"
             android:layout_width="match_parent"
@@ -74,7 +74,7 @@
             android:layout_height="wrap_content"
             android:text="@string/income_plan_field_day"
             style="@style/Text.MyBudget.Subtitle"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/incomeSourceDaySpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>

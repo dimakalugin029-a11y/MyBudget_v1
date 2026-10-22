@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.ColumnInfo
 
 @Entity(tableName = "vehicles")
 data class VehicleEntity(
@@ -34,6 +35,7 @@ data class VehicleServiceLogEntity(
     val categoryId: Long,
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
 )
 
 @Entity(
@@ -57,6 +59,7 @@ data class VehicleInsuranceEntity(
     val categoryId: Long,
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
 )
 
 @Entity(
@@ -82,6 +85,7 @@ data class VehicleFuelLogEntity(
     val categoryId: Long,
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
 )
 
 @Entity(
@@ -106,4 +110,5 @@ data class VehicleRepairEntity(
     val categoryId: Long,
     val paidTransactionId: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),
+    @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
 )

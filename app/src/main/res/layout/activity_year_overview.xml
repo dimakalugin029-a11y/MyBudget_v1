@@ -12,7 +12,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/space_12"/>
-        <Spinner
+        <Spinner android:minHeight="@dimen/touch_min_size"
             android:id="@+id/yearOverviewSpinner"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

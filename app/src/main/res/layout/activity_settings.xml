@@ -1,849 +1,175 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/background_light"
-    android:fitsSystemWindows="true"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="@dimen/space_16"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <include
-            android:id="@+id/settingsHeader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            layout="@layout/include_screen_header"/>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/settings_section_interface"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/themeCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/settings_dark_theme"
-                    style="@style/Text.MyBudget.Section"/>
-                <RadioGroup
-                    android:id="@+id/themeRadioGroup"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <RadioButton
-                        android:id="@+id/themeLightRadio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/touch_min_size"
-                        android:text="@string/settings_theme_light"/>
-                    <RadioButton
-                        android:id="@+id/themeDarkRadio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/touch_min_size"
-                        android:text="@string/settings_theme_dark"/>
-                    <RadioButton
-                        android:id="@+id/themeSystemRadio"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/touch_min_size"
-                        android:text="@string/settings_theme_system"/>
+<?xml version='1.0' encoding='utf-8'?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/background_light" android:fitsSystemWindows="true" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+    <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+        <include android:id="@+id/settingsHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" layout="@layout/include_screen_header" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_section_interface" style="@style/Text.MyBudget.SectionLabel" />
+        <androidx.cardview.widget.CardView android:id="@+id/themeCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_dark_theme" style="@style/Text.MyBudget.Section" />
+                <RadioGroup android:id="@+id/themeRadioGroup" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <RadioButton android:id="@+id/themeLightRadio" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_theme_light" />
+                    <RadioButton android:id="@+id/themeDarkRadio" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_theme_dark" />
+                    <RadioButton android:id="@+id/themeSystemRadio" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_theme_system" />
                 </RadioGroup>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/compactUiCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_compact_ui_title"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:text="@string/settings_compact_ui_hint"
-                    android:textSize="13sp"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/settings_compact_ui_switch"/>
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/compactUiSwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+        <androidx.cardview.widget.CardView android:id="@+id/compactUiCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_compact_ui_title" style="@style/Text.MyBudget.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_12" android:text="@string/settings_compact_ui_hint" style="@style/Text.MyBudget.Subtitle" />
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/settings_compact_ui_switch" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/compactUiSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/settings_section_security"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/appLockCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/lock_settings_title"
-                        android:layout_weight="1"
-                        style="@style/Text.MyBudget.Section"/>
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/appLockSwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_section_security" style="@style/Text.MyBudget.SectionLabel" />
+        <androidx.cardview.widget.CardView android:id="@+id/appLockCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="@string/lock_settings_title" android:layout_weight="1" style="@style/Text.MyBudget.Section" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/appLockSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="13sp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:text="@string/lock_settings_hint"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <Button
-                    android:id="@+id/setPinButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:text="@string/lock_set_pin"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:text="@string/lock_settings_hint" style="@style/Text.MyBudget.Subtitle" />
+                <Button android:id="@+id/setPinButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:text="@string/lock_set_pin" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/settings_section_budget"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/defaultAmountsButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="22sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_default_amounts_emoji"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/default_amounts_title"
-                        style="@style/Text.MyBudget.Section"/>
-                    <TextView
-                        android:textSize="12sp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_2"
-                        android:text="@string/default_amounts_open_hint"
-                        style="@style/Text.MyBudget.Subtitle"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_section_budget" style="@style/Text.MyBudget.SectionLabel" />
+        <androidx.cardview.widget.CardView android:id="@+id/defaultAmountsButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_expense" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/default_amounts_title" style="@style/Text.MyBudget.Section" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/default_amounts_open_hint" style="@style/Text.MyBudget.Subtitle" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/rolloverButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="20sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_icon_rollover"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_rollover"
-                    android:layout_weight="1"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+        <androidx.cardview.widget.CardView android:id="@+id/rolloverButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_repeat" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="@string/settings_rollover" android:layout_weight="1" style="@style/Text.MyBudget.Section" />
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/monthStartButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="20sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/main_icon_budget"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_month_start"
-                        style="@style/Text.MyBudget.Section"/>
-                    <TextView
-                        android:textSize="12sp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_2"
-                        android:text="@string/settings_month_start_hint"
-                        style="@style/Text.MyBudget.Subtitle"/>
+        <androidx.cardview.widget.CardView android:id="@+id/monthStartButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_nav_budget" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_month_start" style="@style/Text.MyBudget.Section" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/settings_month_start_hint" style="@style/Text.MyBudget.Subtitle" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/overspendNotifyCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/space_16">
-                <TextView
-                    style="@style/Text.MyBudget.Section"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/overspend_settings_title" />
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:text="@string/overspend_settings_hint"
-                    android:textSize="13sp" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        style="@style/Text.MyBudget.Section"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/overspend_settings_switch" />
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/overspendNotifySwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+        <androidx.cardview.widget.CardView android:id="@+id/overspendNotifyCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/space_16">
+                <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/overspend_settings_title" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_12" android:text="@string/overspend_settings_hint" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView style="@style/Text.MyBudget.Section" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/overspend_settings_switch" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/overspendNotifySwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:layout_marginBottom="@dimen/space_4"
-                    android:text="@string/overspend_threshold_hint" />
-                <EditText
-                    android:id="@+id/overspendThresholdInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/edittext_border"
-                    android:inputType="number"
-                    android:padding="@dimen/space_8"
-                    android:textSize="14sp" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_12" android:layout_marginBottom="@dimen/space_4" android:text="@string/overspend_threshold_hint" />
+                <EditText style="@style/Widget.MyBudget.OperationInput" android:id="@+id/overspendThresholdInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/operation_input_bg" android:inputType="number" android:padding="@dimen/space_12" android:textSize="14sp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/weeklySummaryCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    style="@style/Text.MyBudget.Section"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/weekly_summary_title"/>
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:text="@string/weekly_summary_hint"
-                    android:textSize="13sp"/>
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
-                        style="@style/Text.MyBudget.Section"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/weekly_summary_switch"/>
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/weeklySummarySwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"/>
+        <androidx.cardview.widget.CardView android:id="@+id/weeklySummaryCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/weekly_summary_title" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_12" android:text="@string/weekly_summary_hint" />
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <TextView style="@style/Text.MyBudget.Section" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/weekly_summary_switch" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/weeklySummarySwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/meterReadingReminderCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/space_16">
-                <TextView
-                    style="@style/Text.MyBudget.Section"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/meter_reading_reminder_title" />
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:text="@string/meter_reading_reminder_hint"
-                    android:textSize="13sp" />
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-                    <TextView
-                        style="@style/Text.MyBudget.Section"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/meter_reading_reminder_switch" />
-                    <androidx.appcompat.widget.SwitchCompat
-                        android:id="@+id/meterReadingReminderSwitch"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content" />
+        <androidx.cardview.widget.CardView android:id="@+id/meterReadingReminderCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/space_16">
+                <TextView style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/meter_reading_reminder_title" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_12" android:text="@string/meter_reading_reminder_hint" />
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView style="@style/Text.MyBudget.Section" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/meter_reading_reminder_switch" />
+                    <androidx.appcompat.widget.SwitchCompat android:id="@+id/meterReadingReminderSwitch" android:layout_width="wrap_content" android:layout_height="wrap_content" />
                 </LinearLayout>
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:layout_marginBottom="@dimen/space_4"
-                    android:text="@string/meter_reading_reminder_day_label" />
-                <Spinner
-                    android:id="@+id/meterReadingReminderDaySpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_12" android:layout_marginBottom="@dimen/space_4" android:text="@string/meter_reading_reminder_day_label" />
+                <Spinner android:minHeight="@dimen/touch_min_size" android:id="@+id/meterReadingReminderDaySpinner" android:layout_width="match_parent" android:layout_height="wrap_content" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/participantsCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
-                        android:textSize="20sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_icon_participants"
-                        android:layout_marginEnd="@dimen/space_10"/>
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_participants_title"
-                        style="@style/Text.MyBudget.Section"/>
+        <androidx.cardview.widget.CardView android:id="@+id/participantsCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_family" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_participants_title" style="@style/Text.MyBudget.Section" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="12sp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/settings_participants_hint"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <EditText
-                    android:gravity="top"
-                    android:id="@+id/participantsInput"
-                    android:background="@drawable/edittext_border"
-                    android:padding="@dimen/space_12"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="@string/transaction_edit_participant_hint"
-                    android:minLines="2"
-                    android:inputType="textMultiLine"/>
-                <Button
-                    android:id="@+id/saveParticipantsButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:text="@string/save"/>
-                <TextView
-                    style="@style/Text.MyBudget.Subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:layout_marginBottom="@dimen/space_4"
-                    android:text="@string/settings_default_participant_label" />
-                <Spinner
-                    android:id="@+id/defaultParticipantSpinner"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="@dimen/space_8" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/participantsReportButton"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/settings_participants_report_btn"
-                    app:cornerRadius="@dimen/radius_10" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/familySyncWizardButton"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/settings_family_sync_btn"
-                    app:cornerRadius="@dimen/radius_10" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_participants_hint" style="@style/Text.MyBudget.Subtitle" />
+                <EditText style="@style/Widget.MyBudget.OperationInput" android:gravity="top" android:id="@+id/participantsInput" android:background="@drawable/operation_input_bg" android:padding="@dimen/space_12" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/transaction_edit_participant_hint" android:minLines="2" android:inputType="textMultiLine" />
+                <Button android:id="@+id/saveParticipantsButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:text="@string/save" />
+                <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_12" android:layout_marginBottom="@dimen/space_4" android:text="@string/settings_default_participant_label" />
+                <Spinner android:minHeight="@dimen/touch_min_size" android:id="@+id/defaultParticipantSpinner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/participantsReportButton" style="@style/Widget.MyBudget.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_participants_report_btn" app:cornerRadius="@dimen/radius_12" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/familySyncWizardButton" style="@style/Widget.MyBudget.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_family_sync_btn" app:cornerRadius="@dimen/radius_12" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/templatesButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="20sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_template_emoji"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <LinearLayout
-                    android:orientation="vertical"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1">
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_templates_section"
-                        style="@style/Text.MyBudget.Section"/>
-                    <TextView
-                        android:textSize="12sp"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_2"
-                        android:text="@string/settings_templates_hint"
-                        style="@style/Text.MyBudget.Subtitle"/>
+        <androidx.cardview.widget.CardView android:id="@+id/templatesButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_journal" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <LinearLayout android:orientation="vertical" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_templates_section" style="@style/Text.MyBudget.Section" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_2" android:text="@string/settings_templates_hint" style="@style/Text.MyBudget.Subtitle" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/settings_section_data"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/templatesBackupCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_16"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_backup_section"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:text="@string/settings_backup_hint"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <LinearLayout
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/exportButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/touch_min_size"
-                        android:text="@string/settings_export_btn"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="@dimen/space_6"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/importButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:minHeight="@dimen/touch_min_size"
-                        android:text="@string/settings_import_btn"
-                        android:layout_weight="1"
-                        android:layout_marginStart="@dimen/space_6"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_section_data" style="@style/Text.MyBudget.SectionLabel" />
+        <androidx.cardview.widget.CardView android:id="@+id/templatesBackupCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_16" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/settings_backup_section" style="@style/Text.MyBudget.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_12" android:text="@string/settings_backup_hint" style="@style/Text.MyBudget.Subtitle" />
+                <LinearLayout android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <com.google.android.material.button.MaterialButton android:id="@+id/exportButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_export_btn" style="@style/Widget.MyBudget.Button.Outlined" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/importButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_import_btn" style="@style/Widget.MyBudget.Button.Outlined" />
                 </LinearLayout>
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bankImportHelpButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/settings_bank_import_help"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"/>
-                <View
-                    android:background="@color/border_light"
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="@dimen/space_12"
-                    android:layout_marginBottom="@dimen/space_12"
-                    android:layout_marginVertical="@dimen/space_12"/>
-                <LinearLayout
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
-                    <TextView
-                        android:textSize="20sp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/settings_icon_auto_backup"
-                        android:layout_marginEnd="@dimen/space_10"/>
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/auto_backup_title"
-                        style="@style/Text.MyBudget.Section"/>
+                <com.google.android.material.button.MaterialButton android:id="@+id/bankImportHelpButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:minHeight="@dimen/touch_min_size" android:text="@string/settings_bank_import_help" style="@style/Widget.MyBudget.Button.Text" />
+                <View android:background="@color/border_light" android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="@dimen/space_12" android:layout_marginBottom="@dimen/space_12" android:layout_marginVertical="@dimen/space_12" />
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_repeat" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/auto_backup_title" style="@style/Text.MyBudget.Section" />
                 </LinearLayout>
-                <TextView
-                    android:textSize="13sp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/auto_backup_hint"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/autoBackupSwitch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/auto_backup_title"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:text="@string/auto_backup_interval_label"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <Spinner
-                    android:id="@+id/autoBackupIntervalSpinner"
-                    android:padding="@dimen/space_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:minHeight="@dimen/touch_min_size"/>
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/autoBackupEncryptSwitch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/auto_backup_encrypt"/>
-                <TextView
-                    android:textSize="13sp"
-                    android:id="@+id/autoBackupFolderText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/auto_backup_folder_not_selected"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <Button
-                    android:id="@+id/autoBackupFolderButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/auto_backup_choose_folder"/>
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_8" android:text="@string/auto_backup_hint" style="@style/Text.MyBudget.Subtitle" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/autoBackupSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/auto_backup_title" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:text="@string/auto_backup_interval_label" style="@style/Text.MyBudget.Subtitle" />
+                <Spinner android:id="@+id/autoBackupIntervalSpinner" android:padding="@dimen/space_4" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:minHeight="@dimen/touch_min_size" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/autoBackupEncryptSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:minHeight="@dimen/touch_min_size" android:text="@string/auto_backup_encrypt" />
+                <TextView android:id="@+id/autoBackupFolderText" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_8" android:text="@string/auto_backup_folder_not_selected" style="@style/Text.MyBudget.Subtitle" />
+                <Button android:id="@+id/autoBackupFolderButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/auto_backup_choose_folder" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_12"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:orientation="vertical"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/webdav_backup_title"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_4"
-                    android:layout_marginBottom="@dimen/space_8"
-                    android:text="@string/webdav_backup_hint"
-                    style="@style/Text.MyBudget.Subtitle"/>
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/webDavBackupSwitch"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:minHeight="@dimen/touch_min_size"
-                    android:text="@string/webdav_backup_enable"/>
-                <EditText
-                    android:id="@+id/webDavUrlInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:hint="@string/webdav_url_hint"
-                    android:inputType="textUri"/>
-                <EditText
-                    android:id="@+id/webDavUsernameInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:hint="@string/webdav_username_hint"
-                    android:inputType="text"/>
-                <EditText
-                    android:id="@+id/webDavPathInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:hint="@string/webdav_path_hint"
-                    android:inputType="text"/>
-                <Button
-                    android:id="@+id/webDavPasswordButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:text="@string/webdav_password_button"/>
-                <Button
-                    android:id="@+id/webDavTestButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_8"
-                    android:text="@string/webdav_test_button"/>
+        <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_12" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:orientation="vertical" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/webdav_backup_title" style="@style/Text.MyBudget.Section" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_4" android:layout_marginBottom="@dimen/space_8" android:text="@string/webdav_backup_hint" style="@style/Text.MyBudget.Subtitle" />
+                <androidx.appcompat.widget.SwitchCompat android:id="@+id/webDavBackupSwitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/webdav_backup_enable" />
+                <EditText android:id="@+id/webDavUrlInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:hint="@string/webdav_url_hint" android:inputType="textUri" />
+                <EditText android:id="@+id/webDavUsernameInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:hint="@string/webdav_username_hint" android:inputType="text" />
+                <EditText android:id="@+id/webDavPathInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:hint="@string/webdav_path_hint" android:inputType="text" />
+                <Button android:id="@+id/webDavPasswordButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:text="@string/webdav_password_button" />
+                <Button android:id="@+id/webDavTestButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:text="@string/webdav_test_button" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:text="@string/settings_section_about"
-            style="@style/Text.MyBudget.SectionLabel"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/helpButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="20sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_icon_help"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/help_title"
-                    android:layout_weight="1"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:text="@string/settings_section_about" style="@style/Text.MyBudget.SectionLabel" />
+        <androidx.cardview.widget.CardView android:id="@+id/helpButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_help" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="@string/help_title" android:layout_weight="1" style="@style/Text.MyBudget.Section" />
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/aboutButton"
-            android:focusable="true"
-            android:clickable="true"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:foreground="?android:attr/selectableItemBackground"
-            style="@style/Card.MyBudget.Surface">
-            <LinearLayout
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:padding="@dimen/space_16"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content">
-                <TextView
-                    android:textSize="20sp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_icon_about"
-                    android:layout_marginEnd="@dimen/space_10"/>
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:text="@string/about_button"
-                    android:layout_weight="1"
-                    style="@style/Text.MyBudget.Section"/>
-                <TextView
-                    android:textSize="24sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ui_chevron"/>
+        <androidx.cardview.widget.CardView android:id="@+id/aboutButton" android:focusable="true" android:clickable="true" android:layout_width="match_parent" android:layout_height="wrap_content" android:foreground="?android:attr/selectableItemBackground" style="@style/Card.MyBudget.Surface">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:padding="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_menu_help" android:importantForAccessibility="no" app:tint="@color/md_theme_primary" android:layout_marginEnd="@dimen/space_10" />
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:text="@string/about_button" android:layout_weight="1" style="@style/Text.MyBudget.Section" />
+                <TextView android:textSize="24sp" android:textColor="@color/text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/ui_chevron" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>

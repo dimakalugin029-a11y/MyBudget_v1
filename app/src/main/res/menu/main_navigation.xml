@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_overview" android:title="@string/nav_overview" android:icon="@drawable/ic_nav_overview" />
+    <item android:id="@+id/nav_budget" android:title="@string/nav_budget" android:icon="@drawable/ic_nav_budget" />
+    <item android:id="@+id/nav_plan" android:title="@string/nav_plan" android:icon="@drawable/ic_nav_plan" />
+    <item android:id="@+id/nav_analysis" android:title="@string/nav_analysis" android:icon="@drawable/ic_nav_analysis" />
+    <item android:id="@+id/nav_more" android:title="@string/nav_more" android:icon="@drawable/ic_nav_more" />
+</menu>

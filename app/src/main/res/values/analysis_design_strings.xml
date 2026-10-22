@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="analysis_value_pending">—</string>
+    <string name="plan_overview_loading">Загружаем план…</string>
+    <string name="plan_overview_error">Не удалось загрузить сводку. Разделы плана доступны ниже.</string>
+    <string name="plan_overview_unset">План не задан</string>
+    <string name="plan_overview_income">Доходы по плану</string>
+    <string name="plan_overview_received">Получено по плану: %1$s</string>
+    <string name="plan_overview_remaining">Ещё ожидается по плану: %1$s</string>
+    <string name="plan_overview_expenses">Лимиты статей на месяц</string>
+    <string name="plan_overview_spent">Фактические расходы за месяц: %1$s</string>
+    <string name="plan_overview_income_note">Доходы вне плана показаны в Анализе.</string>
+    <string name="plan_overview_expense_note">Обязательства и цели можно проверить отдельно ниже.</string>
+    <string name="plan_overview_payments">Предстоящие платежи</string>
+    <string name="plan_overview_goals_year">Цели и годовой план</string>
+    <string name="analysis_loading">Обновляем данные…</string>
+    <string name="analysis_error">Не удалось загрузить данные. Повторите попытку.</string>
+    <string name="analysis_retry">Повторить</string>
+    <string name="analysis_period_net">Разница доходов и расходов</string>
+    <string name="analysis_net_positive">Доходы больше расходов на %1$s.</string>
+    <string name="analysis_net_negative">Расходы больше доходов на %1$s.</string>
+    <string name="analysis_net_zero">Доходы и расходы за период равны.</string>
+    <string name="analysis_no_operations">За выбранный период операций пока нет.</string>
+    <string name="analysis_period_context">%1$s — %2$s · %3$s</string>
+    <string name="analysis_open_operations">Открыть операции ›</string>
+    <string name="analysis_current_balance_note">Остаток на текущий момент. Он не зависит от выбранного периода.</string>
+    <string name="analysis_dynamics">Как менялись деньги</string>
+    <string name="analysis_expenses_title">На что ушли деньги</string>
+    <string name="analysis_no_expenses">Расходов за выбранный период нет.</string>
+    <string name="analysis_category_hint">Нажмите статью, чтобы увидеть расходы за этот период.</string>
+    <string name="analysis_plans_reports">План и прогноз</string>
+    <string name="analysis_choose_report_budget">Выберите бюджет для отчёта</string>
+    <string name="analysis_balance_range">Расчётный остаток: на начало %1$s → на конец периода %2$s. История переводов и ручных корректировок может быть неполной.</string>
+    <string name="forecast_budget_context">Бюджет: %1$s</string>
+    <string name="forecast_result_label">Прогноз доступного остатка к концу периода</string>
+    <string name="forecast_result_note">Оценка с учётом планов и резервов на цели. Это не фактический остаток.</string>
+    <string name="forecast_save_comparison">Сохранить прогноз для сравнения с фактом</string>
+    <string name="analysis_plan_fact_current">План и факт за текущий месяц</string>
+</resources>

@@ -34,11 +34,16 @@ class PlannedIncomeActivity : AppCompatActivity() {
     private var currentList: List<PlannedIncomeSourceEntity> = emptyList()
     private var obligationsMonthly = 0.0
     private var sourceBalances: Map<Int, PlannedIncomeHelper.SourceBalance> = emptyMap()
+    private var selectedMonth = java.time.YearMonth.now()
+    private var progressBySource: Map<Int, IncomePlanAmounts.Progress> = emptyMap()
+    private var reloadJob: kotlinx.coroutines.Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_planned_income)
         manager = BudgetManager.getInstance(this)
+        selectedMonth = savedInstanceState?.getString("income_month")?.let { java.time.YearMonth.parse(it) }
+            ?: java.time.YearMonth.now()
         budgetId = manager.getActiveBudgetId()
         ScreenHeaderHelper.setup(
             this,
@@ -63,7 +68,18 @@ class PlannedIncomeActivity : AppCompatActivity() {
             onEdit = { showEditDialog(it) },
             onDelete = { showDeleteDialog(it) },
             balanceFor = { id -> sourceBalances[id] },
+            progressFor = { id -> progressBySource[id] },
+            onReceive = { source ->
+                val remaining = progressBySource[source.id]?.remaining ?: 0.0
+                if (remaining > 0.0) startActivity(Intent(this, IncomeActivity::class.java)
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, source.id)
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH, selectedMonth.toString())
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT, remaining)
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_NAME, source.name))
+            },
         )
+        findViewById<View>(R.id.incomePlanPreviousMonth).setOnClickListener { selectedMonth = selectedMonth.minusMonths(1); reload() }
+        findViewById<View>(R.id.incomePlanNextMonth).setOnClickListener { selectedMonth = selectedMonth.plusMonths(1); reload() }
         findViewById<RecyclerView>(R.id.incomePlanRecycler).apply {
             layoutManager = LinearLayoutManager(this@PlannedIncomeActivity)
             this.adapter = this@PlannedIncomeActivity.adapter
@@ -80,10 +96,19 @@ class PlannedIncomeActivity : AppCompatActivity() {
     }
 
     private fun reload() {
+        reloadJob?.cancel()
         budgetId = manager.getActiveBudgetId()
-        lifecycleScope.launch {
-            val sources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(budgetId)
-            val obligations = manager.repository.getPlannedObligationsByBudgetOnce(budgetId)
+        val activeId = budgetId
+        val month = selectedMonth
+        findViewById<TextView>(R.id.incomePlanMonth).text = month.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", Locale("ru")))
+        reloadJob = lifecycleScope.launch {
+            val sources = manager.repository.getPlannedIncomeSourcesByBudgetOnce(activeId)
+            val obligations = manager.repository.getPlannedObligationsByBudgetOnce(activeId)
+            val dao = manager.database.budgetDao()
+            val overrides = dao.getMonthlyIncomePlansForMonth(activeId, month.year, month.monthValue)
+            val receipts = dao.getIncomePlanTransactions(activeId)
+            if (activeId != manager.getActiveBudgetId() || month != selectedMonth) return@launch
+            progressBySource = sources.associate { it.id to IncomePlanAmounts.progress(it, month, overrides, receipts) }
             currentList = sources
             obligationsMonthly = PlannedObligationHelper.totalMonthly(obligations)
             sourceBalances = PlannedIncomeHelper.balanceBySource(sources, obligations)
@@ -98,30 +123,14 @@ class PlannedIncomeActivity : AppCompatActivity() {
     private fun updateSummary(sources: List<PlannedIncomeSourceEntity>) {
         val incomeMonthly = PlannedIncomeHelper.monthlyTotal(sources)
         findViewById<TextView>(R.id.incomePlanSummaryTotal).text =
-            getString(R.string.income_plan_summary_total, MoneyFormat.formatRub(incomeMonthly))
-        if (obligationsMonthly > 0.0) {
-            val free = PlannedIncomeHelper.freeAfterObligations(incomeMonthly, obligationsMonthly)
-            findViewById<TextView>(R.id.incomePlanSummaryBalance).text =
-                getString(
-                    R.string.income_plan_summary_balance,
-                    MoneyFormat.formatRub(obligationsMonthly),
-                    MoneyFormat.formatRub(free),
-                )
-            findViewById<TextView>(R.id.incomePlanSummaryHint).apply {
-                visibility = if (free < 0.0) View.VISIBLE else View.GONE
-                if (free < 0.0) {
-                    text = getString(R.string.income_plan_summary_deficit, MoneyFormat.formatRub(-free))
-                }
-            }
-        } else if (incomeMonthly > 0.0) {
-            findViewById<TextView>(R.id.incomePlanSummaryBalance).text =
-                getString(R.string.income_plan_summary_no_obligations)
-            findViewById<TextView>(R.id.incomePlanSummaryHint).visibility = View.GONE
-        } else {
-            findViewById<TextView>(R.id.incomePlanSummaryBalance).text =
-                getString(R.string.income_plan_summary_empty)
-            findViewById<TextView>(R.id.incomePlanSummaryHint).visibility = View.GONE
-        }
+            getString(R.string.income_plan_month_total, selectedMonth.toString(), MoneyFormat.formatRub(progressBySource.values.sumOf { it.planned }))
+        findViewById<TextView>(R.id.incomePlanSummaryProgress).text = getString(R.string.income_plan_progress,
+            MoneyFormat.formatRub(progressBySource.values.sumOf { it.planned }), MoneyFormat.formatRub(progressBySource.values.sumOf { it.received }),
+            MoneyFormat.formatRub(progressBySource.values.sumOf { it.remaining }))
+        findViewById<TextView>(R.id.incomePlanSummaryAverage).text = getString(R.string.income_plan_average, MoneyFormat.formatRub(incomeMonthly))
+        findViewById<TextView>(R.id.incomePlanSummaryBalance).text = getString(R.string.income_plan_after_obligations,
+            MoneyFormat.formatRub(PlannedIncomeHelper.freeAfterObligations(incomeMonthly, obligationsMonthly)), MoneyFormat.formatRub(obligationsMonthly))
+        findViewById<TextView>(R.id.incomePlanSummaryHint).visibility = View.GONE
     }
 
     private fun showDeleteDialog(item: PlannedIncomeSourceEntity) {
@@ -280,6 +289,8 @@ class PlannedIncomeActivity : AppCompatActivity() {
         private val onEdit: (PlannedIncomeSourceEntity) -> Unit,
         private val onDelete: (PlannedIncomeSourceEntity) -> Unit,
         private val balanceFor: (Int) -> PlannedIncomeHelper.SourceBalance?,
+        private val progressFor: (Int) -> IncomePlanAmounts.Progress?,
+        private val onReceive: (PlannedIncomeSourceEntity) -> Unit,
     ) : RecyclerView.Adapter<IncomeSourceAdapter.Holder>() {
         private var items: List<PlannedIncomeSourceEntity> = emptyList()
 
@@ -303,6 +314,16 @@ class PlannedIncomeActivity : AppCompatActivity() {
             holder.typeBadge.text = PlannedIncomeHelper.typeLabel(ctx, item.sourceType)
             holder.amountLine.text = PlannedIncomeHelper.amountLine(ctx, item)
             holder.dayLine.text = PlannedIncomeHelper.scheduleLabel(ctx, item)
+            val progress = progressFor(item.id)
+            holder.progressLine.text = progress?.let { ctx.getString(R.string.income_plan_progress,
+                MoneyFormat.formatRub(it.planned), MoneyFormat.formatRub(it.received), MoneyFormat.formatRub(it.remaining)) }.orEmpty()
+            holder.receive.text = ctx.getString(when {
+                progress == null || progress.planned <= 0.0 && progress.received <= 0.0 -> R.string.income_plan_no_payment
+                progress.remaining <= 0.0 -> R.string.income_plan_received
+                else -> R.string.income_plan_receive
+            })
+            holder.receive.isEnabled = (progress?.remaining ?: 0.0) > 0.0
+            holder.receive.setOnClickListener { onReceive(item) }
             val balance = balanceFor(item.id)
             if (balance != null && balance.linkedObligationsMonthly > 0.0) {
                 holder.obligationsLine.visibility = View.VISIBLE
@@ -353,6 +374,13 @@ class PlannedIncomeActivity : AppCompatActivity() {
             val amountLine: TextView = v.findViewById(R.id.incomeSourceAmountLine)
             val dayLine: TextView = v.findViewById(R.id.incomeSourceDayLine)
             val obligationsLine: TextView = v.findViewById(R.id.incomeSourceObligationsLine)
+            val progressLine: TextView = v.findViewById(R.id.incomeSourceProgress)
+            val receive: TextView = v.findViewById(R.id.incomeSourceReceive)
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("income_month", selectedMonth.toString())
+        super.onSaveInstanceState(outState)
     }
 }

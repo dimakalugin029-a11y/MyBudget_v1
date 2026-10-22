@@ -40,7 +40,7 @@ object CsvTransactionImporter {
     }
 
     fun parse(text: String): ParseResult {
-        val lines = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        val lines = records(text).map { it.trim() }.filter { it.isNotEmpty() }
         if (lines.isEmpty()) {
             return ParseResult(emptyList(), 0, listOf("Пустой файл"))
         }
@@ -62,7 +62,7 @@ object CsvTransactionImporter {
         val errors = mutableListOf<String>()
         var skipped = 0
         for (i in startIndex until lines.size) {
-            val parsed = parseLine(lines[i])
+            val parsed = parseLine(lines[i], detectDelimiter(lines.first()))
             if (parsed != null) {
                 rows += parsed
             } else {
@@ -114,6 +114,7 @@ object CsvTransactionImporter {
 
         val delimiter = detectDelimiter(headerLine)
         val parts = splitCsv(headerLine, delimiter).map { it.lowercase(Locale.getDefault()).trim() }
+        if ("type" in parts && "category" in parts) return null // Native export keeps its explicit type.
 
         val dateCol = parts.indexOfFirst { col ->
             col.contains("дата") && (col.contains("операц") || col.contains("транзак") || col == "date")
@@ -190,8 +191,7 @@ object CsvTransactionImporter {
         )
     }
 
-    private fun parseLine(line: String): ParsedRow? {
-        val delimiter = detectDelimiter(line)
+    private fun parseLine(line: String, delimiter: Char = detectDelimiter(line)): ParsedRow? {
         val parts = splitCsv(line, delimiter)
         if (parts.size < 3) return null
 
@@ -285,8 +285,11 @@ object CsvTransactionImporter {
         val result = mutableListOf<String>()
         val sb = StringBuilder()
         var inQuotes = false
-        for (ch in line) {
+        var index = 0
+        while (index < line.length) {
+            val ch = line[index]
             when {
+                ch == '"' && inQuotes && line.getOrNull(index + 1) == '"' -> { sb.append('"'); index++ }
                 ch == '"' -> inQuotes = !inQuotes
                 ch == delimiter && !inQuotes -> {
                     result += sb.toString().trim()
@@ -294,8 +297,28 @@ object CsvTransactionImporter {
                 }
                 else -> sb.append(ch)
             }
+            index++
         }
         result += sb.toString().trim()
+        return result
+    }
+
+    private fun records(text: String): List<String> {
+        val result = mutableListOf<String>()
+        val line = StringBuilder()
+        var quoted = false
+        var index = 0
+        while (index < text.length) {
+            val ch = text[index]
+            when {
+                ch == '"' && quoted && text.getOrNull(index + 1) == '"' -> { line.append("\"\""); index++ }
+                ch == '"' -> { quoted = !quoted; line.append(ch) }
+                ch == '\n' && !quoted -> { result += line.toString().trimEnd('\r'); line.clear() }
+                else -> line.append(ch)
+            }
+            index++
+        }
+        if (line.isNotEmpty()) result += line.toString()
         return result
     }
 }

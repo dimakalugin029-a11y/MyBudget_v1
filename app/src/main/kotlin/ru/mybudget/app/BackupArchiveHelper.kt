@@ -10,6 +10,19 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 object BackupArchiveHelper {
+    private const val MAX_ENTRY_BYTES = 32 * 1024 * 1024
+    private const val MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+    internal fun readBounded(stream: java.io.InputStream, limit: Int): ByteArray {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        while (true) {
+            val size = stream.read(buffer)
+            if (size < 0) break
+            require(output.size().toLong() + size <= limit) { "Архив слишком большой" }
+            output.write(buffer, 0, size)
+        }
+        return output.toByteArray()
+    }
     const val DATA_ENTRY = "data.json"
     const val PHOTOS_PREFIX = "photos/"
 
@@ -51,10 +64,13 @@ object BackupArchiveHelper {
     fun readArchive(input: ByteArray): ArchiveContent {
         val photoBytes = linkedMapOf<String, ByteArray>()
         var json: String? = null
+        var total = 0L
         ZipInputStream(ByteArrayInputStream(input)).use { zip ->
             var entry = zip.nextEntry
             while (entry != null) {
-                val bytes = zip.readBytes()
+                val bytes = readBounded(zip, MAX_ENTRY_BYTES)
+                total += bytes.size
+                require(total <= MAX_ARCHIVE_BYTES) { "Архив слишком большой" }
                 when {
                     entry.name == DATA_ENTRY -> json = bytes.toString(Charsets.UTF_8)
                     entry.name.startsWith(PHOTOS_PREFIX) -> photoBytes[entry.name] = bytes
@@ -70,7 +86,7 @@ object BackupArchiveHelper {
     }
 
     fun readArchive(context: Context, uri: Uri): ArchiveContent? {
-        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        val bytes = runCatching { context.contentResolver.openInputStream(uri)?.use { readBounded(it, MAX_ARCHIVE_BYTES) } }.getOrNull() ?: return null
         if (!isZip(bytes)) return null
         return runCatching { readArchive(bytes) }.getOrNull()
     }

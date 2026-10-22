@@ -33,7 +33,7 @@ object YearOverviewHelper {
     ): YearOverview {
         val months = (1..12).map { month ->
             val (fromMs, toMs) = MonthBudgetComparisonHelper.monthRangeMs(year, month)
-            val inPeriod = transactions.filter { it.date in fromMs..toMs }
+            val inPeriod = transactions.filter { it.date >= fromMs && it.date < toMs }
             val totals = StatisticsPeriodComparisonHelper.periodTotals(inPeriod)
             MonthTotals(
                 month = month,
@@ -45,7 +45,7 @@ object YearOverviewHelper {
         }
         val yearFrom = MonthBudgetComparisonHelper.monthRangeMs(year, 1).first
         val yearTo = MonthBudgetComparisonHelper.monthRangeMs(year, 12).second
-        val yearTransactions = transactions.filter { it.date in yearFrom..yearTo }
+        val yearTransactions = transactions.filter { it.date >= yearFrom && it.date < yearTo }
         val totals = StatisticsPeriodComparisonHelper.periodTotals(yearTransactions)
         val topExpenses = MonthBudgetComparisonHelper.buildSnapshot(
             year = year,

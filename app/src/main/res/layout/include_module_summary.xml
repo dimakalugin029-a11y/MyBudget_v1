@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/space_12" android:layout_marginBottom="@dimen/space_12">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="@dimen/space_16">
+        <TextView android:id="@+id/moduleSummaryTitle" style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/moduleSummaryAmount" style="@style/Text.MyBudget.Title"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="28sp"
+            android:layout_marginTop="@dimen/space_8" />
+        <TextView android:id="@+id/moduleSummaryDetails" style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_8" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

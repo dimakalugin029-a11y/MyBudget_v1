@@ -12,12 +12,17 @@ object PendingDistributionPreferences {
         val budgetId: Int,
         val amount: Double,
         val note: String,
+        val plannedSourceId: Int? = null,
+        val plannedMonth: String? = null,
+        val requestId: String? = null,
     )
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(BudgetApplication.PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun setPending(context: Context, budgetId: Int, amount: Double, note: String = "") {
+    fun setPending(context: Context, budgetId: Int, amount: Double, note: String = "",
+        plannedSourceId: Int? = null, plannedMonth: String? = null,
+        requestId: String = java.util.UUID.randomUUID().toString()) {
         if (amount <= 0.0) {
             clear(context)
             return
@@ -26,6 +31,9 @@ object PendingDistributionPreferences {
             .putLong(KEY_AMOUNT, java.lang.Double.doubleToRawLongBits(amount))
             .putInt(KEY_BUDGET_ID, budgetId)
             .putString(KEY_NOTE, note)
+            .putInt("pending_plan_source", plannedSourceId ?: 0)
+            .putString("pending_plan_month", plannedMonth.takeIf { plannedSourceId != null })
+            .putString("pending_receipt_request", requestId)
             .apply()
     }
 
@@ -38,6 +46,9 @@ object PendingDistributionPreferences {
             budgetId = p.getInt(KEY_BUDGET_ID, ActiveBudgetPreferences.getActiveBudgetId(context)),
             amount = amount,
             note = p.getString(KEY_NOTE, "").orEmpty(),
+            plannedSourceId = p.getInt("pending_plan_source", 0).takeIf { it > 0 },
+            plannedMonth = p.getString("pending_plan_month", null),
+            requestId = p.getString("pending_receipt_request", null),
         )
     }
 
@@ -46,6 +57,9 @@ object PendingDistributionPreferences {
             .remove(KEY_AMOUNT)
             .remove(KEY_BUDGET_ID)
             .remove(KEY_NOTE)
+            .remove("pending_plan_source")
+            .remove("pending_plan_month")
+            .remove("pending_receipt_request")
             .apply()
     }
 }

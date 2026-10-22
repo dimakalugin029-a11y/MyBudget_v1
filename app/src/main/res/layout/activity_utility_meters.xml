@@ -1,140 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@color/background_light"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    <LinearLayout
-        android:orientation="vertical"
-        android:paddingLeft="@dimen/space_16"
-        android:paddingTop="@dimen/space_12"
-        android:paddingRight="@dimen/space_16"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:paddingHorizontal="@dimen/space_16">
-        <include
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            layout="@layout/include_screen_header"/>
-        <include
-            android:id="@+id/metersExcelHint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            layout="@layout/include_dismissible_hint"/>
-        <androidx.cardview.widget.CardView
-            android:id="@+id/metersTotalsStrip"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/space_8"
-            android:visibility="gone"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardElevation="0dp">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="@drawable/utilities_hero_card_bg"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="@dimen/space_12"
-                android:paddingVertical="@dimen/space_10">
-                <TextView
-                    android:id="@+id/metersHvsTotal"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/main_hero_text_primary"
-                    android:textSize="12sp"
-                    style="@style/Text.MyBudget.Subtitle" />
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginHorizontal="@dimen/space_8"
-                    android:alpha="0.35"
-                    android:background="@color/main_hero_text_primary" />
-                <TextView
-                    android:id="@+id/metersGvsTotal"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:textColor="@color/main_hero_text_primary"
-                    android:textSize="12sp"
-                    style="@style/Text.MyBudget.Subtitle" />
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:background="@color/background_light" android:layout_width="match_parent" android:layout_height="match_parent" android:fitsSystemWindows="true">
+    <LinearLayout android:orientation="vertical" android:paddingLeft="@dimen/space_16" android:paddingTop="@dimen/space_12" android:paddingRight="@dimen/space_16" android:layout_width="match_parent" android:layout_height="match_parent" android:paddingHorizontal="@dimen/space_16">
+        <include android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" layout="@layout/include_screen_header" />
+        <include android:id="@+id/metersExcelHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" layout="@layout/include_dismissible_hint" />
+        <androidx.cardview.widget.CardView android:id="@+id/metersTotalsStrip" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_8" android:visibility="gone" app:cardBackgroundColor="@android:color/transparent" app:cardElevation="0dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/utilities_hero_card_bg" android:gravity="center_vertical" android:orientation="horizontal" android:paddingHorizontal="@dimen/space_12" android:paddingVertical="@dimen/space_10">
+                <TextView android:id="@+id/metersHvsTotal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/main_hero_text_primary" android:textSize="14sp" style="@style/Text.MyBudget.Subtitle" />
+                <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginHorizontal="@dimen/space_8" android:alpha="0.35" android:background="@color/main_hero_text_primary" />
+                <TextView android:id="@+id/metersGvsTotal" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:textColor="@color/main_hero_text_primary" android:textSize="14sp" style="@style/Text.MyBudget.Subtitle" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/metersRecyclerView"
-                android:clipToPadding="false"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
-            <TextView
-                android:gravity="center"
-                android:layout_gravity="center"
-                android:id="@+id/metersEmptyText"
-                android:padding="@dimen/space_24"
-                android:visibility="gone"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/meter_empty"
-                style="@style/Text.MyBudget.Subtitle"/>
-            <ProgressBar
-                android:layout_gravity="center"
-                android:id="@+id/metersProgressBar"
-                android:visibility="gone"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"/>
+        <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/metersRecyclerView" android:clipToPadding="false" android:layout_width="match_parent" android:layout_height="match_parent" />
+            <TextView android:gravity="center" android:layout_gravity="center" android:id="@+id/metersEmptyText" android:padding="@dimen/space_24" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/meter_empty" style="@style/Text.MyBudget.Subtitle" />
+            <ProgressBar android:layout_gravity="center" android:id="@+id/metersProgressBar" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         </FrameLayout>
     </LinearLayout>
-    <LinearLayout
-        android:orientation="vertical"
-        android:id="@+id/metersActionsSheet"
-        android:background="@drawable/bg_bottom_sheet_surface"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="@dimen/card_elevation_low"
-        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
-        <include layout="@layout/include_bottom_sheet_handle"/>
-        <LinearLayout
-            android:orientation="vertical"
-            android:id="@+id/metersActionsSheetContent"
-            android:paddingLeft="@dimen/space_16"
-            android:paddingRight="@dimen/space_16"
-            android:paddingBottom="@dimen/space_16"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="@dimen/space_16">
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="@dimen/space_12"
-                style="@style/Card.MyBudget.Surface">
-                <include
-                    android:id="@+id/metersVerificationButton"
-                    layout="@layout/include_main_list_row"/>
+    <LinearLayout android:orientation="vertical" android:id="@+id/metersActionsSheet" android:background="@drawable/bg_bottom_sheet_surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:elevation="@dimen/card_elevation_low" app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+        <include layout="@layout/include_bottom_sheet_handle" />
+        <LinearLayout android:orientation="vertical" android:id="@+id/metersActionsSheetContent" android:paddingLeft="@dimen/space_16" android:paddingRight="@dimen/space_16" android:paddingBottom="@dimen/space_16" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingHorizontal="@dimen/space_16">
+            <androidx.cardview.widget.CardView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="@dimen/space_12" style="@style/Card.MyBudget.Surface">
+                <include android:id="@+id/metersVerificationButton" layout="@layout/include_dashboard_menu_row" />
             </androidx.cardview.widget.CardView>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/metersBatchButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/meter_batch_button"
-                app:backgroundTint="@color/utilities_cyan"
-                app:cornerRadius="@dimen/radius_10"
-                style="@style/Widget.MaterialComponents.Button"/>
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/metersAddButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_8"
-                android:minHeight="@dimen/touch_min_size"
-                android:text="@string/meter_add_button"
-                app:cornerRadius="@dimen/radius_10"
-                app:strokeColor="@color/budget_blue"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/metersBatchButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="@dimen/touch_min_size" android:text="@string/meter_batch_button" app:cornerRadius="@dimen/radius_12" style="@style/Widget.MyBudget.Button" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/metersAddButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_8" android:minHeight="@dimen/touch_min_size" android:text="@string/meter_add_button" app:cornerRadius="@dimen/radius_12" style="@style/Widget.Material3.Button.OutlinedButton" />
         </LinearLayout>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
