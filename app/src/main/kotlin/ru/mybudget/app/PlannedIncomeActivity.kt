@@ -65,6 +65,7 @@ class PlannedIncomeActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.incomePlanObligationsButton).setOnClickListener {
             startActivity(Intent(this, PlannedObligationsActivity::class.java))
         }
+        findViewById<View>(R.id.incomePlanDetails).setOnClickListener { showPlanDetails() }
         adapter = IncomeSourceAdapter(
             onEdit = { showEditDialog(it) },
             onDelete = { showDeleteDialog(it) },
@@ -113,24 +114,37 @@ class PlannedIncomeActivity : AppCompatActivity() {
             adapter.submit(sources)
             findViewById<View>(R.id.incomePlanEmptyState).visibility =
                 if (sources.isEmpty()) View.VISIBLE else View.GONE
-            updateSummary(sources)
+            updateSummary()
         }
     }
 
-    private fun updateSummary(sources: List<PlannedIncomeSourceEntity>) {
-        val incomeMonthly = PlannedIncomeHelper.monthlyTotal(sources)
+    private fun updateSummary() {
         findViewById<TextView>(R.id.incomePlanSummaryTotal).text =
-            getString(R.string.income_plan_month_total, selectedMonth.toString(), MoneyFormat.formatRub(progressBySource.values.sumOf { it.planned }))
-        findViewById<TextView>(R.id.incomePlanSummaryProgress).text = getString(R.string.income_plan_progress,
-            MoneyFormat.formatRub(progressBySource.values.sumOf { it.planned }), MoneyFormat.formatRub(progressBySource.values.sumOf { it.received }),
+            getString(R.string.income_plan_compact_total, MoneyFormat.formatRub(progressBySource.values.sumOf { it.planned }))
+        findViewById<TextView>(R.id.incomePlanSummaryProgress).text = getString(R.string.income_plan_compact_progress,
+            MoneyFormat.formatRub(progressBySource.values.sumOf { it.received }),
             MoneyFormat.formatRub(progressBySource.values.sumOf { it.remaining }))
-        findViewById<TextView>(R.id.incomePlanSummaryAverage).text = getString(R.string.income_plan_average, MoneyFormat.formatRub(incomeMonthly))
-        findViewById<TextView>(R.id.incomePlanSummaryBalance).text = getString(R.string.income_plan_after_obligations,
-            MoneyFormat.formatRub(PlannedIncomeHelper.freeAfterObligations(incomeMonthly, obligationsMonthly)), MoneyFormat.formatRub(obligationsMonthly))
-        findViewById<TextView>(R.id.incomePlanSummaryHint).apply {
-            visibility=View.VISIBLE
-            text=getString(R.string.income_plan_actual_hint)+if(unlinkedIncome>0.0) "\n"+getString(R.string.income_unlinked_help,MoneyFormat.formatRub(unlinkedIncome)) else ""
+        findViewById<TextView>(R.id.incomePlanUnlinked).apply {
+            visibility = if (unlinkedIncome > 0.0) View.VISIBLE else View.GONE
+            text = getString(R.string.income_plan_compact_unlinked, MoneyFormat.formatRub(unlinkedIncome))
         }
+    }
+
+    private fun showPlanDetails() {
+        val incomeMonthly = PlannedIncomeHelper.monthlyTotal(currentList)
+        val details = listOfNotNull(
+            getString(R.string.income_plan_average, MoneyFormat.formatRub(incomeMonthly)),
+            getString(R.string.income_plan_after_obligations,
+                MoneyFormat.formatRub(PlannedIncomeHelper.freeAfterObligations(incomeMonthly, obligationsMonthly)),
+                MoneyFormat.formatRub(obligationsMonthly)),
+            getString(R.string.income_plan_actual_hint),
+            if (unlinkedIncome > 0.0) getString(R.string.income_unlinked_help, MoneyFormat.formatRub(unlinkedIncome)) else null,
+        ).joinToString("\n\n")
+        AlertDialog.Builder(this)
+            .setTitle(R.string.income_plan_details_title)
+            .setMessage(details)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     private fun showReceiptActions(source:PlannedIncomeSourceEntity) {
@@ -379,8 +393,9 @@ class PlannedIncomeActivity : AppCompatActivity() {
             holder.amountLine.text = PlannedIncomeHelper.amountLine(ctx, item)
             holder.dayLine.text = PlannedIncomeHelper.scheduleLabel(ctx, item)
             val progress = progressFor(item.id)
-            holder.progressLine.text = progress?.let { ctx.getString(R.string.income_plan_progress,
-                MoneyFormat.formatRub(it.planned), MoneyFormat.formatRub(it.received), MoneyFormat.formatRub(it.remaining)) + "\n" + ctx.getString(if(it.finalized) R.string.income_status_final else if(it.received>0) R.string.income_status_partial else R.string.income_status_waiting) + if(it.finalized) " · "+ctx.getString(R.string.income_plan_deviation,MoneyFormat.formatRub(it.deviation)) else "" }.orEmpty()
+            if (progress != null) holder.amountLine.text = ctx.getString(R.string.income_plan_compact_total, MoneyFormat.formatRub(progress.planned))
+            holder.progressLine.text = progress?.let { ctx.getString(R.string.income_plan_compact_progress,
+                MoneyFormat.formatRub(it.received), MoneyFormat.formatRub(it.remaining)) + "\n" + ctx.getString(if(it.finalized) R.string.income_status_final else if(it.received>0) R.string.income_status_partial else R.string.income_status_waiting) + if(it.finalized) " · "+ctx.getString(R.string.income_plan_deviation,MoneyFormat.formatRub(it.deviation)) else "" }.orEmpty()
             holder.receive.setText(R.string.income_receipt_actions)
             holder.receive.isEnabled = item.isActive
             holder.receive.setOnClickListener { onReceive(item) }

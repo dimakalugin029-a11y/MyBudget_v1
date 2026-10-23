@@ -1,0 +1,9 @@
+<resources>
+    <string name="income_plan_previous_month">Предыдущий месяц</string>
+    <string name="income_plan_next_month">Следующий месяц</string>
+    <string name="income_plan_details">Подробнее о плане ›</string>
+    <string name="income_plan_details_title">План и поступления</string>
+    <string name="income_plan_compact_total">План: %1$s</string>
+    <string name="income_plan_compact_progress">Получено: %1$s\nЕщё ожидается: %2$s</string>
+    <string name="income_plan_compact_unlinked">Без привязки к плану: %1$s</string>
+</resources>
