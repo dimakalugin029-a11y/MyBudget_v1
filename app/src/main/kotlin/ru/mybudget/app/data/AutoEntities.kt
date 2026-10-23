@@ -63,6 +63,10 @@ data class VehicleInsuranceEntity(
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
     @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
+    @ColumnInfo(defaultValue = "'osago'") val insuranceType: String = "osago",
+    @ColumnInfo(defaultValue = "''") val insuranceCompany: String = "",
+    @ColumnInfo(defaultValue = "''") val policyNumber: String = "",
+    @ColumnInfo(defaultValue = "''") val insurancePhone: String = "",
 )
 
 @Entity(
@@ -90,6 +94,8 @@ data class VehicleFuelLogEntity(
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(defaultValue = "'unpaid'") val paymentMethod: String = "unpaid",
     @ColumnInfo(defaultValue = "0") val isArchived: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val fuelType: String = "",
+    @ColumnInfo(defaultValue = "''") val fuelStation: String = "",
 )
 
 @Entity(

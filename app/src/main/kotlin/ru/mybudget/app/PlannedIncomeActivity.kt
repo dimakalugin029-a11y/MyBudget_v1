@@ -36,6 +36,7 @@ class PlannedIncomeActivity : AppCompatActivity() {
     private var sourceBalances: Map<Int, PlannedIncomeHelper.SourceBalance> = emptyMap()
     private var selectedMonth = java.time.YearMonth.now()
     private var progressBySource: Map<Int, IncomePlanAmounts.Progress> = emptyMap()
+    private var unlinkedIncome=0.0
     private var reloadJob: kotlinx.coroutines.Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,14 +70,7 @@ class PlannedIncomeActivity : AppCompatActivity() {
             onDelete = { showDeleteDialog(it) },
             balanceFor = { id -> sourceBalances[id] },
             progressFor = { id -> progressBySource[id] },
-            onReceive = { source ->
-                val remaining = progressBySource[source.id]?.remaining ?: 0.0
-                if (remaining > 0.0) startActivity(Intent(this, IncomeActivity::class.java)
-                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, source.id)
-                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH, selectedMonth.toString())
-                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT, remaining)
-                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_NAME, source.name))
-            },
+            onReceive = { source -> showReceiptActions(source) },
         )
         findViewById<View>(R.id.incomePlanPreviousMonth).setOnClickListener { selectedMonth = selectedMonth.minusMonths(1); reload() }
         findViewById<View>(R.id.incomePlanNextMonth).setOnClickListener { selectedMonth = selectedMonth.plusMonths(1); reload() }
@@ -107,6 +101,9 @@ class PlannedIncomeActivity : AppCompatActivity() {
             val dao = manager.database.budgetDao()
             val overrides = dao.getMonthlyIncomePlansForMonth(activeId, month.year, month.monthValue)
             val receipts = dao.getIncomePlanTransactions(activeId)
+            val (from,to)=MonthlyPlanHelper.monthRangeMs(month.year,month.monthValue)
+            val categoryIds=dao.getAllCategoriesForExport().filter { it.budgetId==activeId }.map { it.id }.toSet()
+            unlinkedIncome=MoneyFormat.roundMoney(IncomeMonthFacts.unlinked(dao.getTransactionsInRange(from,to).filter { it.categoryId in categoryIds },month).sumOf { it.amount })
             if (activeId != manager.getActiveBudgetId() || month != selectedMonth) return@launch
             progressBySource = sources.associate { it.id to IncomePlanAmounts.progress(it, month, overrides, receipts) }
             currentList = sources
@@ -130,7 +127,74 @@ class PlannedIncomeActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.incomePlanSummaryAverage).text = getString(R.string.income_plan_average, MoneyFormat.formatRub(incomeMonthly))
         findViewById<TextView>(R.id.incomePlanSummaryBalance).text = getString(R.string.income_plan_after_obligations,
             MoneyFormat.formatRub(PlannedIncomeHelper.freeAfterObligations(incomeMonthly, obligationsMonthly)), MoneyFormat.formatRub(obligationsMonthly))
-        findViewById<TextView>(R.id.incomePlanSummaryHint).visibility = View.GONE
+        findViewById<TextView>(R.id.incomePlanSummaryHint).apply {
+            visibility=View.VISIBLE
+            text=getString(R.string.income_plan_actual_hint)+if(unlinkedIncome>0.0) "\n"+getString(R.string.income_unlinked_help,MoneyFormat.formatRub(unlinkedIncome)) else ""
+        }
+    }
+
+    private fun showReceiptActions(source:PlannedIncomeSourceEntity) {
+        val month=selectedMonth
+        AlertDialog.Builder(this).setTitle(source.name)
+            .setItems(arrayOf(getString(R.string.income_plan_receive),getString(R.string.income_link_existing),getString(if(progressBySource[source.id]?.finalized==true) R.string.income_reopen_existing else R.string.income_close_existing))) { _,index ->
+                if(index==0) {
+                    val suggested=progressBySource[source.id]?.remaining ?: 0.0
+                    startActivity(Intent(this,IncomeActivity::class.java)
+                        .putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID,source.id)
+                        .putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH,month.toString())
+                        .putExtra(BudgetIntentExtras.PLANNED_INCOME_AMOUNT,suggested)
+                        .putExtra(BudgetIntentExtras.PLANNED_INCOME_NAME,source.name))
+                } else if(index==1) showExistingReceipts(source,month)
+                else {
+                    val close=progressBySource[source.id]?.finalized!=true
+                    AlertDialog.Builder(this).setTitle(if(close) R.string.income_close_existing else R.string.income_reopen_existing)
+                        .setMessage(R.string.income_completion_change_hint)
+                        .setPositiveButton(android.R.string.ok) { _,_ -> lifecycleScope.launch {
+                            try { withContext(Dispatchers.IO) { IncomePlanExecution(manager.database).setCompletion(source.id,month,close) };reload()
+                            } catch(e:kotlinx.coroutines.CancellationException) { throw e
+                            } catch(e:Exception) { Toast.makeText(this@PlannedIncomeActivity,e.message.orEmpty(),Toast.LENGTH_LONG).show() }
+                        } }.setNegativeButton(android.R.string.cancel,null).show()
+                }
+            }.setNegativeButton(android.R.string.cancel,null).show()
+    }
+
+    private fun showExistingReceipts(source:PlannedIncomeSourceEntity,month:java.time.YearMonth) {
+        lifecycleScope.launch {
+            try {
+                val linker=IncomeReceiptLinker(manager.database)
+                val options=withContext(Dispatchers.IO) { linker.candidates(source.budgetId,month) }
+                if(source.budgetId!=manager.getActiveBudgetId()) return@launch
+                if(options.isEmpty()) {
+                    Toast.makeText(this@PlannedIncomeActivity,R.string.income_link_empty,Toast.LENGTH_LONG).show();return@launch
+                }
+                val formatter=java.text.SimpleDateFormat("dd.MM.yyyy",Locale("ru"))
+                val labels=options.map { candidate ->
+                    getString(R.string.income_existing_candidate,formatter.format(java.util.Date(candidate.date)),
+                        MoneyFormat.formatRub(candidate.amount),candidate.description,candidate.rows.size)
+                }
+                AlertDialog.Builder(this@PlannedIncomeActivity)
+                    .setTitle(getString(R.string.income_link_title,source.name,month.toString()))
+                    .setItems(labels.toTypedArray()) { _,index ->
+                        val selected=options[index]
+                        val receiptChoice=layoutInflater.inflate(R.layout.include_income_receipt_status,null).apply { visibility=View.VISIBLE }
+                        AlertDialog.Builder(this@PlannedIncomeActivity)
+                            .setTitle(R.string.income_link_existing)
+                            .setView(receiptChoice)
+                            .setMessage(getString(R.string.income_link_confirm,MoneyFormat.formatRub(selected.amount),source.name,month.toString()))
+                            .setPositiveButton(R.string.income_link_apply) { _,_ ->
+                                lifecycleScope.launch {
+                                    try {
+                                        withContext(Dispatchers.IO) { linker.link(source.id,month,selected.rows,finalReceipt=receiptChoice.findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal) }
+                                        Toast.makeText(this@PlannedIncomeActivity,R.string.income_link_done,Toast.LENGTH_SHORT).show()
+                                        reload()
+                                    } catch(cancelled:kotlinx.coroutines.CancellationException) { throw cancelled
+                                    } catch(e:Exception) { Toast.makeText(this@PlannedIncomeActivity,getString(R.string.income_plan_error,e.message.orEmpty()),Toast.LENGTH_LONG).show() }
+                                }
+                            }.setNegativeButton(android.R.string.cancel,null).show()
+                    }.setNegativeButton(android.R.string.cancel,null).show()
+            } catch(cancelled:kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch(_:Exception) { Toast.makeText(this@PlannedIncomeActivity,R.string.income_link_load_error,Toast.LENGTH_LONG).show() }
+        }
     }
 
     private fun showDeleteDialog(item: PlannedIncomeSourceEntity) {
@@ -316,13 +380,9 @@ class PlannedIncomeActivity : AppCompatActivity() {
             holder.dayLine.text = PlannedIncomeHelper.scheduleLabel(ctx, item)
             val progress = progressFor(item.id)
             holder.progressLine.text = progress?.let { ctx.getString(R.string.income_plan_progress,
-                MoneyFormat.formatRub(it.planned), MoneyFormat.formatRub(it.received), MoneyFormat.formatRub(it.remaining)) }.orEmpty()
-            holder.receive.text = ctx.getString(when {
-                progress == null || progress.planned <= 0.0 && progress.received <= 0.0 -> R.string.income_plan_no_payment
-                progress.remaining <= 0.0 -> R.string.income_plan_received
-                else -> R.string.income_plan_receive
-            })
-            holder.receive.isEnabled = (progress?.remaining ?: 0.0) > 0.0
+                MoneyFormat.formatRub(it.planned), MoneyFormat.formatRub(it.received), MoneyFormat.formatRub(it.remaining)) + "\n" + ctx.getString(if(it.finalized) R.string.income_status_final else if(it.received>0) R.string.income_status_partial else R.string.income_status_waiting) + if(it.finalized) " · "+ctx.getString(R.string.income_plan_deviation,MoneyFormat.formatRub(it.deviation)) else "" }.orEmpty()
+            holder.receive.setText(R.string.income_receipt_actions)
+            holder.receive.isEnabled = item.isActive
             holder.receive.setOnClickListener { onReceive(item) }
             val balance = balanceFor(item.id)
             if (balance != null && balance.linkedObligationsMonthly > 0.0) {

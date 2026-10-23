@@ -64,8 +64,9 @@ class AutoRepository(private val database: BudgetDatabase) {
         val vehicle=requireNotNull(autoDao.getVehicleById(entry.vehicleId)) { "Автомобиль уже удалён" }
         require(!vehicle.isArchived && !entry.isArchived) { "Сначала верните автомобиль и событие из архива" }
         if (entry.type == AutoEntryType.INSURANCE) {
+            require(entry.insuranceType in ru.mybudget.app.auto.InsuranceType.options) { "Выберите тип страховки" }
             require(entry.endDateEpochDay != null && entry.endDateEpochDay >= entry.dateEpochDay) {
-                "Дата окончания ОСАГО должна быть не раньше даты начала"
+                "Дата окончания страховки должна быть не раньше даты начала"
             }
         }
         if (entry.type == AutoEntryType.FUEL) {
@@ -86,8 +87,8 @@ class AutoRepository(private val database: BudgetDatabase) {
             val description = entry.description.ifBlank {
                 when (entry.type) {
                     AutoEntryType.SERVICE -> "ТО"
-                    AutoEntryType.INSURANCE -> "ОСАГО"
-                    AutoEntryType.FUEL -> "Бензин"
+                    AutoEntryType.INSURANCE -> ru.mybudget.app.auto.InsuranceType.label(entry.insuranceType)
+                    AutoEntryType.FUEL -> "Топливо"
                     AutoEntryType.REPAIR -> "Ремонт"
                 }
             }
@@ -122,14 +123,15 @@ class AutoRepository(private val database: BudgetDatabase) {
                 val item = VehicleInsuranceEntity(id = saved.id, vehicleId = saved.vehicleId,
                     startDateEpochDay = saved.dateEpochDay, endDateEpochDay = requireNotNull(saved.endDateEpochDay),
                     amount = saved.amount, categoryId = saved.categoryId, paidTransactionId = transactionId,
-                    createdAt = saved.createdAt, paymentMethod = saved.paymentMethod)
+                    createdAt = saved.createdAt, paymentMethod = saved.paymentMethod,
+                    insuranceType=saved.insuranceType.trim(), insuranceCompany=saved.insuranceCompany.trim(), policyNumber=saved.policyNumber.trim(), insurancePhone=saved.insurancePhone.trim())
                 if (saved.id == 0) autoDao.insertInsurance(item).toInt() else { autoDao.updateInsurance(item); saved.id }
             }
             AutoEntryType.FUEL -> {
                 val log = VehicleFuelLogEntity(id = saved.id, vehicleId = saved.vehicleId,
                     dateEpochDay = saved.dateEpochDay, liters = saved.liters, pricePerLiter = saved.pricePerLiter,
                     amount = saved.amount, mileageKm = saved.mileageKm, categoryId = saved.categoryId,
-                    paidTransactionId = transactionId, createdAt = saved.createdAt, paymentMethod = saved.paymentMethod)
+                    paidTransactionId = transactionId, createdAt = saved.createdAt, paymentMethod = saved.paymentMethod, fuelType=saved.fuelType.trim(),fuelStation=saved.fuelStation.trim())
                 if (saved.id == 0) autoDao.insertFuelLog(log).toInt() else { autoDao.updateFuelLog(log); saved.id }
             }
             AutoEntryType.REPAIR -> {

@@ -31,7 +31,7 @@ class AutoEntryActivity : AppCompatActivity() {
     private var restored: Bundle? = null
     private val itemRows = mutableListOf<Pair<EditText, EditText>>()
     private val fields = listOf(R.id.dateInput, R.id.endDateInput, R.id.mileageInput, R.id.litersInput,
-        R.id.priceInput, R.id.descInput, R.id.amountInput)
+        R.id.priceInput, R.id.descInput, R.id.amountInput, R.id.fuelTypeInput, R.id.fuelStationInput, R.id.insuranceCompanyInput, R.id.policyNumberInput, R.id.insurancePhoneInput)
     private val dateFormat = DateTimeFormatter.ofPattern("dd.MM.uuuu").withResolverStyle(java.time.format.ResolverStyle.STRICT)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,6 +106,16 @@ class AutoEntryActivity : AppCompatActivity() {
         val itemsContainer = layout.findViewById<LinearLayout>(R.id.itemsContainer)
         val addItemButton = layout.findViewById<Button>(R.id.addItemButton)
 
+        val insuranceType=findViewById<Spinner>(R.id.insuranceTypeInput)
+        insuranceType.adapter=ArrayAdapter(this,R.layout.item_operation_spinner,listOf("ОСАГО","КАСКО"))
+        insuranceType.setSelection(ru.mybudget.app.auto.InsuranceType.options.indexOf(existing?.insuranceType ?: "osago").coerceAtLeast(0))
+        findViewById<EditText>(R.id.fuelTypeInput).setText(existing?.fuelType.orEmpty())
+        findViewById<EditText>(R.id.fuelStationInput).setText(existing?.fuelStation.orEmpty())
+        findViewById<EditText>(R.id.insuranceCompanyInput).setText(existing?.insuranceCompany.orEmpty())
+        findViewById<EditText>(R.id.policyNumberInput).setText(existing?.policyNumber.orEmpty())
+        findViewById<EditText>(R.id.insurancePhoneInput).setText(existing?.insurancePhone.orEmpty())
+        findViewById<View>(R.id.autoFuelMetadata).visibility=if(type==AutoEntryType.FUEL) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.autoInsuranceMetadata).visibility=if(type==AutoEntryType.INSURANCE) View.VISIBLE else View.GONE
         categoryIds = cats.map { it.id }
         fun recalcTotal() {
             val hasItems = itemRows.any { (name, price) -> name.text.isNotBlank() || price.text.isNotBlank() }
@@ -209,6 +219,7 @@ class AutoEntryActivity : AppCompatActivity() {
             names.forEachIndexed { i, name -> addRow(name, prices.getOrNull(i).orEmpty()) }
             categorySpinner.setSelection((cats.indexOfFirst { it.id == state.getInt("editor_category", -1) } + 1).coerceAtLeast(0))
             paymentSpinner.setSelection(state.getInt("editor_payment", 0))
+            insuranceType.setSelection(state.getInt("insurance_type_index",0))
         }
         if (multiItem && itemRows.isEmpty() && existing == null && restored == null) addRow()
         amountInput.doAfterTextChanged { recalcTotal() }
@@ -301,7 +312,13 @@ class AutoEntryActivity : AppCompatActivity() {
             categoryId = if (method == AutoPaymentMethod.BUDGET) category!!.id.toLong() else -1,
             paymentMethod = method, description = description, mileageKm = mileage,
             endDateEpochDay = end, liters = liters, pricePerLiter = price,
-            createdAt = old?.createdAt ?: System.currentTimeMillis())
+            createdAt = old?.createdAt ?: System.currentTimeMillis(),
+            insuranceType=ru.mybudget.app.auto.InsuranceType.options.getOrElse(findViewById<Spinner>(R.id.insuranceTypeInput).selectedItemPosition) { "osago" },
+            fuelType=findViewById<EditText>(R.id.fuelTypeInput).text.toString().trim(),
+            fuelStation=findViewById<EditText>(R.id.fuelStationInput).text.toString().trim(),
+            insuranceCompany=findViewById<EditText>(R.id.insuranceCompanyInput).text.toString().trim(),
+            policyNumber=findViewById<EditText>(R.id.policyNumberInput).text.toString().trim(),
+            insurancePhone=findViewById<EditText>(R.id.insurancePhoneInput).text.toString().trim())
         onBusy(true)
         lifecycleScope.launch {
             try {
@@ -347,25 +364,14 @@ class AutoEntryActivity : AppCompatActivity() {
             continuation.invokeOnCancellation { runOnUiThread { dialog.dismiss() } }
         }
 
-    private fun parseItemPrice(text: String): Double? =
-        MoneyFormat.parseQuantity(text.trim().removeSuffix("₽"))
-
-    private fun isItemLine(line: String): Boolean {
-        val idx = line.lastIndexOf(" — ")
-        if (idx <= 0) return false
-        return parseItemPrice(line.substring(idx + 3)) != null
-    }
-
-    private fun splitItemLine(line: String): Pair<String, Double> {
-        val idx = line.lastIndexOf(" — ")
-        if (idx <= 0) return line.trim() to 0.0
-        val price = parseItemPrice(line.substring(idx + 3)) ?: 0.0
-        return line.substring(0, idx).trim() to price
-    }
+    private fun isItemLine(line:String)=ru.mybudget.app.auto.AutoWorkDetails.item(line)!=null
+    private fun splitItemLine(line:String):Pair<String,Double> =
+        ru.mybudget.app.auto.AutoWorkDetails.item(line) ?: (line.trim() to 0.0)
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("auto_save_request", requestId)
         outState.putBoolean("editor_ready", ready)
+        if(ready) outState.putInt("insurance_type_index",findViewById<Spinner>(R.id.insuranceTypeInput).selectedItemPosition)
         if (ready) {
             fields.forEach { id -> outState.putString("field_$id", findViewById<EditText>(id).text.toString()) }
             outState.putStringArray("work_names", itemRows.map { it.first.text.toString() }.toTypedArray())

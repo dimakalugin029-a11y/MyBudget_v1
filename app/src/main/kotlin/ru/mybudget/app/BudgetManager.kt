@@ -374,17 +374,15 @@ class BudgetManager private constructor(context: Context) {
         return getRootCategories(budgetId).sumOf { getCategoryBalanceWithSubcategories(it.id) }
     }
 
-    suspend fun getTotalBalanceAll(): Double {
-        getCategoriesAsync()
-        return getCategories()
-            .filter { it.parentId == 0 && it.isActive }
-            .sumOf { getCategoryBalanceWithSubcategories(it.id) }
+    suspend fun getTotalBalanceAll(): Double = withContext(Dispatchers.IO) {
+        database.budgetDao().getActiveBudgetProfileBalances().sumOf { it.total }
     }
 
-    suspend fun getBudgetProfileTotals(): List<Pair<BudgetProfileEntity, Double>> {
-        val profiles = getBudgetProfilesAsync()
-        getCategoriesAsync()
-        return profiles.map { profile -> profile to getTotalBalance(profile.id) }
+    suspend fun getBudgetProfileTotals(): List<Pair<BudgetProfileEntity, Double>> = withContext(Dispatchers.IO) {
+        repository.ensureDefaultBudgetProfile()
+        database.budgetDao().getActiveBudgetProfileBalances().map {
+            BudgetProfileEntity(id=it.id,name=it.name,sortOrder=it.sortOrder,isActive=it.isActive,createdAt=it.createdAt) to it.total
+        }
     }
 
     fun getCategoryBalanceWithSubcategories(categoryId: Int): Double {

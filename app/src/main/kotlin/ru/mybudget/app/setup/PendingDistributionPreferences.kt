@@ -15,6 +15,7 @@ object PendingDistributionPreferences {
         val plannedSourceId: Int? = null,
         val plannedMonth: String? = null,
         val requestId: String? = null,
+        val finalReceipt:Boolean=true,
     )
 
     private fun prefs(context: Context) =
@@ -22,7 +23,7 @@ object PendingDistributionPreferences {
 
     fun setPending(context: Context, budgetId: Int, amount: Double, note: String = "",
         plannedSourceId: Int? = null, plannedMonth: String? = null,
-        requestId: String = java.util.UUID.randomUUID().toString()) {
+        requestId: String = java.util.UUID.randomUUID().toString(),finalReceipt:Boolean=true) {
         if (amount <= 0.0) {
             clear(context)
             return
@@ -34,6 +35,7 @@ object PendingDistributionPreferences {
             .putInt("pending_plan_source", plannedSourceId ?: 0)
             .putString("pending_plan_month", plannedMonth.takeIf { plannedSourceId != null })
             .putString("pending_receipt_request", requestId)
+            .putBoolean("pending_income_final",finalReceipt)
             .apply()
     }
 
@@ -49,6 +51,7 @@ object PendingDistributionPreferences {
             plannedSourceId = p.getInt("pending_plan_source", 0).takeIf { it > 0 },
             plannedMonth = p.getString("pending_plan_month", null),
             requestId = p.getString("pending_receipt_request", null),
+            finalReceipt=p.getBoolean("pending_income_final",true),
         )
     }
 
@@ -60,6 +63,7 @@ object PendingDistributionPreferences {
             .remove("pending_plan_source")
             .remove("pending_plan_month")
             .remove("pending_receipt_request")
+            .remove("pending_income_final")
             .apply()
     }
 }

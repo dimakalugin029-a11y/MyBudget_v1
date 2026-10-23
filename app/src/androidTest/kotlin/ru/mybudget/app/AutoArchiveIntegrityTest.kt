@@ -137,4 +137,29 @@ class AutoArchiveIntegrityTest {
         assertEquals(100.0,AutoStatisticsHelper.summarize(listOf(record),restored.id,null,null).totalPaid,0.0)
         assertEquals(900.0,dao.getAllBalanceMovements().sumOf { it.budgetDelta },0.0)
     }
+    @Test fun metadataSurvivesFullBackupAndLegacyBackupDefaultsRemainReadable()=runBlocking {
+        repository.saveEntry(entry(AutoEntryType.INSURANCE).copy(insuranceType="casco",insuranceCompany="Company",policyNumber="K-001",insurancePhone="+7 123"))
+        repository.saveEntry(entry(AutoEntryType.FUEL).copy(fuelType="Дизель",fuelStation="Station"))
+        val backup=BackupManager(context,db)
+        val json=backup.exportToJson()
+        assertTrue(backup.importFromJson(json).success)
+        val policy=repository.getEntries().single { it.type==AutoEntryType.INSURANCE }
+        assertEquals("casco",policy.insuranceType);assertEquals("K-001",policy.policyNumber);assertEquals("+7 123",policy.insurancePhone)
+        val fuel=repository.getEntries().single { it.type==AutoEntryType.FUEL }
+        assertEquals("Дизель",fuel.fuelType);assertEquals("Station",fuel.fuelStation)
+        assertNotNull(dao.getTransactionById(policy.paidTransactionId!!.toInt()))
+        val old=com.google.gson.JsonParser.parseString(json).asJsonObject
+        old.addProperty("version",26)
+        old.getAsJsonArray("vehicleInsurances").forEach { row ->
+            listOf("insuranceType","insuranceCompany","policyNumber","insurancePhone").forEach { row.asJsonObject.remove(it) }
+        }
+        old.getAsJsonArray("vehicleFuelLogs").forEach { row ->
+            row.asJsonObject.remove("fuelType");row.asJsonObject.remove("fuelStation")
+        }
+        assertTrue(backup.importFromJson(old.toString()).success)
+        val legacy=repository.getEntries().single { it.type==AutoEntryType.INSURANCE }
+        assertEquals("osago",legacy.insuranceType);assertEquals("",legacy.policyNumber)
+        assertEquals("",repository.getEntries().single { it.type==AutoEntryType.FUEL }.fuelStation)
+    }
+
 }

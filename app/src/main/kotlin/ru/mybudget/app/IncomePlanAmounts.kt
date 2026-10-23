@@ -11,8 +11,9 @@ object IncomePlanAmounts {
         return MoneyFormat.roundMoney((override?.amount ?: PlannedIncomeHelper.budgetMonthAmount(source, month)).coerceAtLeast(0.0))
     }
 
-    data class Progress(val planned: Double, val received: Double) {
-        val remaining: Double get() = MoneyFormat.roundMoney((planned - received).coerceAtLeast(0.0))
+    data class Progress(val planned: Double, val received: Double,val finalized:Boolean=false) {
+        val deviation:Double get()=MoneyFormat.roundMoney(received-planned)
+        val remaining: Double get() = if(finalized) 0.0 else MoneyFormat.roundMoney((planned - received).coerceAtLeast(0.0))
     }
 
     fun progress(source: PlannedIncomeSourceEntity, month: YearMonth, overrides: List<MonthlyIncomePlanEntity>,
@@ -20,5 +21,6 @@ object IncomePlanAmounts {
         planned(source, month.monthValue, overrides.firstOrNull { it.sourceId == source.id && it.year == month.year && it.month == month.monthValue }),
         MoneyFormat.roundMoney(transactions.filter { it.type == "income" && it.plannedIncomeSourceId == source.id &&
             it.plannedIncomeMonth == month.toString() }.sumOf { it.amount }),
+        transactions.any { it.type=="income" && it.plannedIncomeSourceId==source.id && it.plannedIncomeMonth==month.toString() && it.incomePlanFinal },
     )
 }

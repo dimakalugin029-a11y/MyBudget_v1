@@ -8,12 +8,26 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="16dp">
+        <TextView android:id="@+id/autoDetailTotal" style="@style/Text.MyBudget.Section"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="24sp" android:layout_marginBottom="12dp" android:textIsSelectable="true" />
         <TextView
             android:id="@+id/recordDetails"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
             android:textColor="@color/text_primary" />
+        <TextView android:id="@+id/autoDetailWorksTitle" style="@style/Text.MyBudget.Section"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:text="@string/auto_editor_works" />
+        <LinearLayout android:id="@+id/autoDetailWorks" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" />
+        <TextView android:id="@+id/autoDetailCommentTitle" style="@style/Text.MyBudget.Section"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:text="@string/auto_editor_comment" />
+        <TextView android:id="@+id/autoDetailComment" style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+            android:textIsSelectable="true" />
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -59,7 +73,7 @@
                 android:textSize="14sp"
                 android:padding="6dp"
                 android:layout_marginStart="2dp"
-                android:text="@android:string/cancel"
+                android:text="@string/auto_detail_close"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:minHeight="@dimen/touch_min_size" />
         </LinearLayout>

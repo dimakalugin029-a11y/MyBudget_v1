@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="income_source_choose">Выбрать источник в плане</string>
+    <string name="income_source_without_plan">Доход вне плана</string>
+    <string name="income_receipt_actions">Поступления</string>
+    <string name="income_link_existing">Учесть уже записанный доход</string>
+    <string name="income_link_apply">Связать с планом</string>
+    <string name="income_link_empty">В этом месяце нет несвязанных поступлений. Выберите другой месяц или добавьте новый доход.</string>
+    <string name="income_link_load_error">Не удалось загрузить поступления. Повторите попытку.</string>
+    <string name="income_link_title">%1$s · %2$s</string>
+    <string name="income_existing_candidate">%1$s · %2$s
+%3$s · записей: %4$d</string>
+    <string name="income_link_confirm">Учесть %1$s как «%2$s» за %3$s? Связь изменит исполнение плана. Повторного начисления денег и изменения остатков не будет.</string>
+    <string name="income_link_done">Поступление связано с планом. Остатки не изменились.</string>
+    <string name="income_unlinked_total">Без привязки к плану: %1$s</string>
+    <string name="income_unlinked_help">Ещё %1$s получено без привязки к источнику. Нажмите «Поступления» у нужного источника, затем «Учесть уже записанный доход».</string>
+    <string name="income_plan_actual_hint">План — ориентир. При получении укажите точную сумму, даже если она больше или меньше плана. Сумму можно зачислить в статью или распределить.</string>
+    <string name="income_actual_binding">Источник: %1$s · %2$s. Ещё ожидается по плану: %3$s. Фактическую сумму можно изменить.</string>
+</resources>

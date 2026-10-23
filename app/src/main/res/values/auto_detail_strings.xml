@@ -1,0 +1,11 @@
+<resources>
+<string name="auto_detail_total">Итого: %1$s</string>
+<string name="auto_detail_date">Дата: %1$s</string>
+<string name="auto_detail_end_date">Действует до: %1$s</string>
+<string name="auto_detail_mileage">Пробег: %1$d км</string>
+<string name="auto_detail_category">Статья: %1$s</string>
+<string name="auto_detail_missing_category">Статья недоступна</string>
+<string name="auto_detail_fuel">Объём: %1$s л · цена: %2$s ₽/л</string>
+<string name="auto_detail_no_works">Отдельные работы не указаны. Сохранённое описание показано ниже, если оно есть.</string>
+<string name="auto_detail_close">Закрыть</string>
+</resources>

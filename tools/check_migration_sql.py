@@ -99,7 +99,7 @@ def structure(connection):
 
 
 def main():
-    for version in (41, 45, 46, 47):
+    for version in (41, 45, 46, 47, 48, 49):
         with sqlite3.connect(":memory:") as old, sqlite3.connect(":memory:") as current:
             historical = create(old, version)
             before = seed(old, historical)

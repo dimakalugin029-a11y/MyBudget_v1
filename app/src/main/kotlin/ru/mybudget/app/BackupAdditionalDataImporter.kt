@@ -27,7 +27,7 @@ internal object BackupAdditionalDataImporter {
             val month = transaction.plannedIncomeMonth?.let { runCatching { java.time.YearMonth.parse(it).toString() }.getOrNull() }
             val valid = current.type == "income" && source != null && source.budgetId == category?.budgetId && month != null
             dao.updateTransaction(current.copy(plannedIncomeSourceId = sourceId.takeIf { valid },
-                plannedIncomeMonth = month.takeIf { valid }))
+                plannedIncomeMonth = month.takeIf { valid },incomePlanFinal=valid && transaction.incomePlanFinal))
         }
         for (plan in data.monthlyIncomePlans) {
             // Deleted income sources can leave obsolete monthly overrides behind.
@@ -67,6 +67,7 @@ internal object BackupAdditionalDataImporter {
                 id = 0, vehicleId = vehicleId(insurance.vehicleId), categoryId = categoryId(insurance.categoryId),
                 paidTransactionId = transactionId(insurance.paidTransactionId),
                 paymentMethod = AutoPaymentMethod.resolve(insurance.paymentMethod, insurance.paidTransactionId),
+                insuranceType=ru.mybudget.app.auto.InsuranceType.resolve(insurance.insuranceType),insuranceCompany=insurance.insuranceCompany.orEmpty(),policyNumber=insurance.policyNumber.orEmpty(),insurancePhone=insurance.insurancePhone.orEmpty(),
             ))
         }
         for (log in data.vehicleFuelLogs) {
@@ -74,6 +75,7 @@ internal object BackupAdditionalDataImporter {
                 id = 0, vehicleId = vehicleId(log.vehicleId), categoryId = categoryId(log.categoryId),
                 paidTransactionId = transactionId(log.paidTransactionId),
                 paymentMethod = AutoPaymentMethod.resolve(log.paymentMethod, log.paidTransactionId),
+                fuelType=log.fuelType.orEmpty(),fuelStation=log.fuelStation.orEmpty(),
             ))
         }
         for (repair in data.vehicleRepairs) {

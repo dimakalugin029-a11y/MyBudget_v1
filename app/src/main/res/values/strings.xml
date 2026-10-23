@@ -1537,11 +1537,11 @@
   <string name="auto_delete_vehicle_title">Удалить «%1$s»?</string>
   <string name="auto_delete_vehicle_message">Автомобиль и все его записи (ТО, ОСАГО, бензин, ремонт) будут удалены.</string>
   <string name="auto_section_service">ТО</string>
-  <string name="auto_section_insurance">ОСАГО</string>
-  <string name="auto_section_fuel">Бензин</string>
+  <string name="auto_section_insurance">Страховка</string>
+  <string name="auto_section_fuel">Топливо</string>
   <string name="auto_section_repair">Ремонт</string>
   <string name="auto_add_service">Новая запись ТО</string>
-  <string name="auto_add_insurance">Новый полис ОСАГО</string>
+  <string name="auto_add_insurance">Новый страховой полис</string>
   <string name="auto_add_fuel">Новая заправка</string>
   <string name="auto_add_repair">Новый ремонт</string>
   <string name="auto_field_date">Дата (ДД.ММ.ГГГГ)</string>
@@ -1570,7 +1570,7 @@
   <string name="auto_bad_date">Некорректная дата (ожидается ДД.ММ.ГГГГ)</string>
   <string name="auto_bad_amount">Некорректная сумма</string>
   <string name="auto_empty">Записей пока нет</string>
-    <string name="auto_insurance_notify_channel">Напоминания об ОСАГО</string>
+    <string name="auto_insurance_notify_channel">Напоминания о страховках</string>
   <string name="auto_insurance_notify_title">ОСАГО скоро закончится</string>
   <string name="auto_insurance_notify_message">%1$s: полис действует до %2$s (осталось %3$d дн.). Проверьте деньги на статье.</string>
   <string name="auto_fuel_stats">Ориентировочный расход: %1$s л/100 км</string>
@@ -1586,7 +1586,7 @@
   <string name="auto_statistics_title">Статистика авто</string>
   <string name="auto_invalid_item">Укажите название и неотрицательную сумму каждой работы или запчасти</string>
   <string name="auto_invalid_mileage">Укажите корректный пробег</string>
-  <string name="auto_invalid_insurance_dates">Дата окончания ОСАГО должна быть не раньше даты начала</string>
+  <string name="auto_invalid_insurance_dates">Дата окончания страховки должна быть не раньше даты начала</string>
   <string name="auto_save_failed">Не удалось сохранить запись: %1$s</string>
   <string name="auto_stats_vehicle">Автомобиль</string>
   <string name="auto_stats_period">Период</string>
@@ -1601,7 +1601,7 @@
   <string name="auto_stats_invalid_dates">Окончание периода должно быть не раньше его начала</string>
   <string name="auto_stats_total">Всего оплачено: %1$s</string>
   <string name="auto_stats_payment_totals">Из бюджета: %1$s\nНаличными: %2$s\nНе оплачено: %3$s</string>
-  <string name="auto_stats_date_hint">Период определяется датой события, для ОСАГО — датой начала. В итоги и графики входят только оплаченные события. Записи «Авто» считаются один раз, без повторного прибавления операций бюджета.</string>
+  <string name="auto_stats_date_hint">Период определяется датой события, для страховки — датой начала. В итоги и графики входят только оплаченные события. Записи «Авто» считаются один раз, без повторного прибавления операций бюджета.</string>
   <string name="auto_stats_empty">За выбранный период записей нет</string>
   <string name="auto_stats_breakdown">Расходы по направлениям</string>
   <string name="auto_stats_type_total">%1$s: %2$s</string>

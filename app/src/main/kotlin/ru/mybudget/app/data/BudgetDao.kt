@@ -98,6 +98,12 @@ abstract class BudgetDao {
     @Query("SELECT * FROM planned_income_sources WHERE id = :id")
     abstract suspend fun getIncomeSourceById(id: Int): PlannedIncomeSourceEntity?
 
+    @Query("UPDATE transactions SET incomePlanFinal=0 WHERE type='income' AND plannedIncomeSourceId=:sourceId AND plannedIncomeMonth=:month")
+    abstract suspend fun reopenIncomePlanMonth(sourceId:Int,month:String)
+
+    @Query("UPDATE transactions SET incomePlanFinal=0 WHERE id=:id OR (:groupId IS NOT NULL AND groupId=:groupId)")
+    abstract suspend fun reopenIncomeReceipt(id:Int,groupId:String?)
+
     @Query("SELECT t.* FROM transactions t INNER JOIN categories c ON c.id = t.categoryId WHERE c.budgetId = :budgetId AND t.type = 'income' AND t.plannedIncomeSourceId IS NOT NULL")
     abstract suspend fun getIncomePlanTransactions(budgetId: Int): List<TransactionEntity>
 
@@ -144,7 +150,9 @@ abstract class BudgetDao {
         val operation = "correct-$transactionId-${java.util.UUID.randomUUID()}"
         applyBalanceDelta(current.categoryId, revert, "correction", operation)
         applyBalanceDelta(newCategoryId, if (newType == "income") rounded else -rounded, "correction", operation)
+        if(newType!="income" || oldCategory.budgetId!=newCategory.budgetId) reopenIncomeReceipt(current.id,current.groupId)
         updateTransaction(current.copy(
+            incomePlanFinal=current.incomePlanFinal && newType=="income" && oldCategory.budgetId==newCategory.budgetId,
             categoryId = newCategoryId,
             amount = rounded,
             type = newType,
@@ -240,6 +248,14 @@ abstract class BudgetDao {
 
     @Update
     abstract suspend fun updatePlannedIncomeSource(source: PlannedIncomeSourceEntity)
+
+    @Query("""
+        SELECT p.id,p.name,p.sortOrder,p.isActive,p.createdAt,
+            COALESCE(SUM(CASE WHEN c.parentId=0 AND c.isActive=1 THEN c.currentBalance ELSE 0 END),0.0) AS total
+        FROM budget_profiles p LEFT JOIN categories c ON c.budgetId=p.id
+        WHERE p.isActive=1 GROUP BY p.id,p.name,p.sortOrder,p.isActive,p.createdAt ORDER BY p.sortOrder,p.id
+    """)
+    abstract suspend fun getActiveBudgetProfileBalances():List<BudgetProfileBalance>
 
     @Query("SELECT * FROM budget_profiles WHERE isActive = 1 ORDER BY sortOrder, id")
     abstract fun getAllBudgetProfiles(): Flow<List<BudgetProfileEntity>>
@@ -754,6 +770,7 @@ abstract class BudgetDao {
     @Transaction
     open suspend fun revertAndDeleteTransaction(transaction: TransactionEntity) {
         val current = getTransactionById(transaction.id) ?: return
+        if(current.type=="income") reopenIncomeReceipt(current.id,current.groupId)
         val delta = if (current.type == "income") -current.amount else current.amount
         applyBalanceDelta(current.categoryId, delta, "reversal", "cancel-${current.id}")
         undoPaymentLinks(current.id)

@@ -27,6 +27,7 @@ class BudgetActivity : AppCompatActivity() {
     private lateinit var manager: BudgetManager
     private lateinit var categoriesContainer: LinearLayout
     private lateinit var categoriesScrollView: ScrollView
+    private var showBudgetDetails=false
     private lateinit var totalBalanceText: TextView
     private lateinit var activeBudgetNameText: TextView
     private lateinit var safeToSpendText: TextView
@@ -49,6 +50,7 @@ class BudgetActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_budget)
         manager = BudgetManager.getInstance(this)
+        showBudgetDetails=savedInstanceState?.getBoolean("budget_details") ?: false
         expandedParentIds.addAll(savedInstanceState?.getIntArray("budget_expanded")?.toList().orEmpty())
         listFilter = savedInstanceState?.getString("budget_filter")?.let {
             runCatching { BudgetPlanHelper.ListFilter.valueOf(it) }.getOrNull()
@@ -88,6 +90,12 @@ class BudgetActivity : AppCompatActivity() {
         totalBalanceText = findViewById(R.id.totalBalanceText)
         activeBudgetNameText = findViewById(R.id.activeBudgetNameText)
         safeToSpendText = findViewById(R.id.safeToSpendText)
+        findViewById<View>(R.id.budgetDetailsToggle).setOnClickListener {
+            showBudgetDetails=!showBudgetDetails
+            updateBudgetDetails()
+            displayCategories(manager.getCategoriesForBudget())
+        }
+        updateBudgetDetails()
 
         findViewById<View>(R.id.activeBudgetPicker).setOnClickListener {
             BudgetPicker.show(this, onSwitched = {
@@ -112,6 +120,7 @@ class BudgetActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("budget_details",showBudgetDetails)
         outState.putIntArray("budget_expanded", expandedParentIds.toIntArray())
         outState.putString("budget_filter", listFilter.name)
         outState.putString("budget_previous_filter", filterBeforeReorder.name)
@@ -212,13 +221,14 @@ class BudgetActivity : AppCompatActivity() {
             )
             val daily = BudgetPlanHelper.safeToSpendDaily(total, reservedObligationsAmount(activeId))
             if (daily != null) {
-                safeToSpendText.visibility = View.VISIBLE
+                safeToSpendText.visibility = if(showBudgetDetails) View.VISIBLE else View.GONE
                 safeToSpendText.text = getString(
                     R.string.budget_safe_to_spend,
                     MoneyFormat.format(daily),
                     BudgetPlanHelper.daysLeftInMonth(),
                 )
             } else {
+                safeToSpendText.text = ""
                 safeToSpendText.visibility = View.GONE
             }
             loadMonthlyMaps(activeId, manager.getCategoriesForBudget(activeId))
@@ -338,6 +348,15 @@ class BudgetActivity : AppCompatActivity() {
         categoriesScrollView.post { categoriesScrollView.scrollTo(0, scrollY) }
     }
 
+    private fun updateBudgetDetails() {
+        findViewById<android.widget.ImageButton>(R.id.budgetDetailsToggle).apply {
+            rotation=if(showBudgetDetails) 180f else 0f
+            contentDescription=getString(if(showBudgetDetails) R.string.budget_hide_details else R.string.budget_show_details)
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(this,contentDescription)
+        }
+        safeToSpendText.visibility=if(showBudgetDetails && safeToSpendText.text.isNotBlank()) View.VISIBLE else View.GONE
+    }
+
     private fun visibleGroups(categories: List<BudgetCategory>) = BudgetListHelper.visibleGroups(
         categories, listFilter, monthlySpentMap, monthlyPlannedMap, OverspendPreferences.getThresholdPercent(this),
     )
@@ -365,7 +384,7 @@ class BudgetActivity : AppCompatActivity() {
         }
         if (metaParts.isNotEmpty()) {
             metaView.text = metaParts.joinToString(" · ")
-            metaView.visibility = View.VISIBLE
+            metaView.visibility = if(showBudgetDetails) View.VISIBLE else View.GONE
         } else {
             metaView.visibility = View.GONE
         }
@@ -415,7 +434,7 @@ class BudgetActivity : AppCompatActivity() {
             else showCategoryMenu(row, category, isParent = category.parentId == 0, childCount = 0, leftover = 0.0)
         }
         bindCategoryMenu(row, category, isParent = category.parentId == 0, childCount = 0, leftover = 0.0)
-        row.findViewById<View>(R.id.categoryQuickActions).visibility = if (reorderMode) View.GONE else View.VISIBLE
+        row.findViewById<View>(R.id.categoryQuickActions).visibility = if (reorderMode || !showBudgetDetails) View.GONE else View.VISIBLE
         row.findViewById<View>(R.id.addIncomeButton).setOnClickListener {
             BudgetDialogs.showAddTransaction(this, manager, category, BudgetDialogs.TransactionKind.INCOME) { reload() }
         }
@@ -614,6 +633,10 @@ class BudgetActivity : AppCompatActivity() {
         leftover: Double,
     ) {
         PopupMenu(this, anchor).apply {
+            if(childCount==0) {
+                menu.add(0,11,0,R.string.main_primary_income)
+                menu.add(0,12,0,R.string.main_primary_expense)
+            }
             menu.add(0, 1, 0, R.string.budget_open_history)
             if (isParent) {
                 menu.add(0, 7, 0, R.string.budget_menu_add_subcategory)
@@ -629,6 +652,8 @@ class BudgetActivity : AppCompatActivity() {
             menu.add(0, 6, 0, R.string.budget_profiles_delete)
             setOnMenuItemClickListener { item ->
                 when (item.itemId) {
+                    11 -> BudgetDialogs.showAddTransaction(this@BudgetActivity,manager,category,BudgetDialogs.TransactionKind.INCOME) { reload() }
+                    12 -> BudgetDialogs.showAddTransaction(this@BudgetActivity,manager,category,BudgetDialogs.TransactionKind.EXPENSE) { reload() }
                     1 -> openHistory(category, isParent)
                     4 -> BudgetDialogs.showEditCategory(this@BudgetActivity, manager, category) { reload() }
                     5 -> showSubcategoryTransferDialog(category)
@@ -678,7 +703,7 @@ class BudgetActivity : AppCompatActivity() {
             R.color.primary_green
         }
         planProgress.progressTintList = ContextCompat.getColorStateList(this, color)
-        planRow.visibility = View.VISIBLE
+        planRow.visibility = if(showBudgetDetails || BudgetPlanHelper.isOverspent(spent,planned,threshold)) View.VISIBLE else View.GONE
     }
 
     private fun showSubcategoryTransferDialog(from: BudgetCategory) {

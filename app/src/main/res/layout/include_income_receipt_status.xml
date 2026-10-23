@@ -1,0 +1,5 @@
+<RadioGroup xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/incomeReceiptStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:checkedButton="@id/incomeReceiptFinal" android:visibility="gone">
+<RadioButton android:id="@+id/incomeReceiptFinal" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/income_receipt_final" />
+<RadioButton android:id="@+id/incomeReceiptPartial" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" android:text="@string/income_receipt_partial" />
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.MyBudget.Subtitle" android:text="@string/income_receipt_status_hint" android:paddingBottom="12dp" />
+</RadioGroup>

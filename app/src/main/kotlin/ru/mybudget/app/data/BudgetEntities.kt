@@ -67,6 +67,7 @@ data class TransactionEntity(
     val participantLabel: String = "",
     @ColumnInfo(defaultValue = "NULL") val plannedIncomeSourceId: Int? = null,
     @ColumnInfo(defaultValue = "NULL") val plannedIncomeMonth: String? = null,
+    @ColumnInfo(defaultValue = "0") val incomePlanFinal:Boolean=false,
 )
 
 @Entity(

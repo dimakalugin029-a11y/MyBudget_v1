@@ -38,6 +38,13 @@ data class AutoEntry(
     val pricePerLiter: Double = 0.0,
     val createdAt: Long = System.currentTimeMillis(),
     val isArchived: Boolean = false,
+    val fuelType:String="",
+    val fuelStation:String="",
+    val insuranceType:String="osago",
+    val insuranceCompany:String="",
+    val policyNumber:String="",
+    val insurancePhone:String="",
+
 ) {
     val paid get() = paymentMethod != AutoPaymentMethod.UNPAID
 
@@ -50,11 +57,13 @@ data class AutoEntry(
         fun from(item: VehicleInsuranceEntity) = AutoEntry(AutoEntryType.INSURANCE, item.id, item.vehicleId,
             item.startDateEpochDay, item.amount, item.categoryId,
             AutoPaymentMethod.resolve(item.paymentMethod, item.paidTransactionId), item.paidTransactionId,
+            insuranceType=InsuranceType.resolve(item.insuranceType),insuranceCompany=item.insuranceCompany.orEmpty(),policyNumber=item.policyNumber.orEmpty(),insurancePhone=item.insurancePhone.orEmpty(),
             endDateEpochDay = item.endDateEpochDay, createdAt = item.createdAt, isArchived = item.isArchived)
 
         fun from(log: VehicleFuelLogEntity) = AutoEntry(AutoEntryType.FUEL, log.id, log.vehicleId,
             log.dateEpochDay, log.amount, log.categoryId,
             AutoPaymentMethod.resolve(log.paymentMethod, log.paidTransactionId), log.paidTransactionId,
+            fuelType=log.fuelType.orEmpty(),fuelStation=log.fuelStation.orEmpty(),
             mileageKm = log.mileageKm, liters = log.liters, pricePerLiter = log.pricePerLiter,
             createdAt = log.createdAt, isArchived = log.isArchived)
 

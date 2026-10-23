@@ -145,5 +145,6 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
+        <activity android:name=".BalanceCoverageActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
     </application>
 </manifest>

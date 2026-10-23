@@ -49,7 +49,7 @@ object MainDashboardHelper {
         val leaves = snapshot.categories.filter { it.id !in parentIds }
         val threshold = OverspendPreferences.getThresholdPercent(context)
         val limits = leaves.count {
-            BudgetPlanHelper.isCategoryOverspent(BudgetCategory.fromEntity(it), spent[it.id] ?: 0.0, threshold,
+            it.currentBalance < 0 || BudgetPlanHelper.isCategoryOverspent(BudgetCategory.fromEntity(it), spent[it.id] ?: 0.0, threshold,
                 MonthlyPlanHelper.effectivePlannedAmount(BudgetCategory.fromEntity(it), plans[it.id]))
         }
         if (limits > 0) actions += AttentionItem("limits:$active", AttentionLine(

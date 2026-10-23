@@ -52,7 +52,7 @@ object InsuranceReminderNotifier {
             )
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_menu_my_calendar)
-                .setContentTitle(context.getString(R.string.auto_insurance_notify_title))
+                .setContentTitle(context.getString(R.string.auto_policy_notification,ru.mybudget.app.auto.InsuranceType.label(insurance.insuranceType)))
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setAutoCancel(true)

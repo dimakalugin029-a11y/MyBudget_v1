@@ -69,6 +69,10 @@ class IncomeDistributionActivity : AppCompatActivity() {
             plannedMonth = runCatching { java.time.YearMonth.parse(savedInstanceState.getString("plan_month")) }.getOrDefault(plannedMonth)
             totalIncome = savedInstanceState.getDouble("distribution_total", totalIncome)
         }
+        findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).apply {
+            visibility=if(plannedSourceId!=null) View.VISIBLE else View.GONE
+            check(if(savedInstanceState?.getBoolean("income_final") ?: intent.getBooleanExtra("income_final",matchingPending?.finalReceipt ?: true)) R.id.incomeReceiptFinal else R.id.incomeReceiptPartial)
+        }
         ScreenHeaderHelper.setup(this, getString(R.string.transaction_income_distribution))
         findViewById<View>(R.id.incomeDistributionHint)?.let {
             ScreenHintHelper.bind(
@@ -442,6 +446,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
     private fun remaining(): Double = totalIncome - distributed()
 
     private fun updateTotals() {
+        listOf(R.id.incomeReceiptFinal,R.id.incomeReceiptPartial).forEach { findViewById<View>(it).isEnabled=!submitting && !coverageLoading }
         val distributed = distributed()
         val remaining = remaining()
         if (coverageIds.isNotEmpty()) {
@@ -507,6 +512,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
             .ifBlank { getString(R.string.transaction_income_distribution) }
         submitting = true
         submitButton.isEnabled = false
+        listOf(R.id.incomeReceiptFinal,R.id.incomeReceiptPartial).forEach { findViewById<View>(it).isEnabled=false }
         lifecycleScope.launch {
           try {
             require(distributionBudgetId == manager.getActiveBudgetId()) { "Выбран другой бюджет" }
@@ -514,7 +520,8 @@ class IncomeDistributionActivity : AppCompatActivity() {
             var credited = items.sumOf { it.second }
             if (sourceId != null) {
                 val applied = IncomePlanExecution(manager.database).receive(sourceId, plannedMonth, items, note,
-                    receiptRequest, intent.getStringExtra(EXTRA_REPLACE_GROUP))
+                    receiptRequest, intent.getStringExtra(EXTRA_REPLACE_GROUP),
+                    finalReceipt=findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal && MoneyFormat.roundMoney(totalIncome-credited)<=0.01)
                 if (!applied) {
                     credited = manager.database.budgetDao().getTransactionsByGroupId(receiptRequest).sumOf { it.amount }
                     Toast.makeText(this@IncomeDistributionActivity, R.string.income_plan_changed, Toast.LENGTH_LONG).show()
@@ -541,6 +548,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
                     note,
                     plannedSourceId,
                     plannedMonth.toString(),
+                    finalReceipt=findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal,
                 )
             } else {
                 PendingDistributionPreferences.clear(this@IncomeDistributionActivity)
@@ -563,6 +571,7 @@ class IncomeDistributionActivity : AppCompatActivity() {
         outState.putBoolean("coverage_initial_opened", coverageOpenedInitially)
         outState.putString("receipt_request", receiptRequest)
         outState.putInt("plan_source", plannedSourceId ?: 0)
+        outState.putBoolean("income_final",findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal)
         outState.putString("plan_month", plannedMonth.toString())
         outState.putInt("distribution_budget", distributionBudgetId)
         outState.putDouble("distribution_total", totalIncome)

@@ -70,6 +70,7 @@ object ForecastHelper {
         val categoryNames: Map<Int, String> = emptyMap(),
         val monthlyIncomePlans: List<MonthlyIncomePlanEntity> = emptyList(),
         val includeCurrentMonth: Boolean = false,
+        val planReceipts:List<TransactionEntity>?=null,
         val paidPeriods: Set<ObligationPaymentHelper.PeriodKey> = emptySet(),
     )
 
@@ -101,11 +102,16 @@ object ForecastHelper {
             val ym = startMonth.plusMonths(offset.toLong())
             var incomeLines = incomeForMonth(inputs, ym, avgMonthlyIncome)
             val partial = inputs.includeCurrentMonth && ym == currentMonth
+            val sources=inputs.incomeSources.associateBy { it.id }
+            incomeLines=incomeLines.map { line ->
+                val progress=sources[line.sourceId]?.let { IncomePlanAmounts.progress(it,ym,inputs.monthlyIncomePlans,inputs.planReceipts ?: inputs.pastTransactions) }
+                line.copy(amount=if(progress?.finalized==true) 0.0 else MoneyFormat.roundMoney((line.amount-(progress?.received ?: 0.0)).coerceAtLeast(0.0)))
+            }
             if (partial) {
-                val received = inputs.pastTransactions.filter { it.type == "income" && monthOf(it.date) == ym }.sumOf { it.amount }
-                val planned = incomeLines.sumOf { it.amount }
-                val ratio = if (planned > 0.0) ((planned - received).coerceAtLeast(0.0) / planned) else 0.0
-                incomeLines = incomeLines.map { it.copy(amount = MoneyFormat.roundMoney(it.amount * ratio)) }
+                val received=IncomeMonthFacts.unlinked(inputs.pastTransactions,ym).sumOf { it.amount }
+                val planned=incomeLines.sumOf { it.amount }
+                val ratio=if(planned>0.0) ((planned-received).coerceAtLeast(0.0)/planned) else 0.0
+                incomeLines=incomeLines.map { it.copy(amount=MoneyFormat.roundMoney(it.amount*ratio)) }
             }
             val (mandatoryLines, mandatoryTotal) = mandatoryExpenseForMonth(inputs, ym, avgFactByCategory, goalCategories)
             val goalsLines = goalsForMonth(inputs.copy(goalBalances = goalBalances), ym, mandatoryLines)

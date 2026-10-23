@@ -67,7 +67,7 @@ import ru.mybudget.app.data.migration.Migration27To28
         VehicleFuelLogEntity::class,
         VehicleRepairEntity::class,
     ],
-    version = 48,
+    version = 50,
     exportSchema = true,
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -455,6 +455,8 @@ abstract class BudgetDatabase : RoomDatabase() {
             ru.mybudget.app.data.migration.Migration45To46.MIGRATION,
             ru.mybudget.app.data.migration.Migration46To47.MIGRATION,
             ru.mybudget.app.data.migration.Migration47To48.MIGRATION,
+            ru.mybudget.app.data.migration.Migration48To49.MIGRATION,
+            ru.mybudget.app.data.migration.Migration49To50.MIGRATION,
         )
 
         fun getInstance(context: Context): BudgetDatabase {

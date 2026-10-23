@@ -35,6 +35,6 @@ object ForecastDataLoader {
             pastTransactions = history, goals = goals, goalBalances = goals.associate { goal ->
                 goal.categoryId to (categories.firstOrNull { it.id == goal.categoryId }?.currentBalance ?: 0.0) },
             categoryNames = names, monthlyIncomePlans = dao.getMonthlyIncomePlansForBudget(budgetId),
-            includeCurrentMonth = true, paidPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(budgetId)))
+            includeCurrentMonth = true, planReceipts=dao.getIncomePlanTransactions(budgetId), paidPeriods = ObligationPaymentHelper.paidKeys(dao.getObligationPaymentsByBudget(budgetId)))
     }
 }

@@ -12,7 +12,7 @@ class PlanOverviewHelperTest {
         id = id, budgetId = budget, name = "Salary", amount = 1000.0, sourceType = "salary",
     )
 
-    @Test fun onlyLinkedReceiptsReduceIncomePlanEvenWhenBookedOnAnotherDate() {
+    @Test fun allActualReceiptsAreVisibleButOnlyLinkedReceiptsReduceSpecificPlan() {
         val result = PlanOverviewHelper.summarize(1, month, listOf(BudgetCategory(1, "Income", 0)),
             listOf(source()), emptyList(), emptyList(), listOf(
                 TransactionEntity(categoryId = 1, amount = 200.0, type = "income", description = "",
@@ -20,7 +20,8 @@ class PlanOverviewHelperTest {
                 TransactionEntity(categoryId = 1, amount = 500.0, type = "income", description = "", date = date),
             ))
         assertEquals(1000.0, result.incomePlanned, 0.001)
-        assertEquals(200.0, result.incomeReceived, 0.001)
+        assertEquals(700.0, result.incomeReceived, 0.001)
+        assertEquals(500.0, result.incomeUnlinked, 0.001)
         assertEquals(800.0, result.incomeRemaining, 0.001)
     }
 

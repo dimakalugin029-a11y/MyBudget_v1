@@ -65,7 +65,8 @@
                     app:icon="@android:drawable/ic_input_add"
                     app:iconGravity="textStart"
                     style="@style/Widget.Material3.Button.OutlinedButton" />
-                <androidx.recyclerview.widget.RecyclerView
+                <include layout="@layout/include_income_receipt_status" />
+<androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/categoriesRecyclerView"
                     android:paddingBottom="@dimen/space_8"
                     android:clipToPadding="false"

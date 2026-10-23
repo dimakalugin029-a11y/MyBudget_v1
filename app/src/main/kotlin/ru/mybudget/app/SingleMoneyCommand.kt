@@ -8,7 +8,7 @@ data class SingleMoneyCommand(
     val requestId:String, val budgetId:Int, val categoryId:Int, val amount:Double,
     val type:String, val description:String, val participant:String="",
     val categoryName:String="", val parentName:String="", val label:String="",
-    val plannedSourceId:Int?=null, val plannedMonth:YearMonth?=null,
+    val plannedSourceId:Int?=null, val plannedMonth:YearMonth?=null, val finalReceipt:Boolean=false,
 )
 
 class SingleMoneyCommandExecutor(private val database:BudgetDatabase) {
@@ -25,7 +25,7 @@ class SingleMoneyCommandExecutor(private val database:BudgetDatabase) {
         val applied=if(command.plannedSourceId!=null) {
             require(command.type=="income" && command.plannedMonth!=null)
             IncomePlanExecution(database).receive(command.plannedSourceId,command.plannedMonth,
-                listOf(command.categoryId to command.amount),command.description,command.requestId)
+                listOf(command.categoryId to command.amount),command.description,command.requestId,finalReceipt=command.finalReceipt)
         } else {
             dao.recordSingleWithRequest(command.categoryId,command.amount,command.type,command.description,command.participant,command.requestId)
             true

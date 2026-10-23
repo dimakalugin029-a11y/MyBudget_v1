@@ -8,7 +8,7 @@ import java.time.YearMonth
 /** A receipt is derived from real income transactions, so edits and cancellation stay consistent. */
 class IncomePlanExecution(private val database: BudgetDatabase) {
     suspend fun receive(sourceId: Int, month: YearMonth, items: List<Pair<Int, Double>>,
-        description: String, requestId: String, replaceGroupId: String? = null): Boolean = database.withTransaction {
+        description: String, requestId: String, replaceGroupId: String? = null,finalReceipt:Boolean=false): Boolean = database.withTransaction {
         val dao = database.budgetDao()
         require(requestId.isNotBlank())
         if (dao.getTransactionsByGroupId(requestId).isNotEmpty()) return@withTransaction false
@@ -24,12 +24,7 @@ class IncomePlanExecution(private val database: BudgetDatabase) {
             }
             dao.cancelTransactionGroup(replaceGroupId)
         }
-        val override = dao.getMonthlyIncomePlansForMonth(source.budgetId, month.year, month.monthValue)
-            .firstOrNull { it.sourceId == sourceId }
-        val plan = IncomePlanAmounts.planned(source, month.monthValue, override)
-        val received = dao.getIncomePlanTransactions(source.budgetId).filter {
-            it.plannedIncomeSourceId == sourceId && it.plannedIncomeMonth == month.toString()
-        }.sumOf { it.amount }
+        require(dao.getBudgetProfileById(source.budgetId)?.isActive == true) { "Бюджет больше недоступен" }
         val normalized = items.map { (id, amount) ->
             require(amount.isFinite() && amount > 0.0) { "Некорректная сумма" }
             val category = requireNotNull(dao.getCategoryById(id)) { "Статья удалена" }
@@ -38,15 +33,29 @@ class IncomePlanExecution(private val database: BudgetDatabase) {
         }
         val total = MoneyFormat.roundMoney(normalized.sumOf { it.second })
         require(normalized.isNotEmpty() && normalized.all { it.second > 0.0 }) { "Укажите сумму" }
-        require(total <= MoneyFormat.roundMoney(plan - received) + 0.001) {
-            "Сумма превышает остаток по плану. Обновите план или запишите превышение отдельным доходом."
-        }
+        require(total.isFinite() && total>0.0) { "Некорректная общая сумма" }
+        // A forecast is an estimate, never a cap on a confirmed real receipt.
+        if(finalReceipt) dao.reopenIncomePlanMonth(sourceId,month.toString())
         normalized.forEach { (id, amount) ->
             dao.insertTransaction(TransactionEntity(categoryId = id, amount = amount, type = "income",
                 description = description, groupId = requestId, plannedIncomeSourceId = sourceId,
-                plannedIncomeMonth = month.toString()))
+                plannedIncomeMonth = month.toString(),incomePlanFinal=finalReceipt))
             dao.applyBalanceDelta(id, amount, "income", requestId)
         }
         true
     }
+    suspend fun setCompletion(sourceId:Int,month:YearMonth,final:Boolean)=database.withTransaction {
+        val dao=database.budgetDao()
+        val source=requireNotNull(dao.getIncomeSourceById(sourceId))
+        require(source.isActive && dao.getBudgetProfileById(source.budgetId)?.isActive==true)
+        val rows=dao.getIncomePlanTransactions(source.budgetId).filter { it.plannedIncomeSourceId==sourceId && it.plannedIncomeMonth==month.toString() }
+        require(rows.isNotEmpty()) { "Сначала запишите или свяжите фактическое поступление" }
+        dao.reopenIncomePlanMonth(sourceId,month.toString())
+        if(final) {
+            val last=rows.maxBy { it.id }
+            rows.filter { if(last.groupId.isNullOrBlank()) it.id==last.id else it.groupId==last.groupId }
+                .forEach { dao.updateTransaction(it.copy(incomePlanFinal=true)) }
+        }
+    }
+
 }

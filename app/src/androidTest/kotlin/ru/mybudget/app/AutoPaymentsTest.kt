@@ -36,6 +36,27 @@ class AutoPaymentsTest {
         dateEpochDay = 20000, amount = 100.0, paymentMethod = AutoPaymentMethod.UNPAID,
         endDateEpochDay = 20365, liters = 2.0, pricePerLiter = 50.0)
 
+    @Test fun fuelMetadataSurvivesPaymentChangeAndCorrection()=runBlocking {
+        val id=repository.saveEntry(entry(AutoEntryType.FUEL).copy(fuelType="АИ-95",fuelStation="Station"))
+        var current=repository.getEntries().single()
+        repository.saveEntry(current.copy(paymentMethod=AutoPaymentMethod.BUDGET,categoryId=2))
+        current=repository.getEntries().single()
+        assertEquals(id,current.id);assertEquals("АИ-95",current.fuelType);assertEquals("Station",current.fuelStation)
+        assertEquals(900.0,db.budgetDao().getCategoryById(2)!!.currentBalance,0.0)
+    }
+    @Test fun osagoAndCascoCoexistAndKeepIndependentFieldsAndPayments()=runBlocking {
+        val osago=repository.saveEntry(entry(AutoEntryType.INSURANCE).copy(paymentMethod=AutoPaymentMethod.CASH,policyNumber="O-001"))
+        val casco=repository.saveEntry(entry(AutoEntryType.INSURANCE).copy(insuranceType="casco",insuranceCompany="Company",policyNumber="K-002",insurancePhone="+7 123",paymentMethod=AutoPaymentMethod.BUDGET,categoryId=2))
+        assertNotEquals(osago,casco)
+        val rows=repository.getEntries()
+        assertEquals(2,rows.size)
+        val current=rows.single { it.id==casco }
+        assertEquals("casco",current.insuranceType);assertEquals("K-002",current.policyNumber);assertEquals("+7 123",current.insurancePhone)
+        repository.saveEntry(current.copy(insuranceCompany="Changed"))
+        assertEquals("O-001",repository.getEntries().single { it.id==osago }.policyNumber)
+        assertEquals(1,db.budgetDao().getAllTransactionsOnce().size)
+    }
+
     @Test fun allEventTypesSupportCashBudgetAndUnpaidTransitions() = runBlocking {
         for (type in AutoEntryType.entries) {
             val id = repository.saveEntry(entry(type))

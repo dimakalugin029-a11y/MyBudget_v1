@@ -19,6 +19,16 @@
       "version": 47,
       "origin": "Actual exported working schema before migration 47->48",
       "sha256": "927bbe7a5042ab181e0b8eb9e335eecb24bb19c181df5b4ae45d366fb5ac954b"
+    },
+    {
+      "version": 48,
+      "origin": "Actual exported schema before migration 48->49",
+      "sha256": "922ea7003e52753634f576b0870ed7e88cb7473b1c235d06b5ce8f22f4d7a370"
+    },
+    {
+      "version": 49,
+      "origin": "Actual schema before income completion migration",
+      "sha256": "9d8ea4aaa158b7022be23836c7041beea6b7be73b793a8cf63dc586cb639acd7"
     }
   ],
   "hashFormat": "SHA-256 of canonical JSON: sorted keys, compact separators, UTF-8, Unicode unescaped"

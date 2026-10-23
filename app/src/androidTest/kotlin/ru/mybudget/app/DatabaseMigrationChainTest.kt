@@ -27,11 +27,15 @@ class DatabaseMigrationChainTest {
 
     @Test fun version47UpgradesToCurrentWithoutLosingPayments() = verifyUpgrade(47)
 
+    @Test fun version48UpgradesToCurrentWithoutLosingPayments() = verifyUpgrade(48)
+
+    @Test fun version49UpgradesToCurrentWithoutLosingPayments() = verifyUpgrade(49)
+
     @Test fun freshDatabaseOpensWithCurrentSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
         try {
-            assertEquals(48, db.openHelper.writableDatabase.version)
+            assertEquals(50, db.openHelper.writableDatabase.version)
             db.openHelper.writableDatabase.query("PRAGMA integrity_check").use { it.moveToFirst(); assertEquals("ok", it.getString(0)) }
         } finally { db.close() }
     }
@@ -100,7 +104,7 @@ class DatabaseMigrationChainTest {
                 .addMigrations(*BudgetDatabase.ALL_MIGRATIONS).addCallback(ru.mybudget.app.data.BalanceLedgerSchema.callback).build()
             try {
                 val opened = db.openHelper.writableDatabase // Room validates the entire target schema here.
-                assertEquals(48, opened.version)
+                assertEquals(50, opened.version)
                 assertEquals(900.0, db.budgetDao().getCategoryById(1)!!.currentBalance, 0.0)
                 assertEquals(900.0, db.budgetDao().getCategoryById(2)!!.currentBalance, 0.0)
                 assertEquals(2, db.budgetDao().getAllTransactionsOnce().size)

@@ -1,0 +1,9 @@
+<resources>
+<string name="auto_meta_fuelType">Тип топлива</string>
+<string name="auto_meta_fuelStation">АЗС</string>
+<string name="auto_meta_insuranceType">Тип страховки</string>
+<string name="auto_meta_insuranceCompany">Страховая компания</string>
+<string name="auto_meta_policyNumber">Номер полиса</string>
+<string name="auto_meta_insurancePhone">Телефон страховой</string>
+<string name="auto_policy_notification">%1$s скоро закончится</string>
+</resources>

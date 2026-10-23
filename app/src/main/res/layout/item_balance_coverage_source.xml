@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Card.MyBudget.Surface"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginTop="8dp" android:layout_marginBottom="4dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="16dp">
+        <TextView android:id="@+id/coverageSourceName" style="@style/Text.MyBudget.Section"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/coverageSourceBalance" style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" />
+        <TextView style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp" android:layout_marginBottom="4dp"
+            android:text="@string/balance_coverage_amount" android:labelFor="@id/coverageSourceAmount" />
+        <EditText android:id="@+id/coverageSourceAmount" style="@style/Widget.MyBudget.OperationInput"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="@string/coverage_source_zero" android:inputType="numberDecimal"
+            android:singleLine="true" android:saveEnabled="false" />
+        <TextView android:id="@+id/coverageSourceAfter" style="@style/Text.MyBudget.Subtitle"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

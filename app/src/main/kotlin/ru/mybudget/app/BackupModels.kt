@@ -107,7 +107,7 @@ data class BackupData(
     @SerializedName("participantNames") val participantNames: List<String> = emptyList(),
 ) {
     companion object {
-        const val CURRENT_VERSION = 26
+        const val CURRENT_VERSION = 28
     }
 }
 

@@ -32,10 +32,11 @@
         <TextView
             android:textSize="14sp"
             android:id="@+id/paymentStatusText"
+            android:padding="12dp" android:background="@drawable/utility_payment_status_bg"
             android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/space_4"
+            android:layout_marginTop="@dimen/space_12"
             android:textColor="@color/text_secondary" />
         <TextView
             android:textSize="14sp"

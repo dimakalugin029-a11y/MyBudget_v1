@@ -1,0 +1,7 @@
+<resources>
+<string name="utility_visual_bill_total">Сумма квитанции</string>
+<string name="utility_visual_payment_details">Сведения об оплате</string>
+<string name="utility_visual_show_details">Показать детали квитанции и тарифы</string>
+<string name="utility_visual_hide_details">Скрыть детали квитанции и тарифы</string>
+<string name="utility_visual_services">Услуги и начисления</string>
+</resources>

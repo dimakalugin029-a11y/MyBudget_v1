@@ -1,0 +1,12 @@
+<resources>
+<string name="income_receipt_final">Получено окончательно</string>
+<string name="income_receipt_partial">Это часть поступления</string>
+<string name="income_receipt_status_hint">При окончательном поступлении разница с планом больше не ожидается. План сохраняется для сравнения с фактом.</string>
+<string name="income_status_final">Получено окончательно</string>
+<string name="income_status_partial">Получено частично</string>
+<string name="income_status_waiting">Ожидается</string>
+<string name="income_plan_deviation">Отклонение: %1$s</string>
+<string name="income_close_existing">Завершить получение</string>
+<string name="income_reopen_existing">Снова ожидать поступление</string>
+<string name="income_completion_change_hint">Изменится только ожидание дохода по этому источнику за выбранный месяц. План, поступившие деньги и остатки статей не изменятся.</string>
+</resources>

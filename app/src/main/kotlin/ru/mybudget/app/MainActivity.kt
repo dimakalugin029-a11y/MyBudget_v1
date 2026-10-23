@@ -469,7 +469,7 @@ class MainActivity : AppCompatActivity() {
                 findViewById<TextView>(R.id.mainPlanIncomePlanned).text = if (summary.hasIncomePlan)
                     MoneyFormat.formatRub(summary.incomePlanned) else getString(R.string.plan_overview_unset)
                 findViewById<TextView>(R.id.mainPlanIncomeReceived).text = getString(R.string.plan_overview_received,
-                    MoneyFormat.formatRub(summary.incomeReceived))
+                    MoneyFormat.formatRub(summary.incomeReceived)) + if(summary.incomeUnlinked>0.0) "\n"+getString(R.string.income_unlinked_total,MoneyFormat.formatRub(summary.incomeUnlinked)) else ""
                 findViewById<TextView>(R.id.mainPlanIncomeRemaining).text = getString(R.string.plan_overview_remaining,
                     MoneyFormat.formatRub(summary.incomeRemaining))
                 findViewById<TextView>(R.id.mainPlanExpensePlanned).text = if (summary.hasExpensePlan)
@@ -640,7 +640,7 @@ class MainActivity : AppCompatActivity() {
         when (item.target) {
             AttentionTarget.PAYMENT -> startActivity(Intent(this, PaymentCalendarActivity::class.java)
                 .putExtra("attention_event_key", item.entry?.eventKey))
-            AttentionTarget.BUDGET -> startActivity(Intent(this, BudgetActivity::class.java))
+            AttentionTarget.BUDGET -> startActivity(Intent(this, BalanceCoverageActivity::class.java).putExtra("budgetId",BudgetManager.getInstance(this).getActiveBudgetId()))
             AttentionTarget.OBLIGATIONS -> startActivity(Intent(this, PlannedObligationsActivity::class.java))
             AttentionTarget.INCOME_PLAN -> startActivity(Intent(this, PlannedIncomeActivity::class.java))
             AttentionTarget.GOAL -> startActivity(Intent(this, GoalsActivity::class.java)
@@ -650,6 +650,10 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, IncomeDistributionActivity::class.java)
                     .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, pending.amount)
                     .putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, pending.note)
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID, pending.plannedSourceId ?: 0)
+                    .putExtra(BudgetIntentExtras.PLANNED_INCOME_MONTH, pending.plannedMonth)
+                    .putExtra(IncomeDistributionActivity.EXTRA_RECEIPT_REQUEST, pending.requestId)
+                    .putExtra("income_final",pending.finalReceipt)
                     .putExtra(BudgetIntentExtras.BUDGET_ID, pending.budgetId))
             }
         }

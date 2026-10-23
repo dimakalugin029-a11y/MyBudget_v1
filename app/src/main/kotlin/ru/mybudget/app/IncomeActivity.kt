@@ -40,6 +40,7 @@ class IncomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_income)
+        findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).check(if(savedInstanceState?.getBoolean("income_final",true)!=false) R.id.incomeReceiptFinal else R.id.incomeReceiptPartial)
         manager = BudgetManager.getInstance(this)
         saving = moneyModel.state.value is MoneySaveViewModel.State.Saving
         plannedSourceId = if (savedInstanceState != null) savedInstanceState.getInt("plan_source", 0).takeIf { it > 0 }
@@ -65,6 +66,7 @@ class IncomeActivity : AppCompatActivity() {
         budgetNameText = findViewById(R.id.transactionBudgetNameText)
         planSuggestions = findViewById(R.id.incomePlanSuggestions)
         planSuggestionChips = findViewById(R.id.incomePlanSuggestionChips)
+        findViewById<View>(R.id.incomePlanSourcePicker).setOnClickListener { showSourcePicker() }
         findViewById<View>(R.id.incomePlanUnbind).setOnClickListener {
             if (!saving && !categoriesLoading) { clearPlan(); loadCategories() }
         }
@@ -267,10 +269,11 @@ class IncomeActivity : AppCompatActivity() {
         setSaving(true)
         val parentName=manager.getCategories().firstOrNull { it.id==option.category.parentId }?.name ?: option.category.name
         moneyModel.save(SingleMoneyCommand(requestId,option.category.budgetId,option.category.id,amount,"income",description,
-            categoryName=option.category.name,parentName=parentName,plannedSourceId=plannedSourceId,plannedMonth=plannedMonth))
+            categoryName=option.category.name,parentName=parentName,plannedSourceId=plannedSourceId,plannedMonth=plannedMonth,finalReceipt=findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal))
     }
 
     private fun setSaving(value:Boolean) {
+        listOf(R.id.incomeReceiptFinal,R.id.incomeReceiptPartial).forEach { findViewById<View>(it).isEnabled=!value }
         saving=value
         categorySpinner.isEnabled=!value && !categoriesLoading && leafOptions.isNotEmpty()
         amountInput.isEnabled=!value;descriptionInput.isEnabled=!value
@@ -279,6 +282,7 @@ class IncomeActivity : AppCompatActivity() {
             setText(if(value) R.string.money_saving else R.string.operation_save_income)
         }
         findViewById<View>(R.id.distributeIncomeButton).isEnabled=!value && !categoriesLoading
+        findViewById<View>(R.id.incomePlanSourcePicker).isEnabled=!value && !categoriesLoading
         findViewById<View>(R.id.coverOverspendIncomeButton).isEnabled=!value && !categoriesLoading
     }
 
@@ -295,6 +299,7 @@ class IncomeActivity : AppCompatActivity() {
             .putExtra(IncomeDistributionActivity.EXTRA_TOTAL_INCOME, amount)
             .putExtra(IncomeDistributionActivity.EXTRA_OPEN_COVERAGE, coverOverspend)
             .putExtra(IncomeDistributionActivity.EXTRA_RECEIPT_REQUEST, requestId)
+            .putExtra("income_final",findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal)
             .putExtra(BudgetIntentExtras.BUDGET_ID, manager.getActiveBudgetId())
         val note = descriptionInput.text.toString().trim()
         plannedSourceId?.let {
@@ -303,7 +308,7 @@ class IncomeActivity : AppCompatActivity() {
         }
         if (note.isNotEmpty()) intent.putExtra(IncomeDistributionActivity.EXTRA_INCOME_NOTE, note)
         PendingDistributionPreferences.setPending(this, manager.getActiveBudgetId(), amount, note,
-            plannedSourceId, plannedMonth.toString(), requestId)
+            plannedSourceId, plannedMonth.toString(), requestId,finalReceipt=findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal)
         startActivity(intent)
         amountInput.text.clear()
         descriptionInput.text.clear()
@@ -311,7 +316,36 @@ class IncomeActivity : AppCompatActivity() {
         clearPlan()
     }
 
+    private fun showSourcePicker() {
+        if(saving || categoriesLoading) return
+        val active=manager.getActiveBudgetId()
+        lifecycleScope.launch {
+            try {
+                val sources=manager.repository.getPlannedIncomeSourcesByBudgetOnce(active)
+                if(active!=manager.getActiveBudgetId() || saving || categoriesLoading) return@launch
+                val names=listOf(getString(R.string.income_source_without_plan))+sources.map { it.name }
+                androidx.appcompat.app.AlertDialog.Builder(this@IncomeActivity)
+                    .setTitle(R.string.income_source_choose)
+                    .setItems(names.toTypedArray()) { _,index ->
+                        if(saving || categoriesLoading || active!=manager.getActiveBudgetId()) return@setItems
+                        if(index==0) { clearPlan();loadCategories() }
+                        else {
+                            val source=sources[index-1]
+                            plannedSourceId=source.id
+                            plannedMonth=java.time.YearMonth.now()
+                            requestId=java.util.UUID.randomUUID().toString()
+                            if(descriptionInput.text.isNullOrBlank()) descriptionInput.setText(source.name)
+                            planSuggestions.visibility=View.GONE
+                            lifecycleScope.launch { updatePlanBinding() }
+                        }
+                    }.setNegativeButton(android.R.string.cancel,null).show()
+            } catch(cancelled:kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch(_:Exception) { Toast.makeText(this@IncomeActivity,R.string.income_link_load_error,Toast.LENGTH_LONG).show() }
+        }
+    }
+
     private fun clearPlan() {
+        findViewById<View>(R.id.incomeReceiptStatus).visibility=View.GONE
         plannedSourceId = null
         requestId = java.util.UUID.randomUUID().toString()
         intent.removeExtra(BudgetIntentExtras.PLANNED_INCOME_SOURCE_ID)
@@ -325,17 +359,19 @@ class IncomeActivity : AppCompatActivity() {
     private suspend fun updatePlanBinding() {
         val dao = manager.database.budgetDao()
         val source = plannedSourceId?.let { dao.getIncomeSourceById(it) } ?: return
+        findViewById<View>(R.id.incomeReceiptStatus).visibility=View.VISIBLE
         val progress = IncomePlanAmounts.progress(source, plannedMonth,
             dao.getMonthlyIncomePlansForMonth(source.budgetId, plannedMonth.year, plannedMonth.monthValue),
             dao.getIncomePlanTransactions(source.budgetId))
         findViewById<TextView>(R.id.incomePlanBinding).apply {
             visibility = View.VISIBLE
-            text = getString(R.string.income_plan_binding, source.name, plannedMonth.toString(), MoneyFormat.formatRub(progress.remaining))
+            text = getString(R.string.income_actual_binding, source.name, plannedMonth.toString(), MoneyFormat.formatRub(progress.remaining))
         }
         findViewById<View>(R.id.incomePlanUnbind).visibility = View.VISIBLE
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean("income_final",findViewById<android.widget.RadioGroup>(R.id.incomeReceiptStatus).checkedRadioButtonId==R.id.incomeReceiptFinal)
         outState.putInt("plan_source", plannedSourceId ?: 0)
         outState.putString("plan_month", plannedMonth.toString())
         outState.putString("receipt_request", requestId)

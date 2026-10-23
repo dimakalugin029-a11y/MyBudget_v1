@@ -44,6 +44,7 @@ class UtilityBillActivity : AppCompatActivity() {
     private var lastDetail: UtilityBillDetail? = null
     private var photoCount: Int = 0
     private var currentGrandTotal: Double = 0.0
+    private var detailsExpanded=false
     private var hideZeroLines: Boolean = false
     private var pendingOpenPay: Boolean = false
     private var hasLoadedOnce = false
@@ -74,6 +75,11 @@ class UtilityBillActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@UtilityBillActivity)
             this.adapter = this@UtilityBillActivity.adapter
         }
+        detailsExpanded=savedInstanceState?.getBoolean("bill_details_expanded") ?: false
+        findViewById<View>(R.id.billInfoToggle).setOnClickListener {
+            detailsExpanded=!detailsExpanded;updateDetailsVisibility()
+        }
+        updateDetailsVisibility()
         findViewById<View>(R.id.applyMetersButton).setOnClickListener { applyMetersToBill() }
         findViewById<View>(R.id.hideZeroLinesButton).setOnClickListener {
             hideZeroLines = !hideZeroLines
@@ -94,6 +100,7 @@ class UtilityBillActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putBoolean("bill_details_expanded",detailsExpanded)
         outState.putInt(STATE_BILL_ID, billId)
     }
 
@@ -187,20 +194,27 @@ class UtilityBillActivity : AppCompatActivity() {
         val btn = findViewById<MaterialButton>(R.id.payFromBudgetButton)
         if (bill.budgetPaidAt != null) {
             btn.setText(R.string.utility_edit_payment)
-            val lines = mutableListOf(
-                UtilityUserTemplate.formatAreaLine(this, bill.apartmentArea),
-                getString(R.string.utility_bill_lines_hint),
-            )
+            val lines = mutableListOf<String>()
             if (bill.budgetPaymentSummary.isNotBlank()) {
                 lines += getString(R.string.utility_paid_from_budget, bill.budgetPaymentSummary)
             }
             if (bill.budgetRemainderSummary.isNotBlank()) {
                 lines += getString(R.string.utility_remainder_in_envelope, bill.budgetRemainderSummary)
             }
-            findViewById<TextView>(R.id.billAreaText).text = lines.joinToString("\n")
+            findViewById<TextView>(R.id.billPaymentDetailsText).text = lines.joinToString("\n\n")
+            findViewById<View>(R.id.billPaymentDetailsCard).visibility=if(lines.isEmpty()) View.GONE else View.VISIBLE
         } else {
             btn.setText(R.string.utility_pay_from_budget)
+            findViewById<View>(R.id.billPaymentDetailsCard).visibility=View.GONE
+            findViewById<TextView>(R.id.billPaymentDetailsText).text=""
         }
+    }
+
+    private fun updateDetailsVisibility() {
+        findViewById<View>(R.id.billInfoDetails).visibility=if(detailsExpanded) View.VISIBLE else View.GONE
+        findViewById<MaterialButton>(R.id.billInfoToggle).setText(if(detailsExpanded) R.string.utility_visual_hide_details else R.string.utility_visual_show_details)
+        adapter.showDetails=detailsExpanded
+        adapter.notifyDataSetChanged()
     }
 
     private fun showEditAreaDialog() {
@@ -643,6 +657,7 @@ class UtilityBillActivity : AppCompatActivity() {
         private val onLineClick: (UtilityLineItemEntity) -> Unit,
         private val onLineLongClick: (UtilityLineItemEntity) -> Unit,
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        var showDetails=false
         private var rows: List<BillRow> = emptyList()
 
         fun submit(list: List<BillRow>) {
@@ -686,6 +701,7 @@ class UtilityBillActivity : AppCompatActivity() {
                         qty != null -> "кол-во ${MoneyFormat.formatQuantity(qty)}"
                         else -> ""
                     }
+                    h.qtyTariff.visibility=if(showDetails && h.qtyTariff.text.isNotBlank()) View.VISIBLE else View.GONE
                     h.itemView.setOnClickListener { onLineClick(line) }
                     h.itemView.setOnLongClickListener {
                         onLineLongClick(line)

@@ -75,7 +75,7 @@ class AutoActivity : AppCompatActivity() {
         data class Insurance(val item: ru.mybudget.app.data.VehicleInsuranceEntity) : Record() {
             override val dateEpochDay = item.startDateEpochDay
             override val amount = item.amount
-            override val title = "ОСАГО"
+            override val title = ru.mybudget.app.auto.InsuranceType.label(item.insuranceType)
             override val subtitle = buildString {
                 append("до ").append(formatDay(item.endDateEpochDay))
                 val days = AutoRepository.daysUntil(item.endDateEpochDay, todayEpochDay())
@@ -89,7 +89,7 @@ class AutoActivity : AppCompatActivity() {
         data class Fuel(val log: ru.mybudget.app.data.VehicleFuelLogEntity) : Record() {
             override val dateEpochDay = log.dateEpochDay
             override val amount = log.amount
-            override val title = "Бензин"
+            override val title = log.fuelType.ifBlank { "Топливо" }
             override val subtitle = buildString {
                 append(MoneyFormat.formatQuantity(log.liters)).append(" л · ")
                 append(MoneyFormat.formatQuantity(log.pricePerLiter)).append(" ₽/л")
@@ -375,13 +375,51 @@ class AutoActivity : AppCompatActivity() {
         val editable=!archivedVehicle && !record.isArchived
         val view = layoutInflater.inflate(R.layout.dialog_auto_record, null)
         val details = view.findViewById<TextView>(R.id.recordDetails)
+        val entry=record.toEntry()
+        view.findViewById<TextView>(R.id.autoDetailTotal).text=getString(R.string.auto_detail_total,MoneyFormat.formatRub(entry.amount))
+        details.setTextIsSelectable(true)
         details.text = buildString {
-            append(formatDay(record.dateEpochDay))
-            append("\n").append(MoneyFormat.formatRub(record.amount))
-            append("\n").append(paymentLabel(record.toEntry().paymentMethod))
+            vehicles.firstOrNull { it.id==entry.vehicleId }?.let { append(it.name).append("\n") }
+            append(getString(R.string.auto_detail_date,formatDay(entry.dateEpochDay)))
+            entry.endDateEpochDay?.let { append("\n").append(getString(R.string.auto_detail_end_date,formatDay(it))) }
+            entry.mileageKm?.let { append("\n").append(getString(R.string.auto_detail_mileage,it)) }
+            append("\n").append(paymentLabel(entry.paymentMethod))
+            if(entry.paymentMethod==AutoPaymentMethod.BUDGET) {
+                val category=manager.getCategories().firstOrNull { it.id.toLong()==entry.categoryId }
+                val parent=category?.let { c -> manager.getCategories().firstOrNull { it.id==c.parentId } }
+                val name=category?.let { if(parent==null) it.name else "${parent.name} → ${it.name}" } ?: getString(R.string.auto_detail_missing_category)
+                append("\n").append(getString(R.string.auto_detail_category,name))
+            }
+            if(entry.type==ru.mybudget.app.auto.AutoEntryType.INSURANCE) append("\n").append(ru.mybudget.app.auto.InsuranceType.label(entry.insuranceType))
+            if(entry.fuelType.isNotBlank()) append("\n").append(getString(R.string.auto_meta_fuelType)).append(": ").append(entry.fuelType)
+            if(entry.fuelStation.isNotBlank()) append("\n").append(getString(R.string.auto_meta_fuelStation)).append(": ").append(entry.fuelStation)
+            if(entry.insuranceCompany.isNotBlank()) append("\n").append(getString(R.string.auto_meta_insuranceCompany)).append(": ").append(entry.insuranceCompany)
+            if(entry.policyNumber.isNotBlank()) append("\n").append(getString(R.string.auto_meta_policyNumber)).append(": ").append(entry.policyNumber)
+            if(entry.insurancePhone.isNotBlank()) append("\n").append(getString(R.string.auto_meta_insurancePhone)).append(": ").append(entry.insurancePhone)
+            if(entry.type==ru.mybudget.app.auto.AutoEntryType.FUEL) {
+                append("\n").append(getString(R.string.auto_detail_fuel,MoneyFormat.formatQuantity(entry.liters),MoneyFormat.formatQuantity(entry.pricePerLiter)))
+            }
+        }
+        val multi=record is Record.Service || record is Record.Repair
+        val parsed=if(multi) ru.mybudget.app.auto.AutoWorkDetails.parse(entry.description)
+            else ru.mybudget.app.auto.AutoWorkDetails.Details(entry.description,emptyList())
+        val works=view.findViewById<android.widget.LinearLayout>(R.id.autoDetailWorks)
+        view.findViewById<View>(R.id.autoDetailWorksTitle).visibility=if(multi) View.VISIBLE else View.GONE
+        parsed.items.forEachIndexed { index,item ->
+            val row=layoutInflater.inflate(R.layout.item_auto_detail_work,works,false)
+            row.findViewById<TextView>(R.id.autoDetailWorkName).text="${index+1}. ${item.first}"
+            row.findViewById<TextView>(R.id.autoDetailWorkPrice).text=MoneyFormat.formatRub(item.second)
+            works.addView(row)
+        }
+        if(multi && parsed.items.isEmpty()) works.addView(TextView(this).apply {
+            setText(R.string.auto_detail_no_works);setTextAppearance(R.style.Text_MyBudget_Subtitle)
+        })
+        view.findViewById<View>(R.id.autoDetailCommentTitle).visibility=if(parsed.comment.isBlank()) View.GONE else View.VISIBLE
+        view.findViewById<TextView>(R.id.autoDetailComment).apply {
+            text=parsed.comment;visibility=if(parsed.comment.isBlank()) View.GONE else View.VISIBLE
         }
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(record.title.ifBlank { getString(R.string.main_menu_auto) })
+            .setTitle(if(record is Record.Insurance) record.title else getString(record.type.labelRes))
             .setView(view)
             .create()
         view.findViewById<Button>(R.id.payButton).visibility =

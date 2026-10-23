@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
-    android:layout_marginStart="@dimen/space_16" android:layout_marginBottom="@dimen/space_6"
-    android:background="@drawable/budget_leaf_row_bg" android:foreground="?attr/selectableItemBackground"
-    android:padding="@dimen/space_12">
+    android:layout_marginStart="@dimen/space_12" android:layout_marginBottom="0dp"
+    android:background="@drawable/budget_compact_leaf_bg" android:foreground="?attr/selectableItemBackground"
+    android:padding="@dimen/space_8">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
         <View android:id="@+id/colorStrip" android:layout_width="4dp" android:layout_height="match_parent"
             android:minHeight="48dp" android:layout_marginEnd="@dimen/space_10" android:visibility="gone" />
-        <LinearLayout android:id="@+id/leafMainArea" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-            <TextView android:id="@+id/categoryName" style="@style/Text.MyBudget.Section" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:textSize="16sp" />
-            <TextView android:id="@+id/categoryBalance" style="@style/Text.MyBudget.Amount" android:layout_width="match_parent"
-                android:layout_height="wrap_content" android:layout_marginTop="@dimen/space_6" android:textSize="16sp" />
+        <LinearLayout android:id="@+id/leafMainArea" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="horizontal" android:gravity="center_vertical" android:minHeight="48dp">
+            <TextView android:id="@+id/categoryName" style="@style/Text.MyBudget.Section" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="16sp" />
+            <TextView android:id="@+id/categoryBalance" style="@style/Text.MyBudget.Amount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:textSize="16sp" />
         </LinearLayout>
         <ImageButton android:id="@+id/categoryMenuButton" android:layout_width="@dimen/touch_min_size" android:layout_height="@dimen/touch_min_size"
             android:background="?attr/selectableItemBackgroundBorderless" android:src="@drawable/ic_nav_more"

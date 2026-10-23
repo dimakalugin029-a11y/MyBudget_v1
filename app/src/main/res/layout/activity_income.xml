@@ -150,6 +150,14 @@
                         android:paddingTop="@dimen/space_8" />
                 </HorizontalScrollView>
             </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/incomePlanSourcePicker"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/touch_min_size"
+                android:text="@string/income_source_choose"
+                style="@style/Widget.Material3.Button.OutlinedButton" />
+<include layout="@layout/include_income_receipt_status" />
             <TextView
                 android:id="@+id/incomePlanBinding"
                 style="@style/Text.MyBudget.Subtitle"

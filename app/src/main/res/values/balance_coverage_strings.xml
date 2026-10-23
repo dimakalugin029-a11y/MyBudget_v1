@@ -1,0 +1,23 @@
+<resources>
+<string name="balance_coverage_title">Покрытие перерасхода</string>
+<string name="balance_coverage_loading">Загружаем остатки…</string>
+<string name="balance_coverage_sources">Из каких статей перевести</string>
+<string name="balance_coverage_amount">Сумма перевода, ₽</string>
+<string name="balance_coverage_help">Выберите статью с минусом и укажите суммы из одного или нескольких источников. Можно погасить часть долга. Учитывайте будущие платежи: положительный остаток не означает, что деньги свободны.</string>
+<string name="balance_coverage_no_debt">Статей с отрицательным остатком нет. Превышение лимита расходов не всегда означает минус на статье. Лимиты можно проверить в Бюджете.</string>
+<string name="balance_coverage_no_money">Нет статей с положительным остатком для перевода. Перерасход можно покрыть при следующем доходе.</string>
+<string name="balance_coverage_load_error">Не удалось загрузить остатки. Откройте экран заново.</string>
+<string name="balance_coverage_invalid">Проверьте суммы источников</string>
+<string name="balance_coverage_confirm">Проверить переводы</string>
+<string name="balance_coverage_apply">Перевести</string>
+<string name="balance_coverage_preview_row">Из «%1$s»: %2$s. После перевода останется %3$s.</string>
+<string name="balance_coverage_preview_target">Остаток «%1$s» после покрытия: %2$s. Общий остаток бюджета не изменится.</string>
+<string name="balance_coverage_done">Перерасход покрыт переводами. Общий остаток не изменился.</string>
+<string name="coverage_standalone_sources">Статьи без подстатей</string>
+<string name="coverage_source_balance">Остаток на статье: %1$s</string>
+<string name="coverage_source_after">После перевода останется: %1$s</string>
+<string name="coverage_source_invalid">Укажите сумму от нуля до остатка на статье</string>
+<string name="coverage_source_accessibility">Сумма перевода из статьи %1$s</string>
+<string name="coverage_source_zero">0,00</string>
+<string name="coverage_target_label">Какую статью пополнить</string>
+</resources>

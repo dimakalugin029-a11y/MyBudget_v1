@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Card.MyBudget.Surface" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp">
+        <TextView android:id="@+id/autoDetailWorkName" style="@style/Text.MyBudget.Subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textIsSelectable="true" />
+        <TextView android:id="@+id/autoDetailWorkPrice" style="@style/Text.MyBudget.Section" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="end" android:layout_marginTop="4dp" android:textIsSelectable="true" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

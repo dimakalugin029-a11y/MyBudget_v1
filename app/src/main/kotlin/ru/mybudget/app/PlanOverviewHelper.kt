@@ -15,6 +15,7 @@ object PlanOverviewHelper {
         val expenseSpent: Double,
         val hasIncomePlan: Boolean,
         val hasExpensePlan: Boolean,
+        val incomeUnlinked:Double = 0.0,
     )
 
     fun summarize(
@@ -35,12 +36,13 @@ object PlanOverviewHelper {
             .map { IncomePlanAmounts.progress(it, month, incomePlans, inBudget) }
         return Summary(
             MoneyFormat.roundMoney(progress.sumOf { it.planned }),
-            MoneyFormat.roundMoney(progress.sumOf { it.received }),
+            MoneyFormat.roundMoney(IncomeMonthFacts.receipts(inBudget,month).sumOf { it.amount }),
             MoneyFormat.roundMoney(progress.sumOf { it.remaining }),
             MoneyFormat.roundMoney(leaves.sumOf { MonthlyPlanHelper.effectivePlannedAmount(it, plans[it.id]) }),
             MoneyFormat.roundMoney(inBudget.filter { it.type == "expense" && it.date >= from && it.date < to }.sumOf { it.amount }),
             progress.isNotEmpty(),
             leaves.any { it.plannedAmount > 0.0 || plans.containsKey(it.id) },
+            MoneyFormat.roundMoney(IncomeMonthFacts.unlinked(inBudget,month).sumOf { it.amount }),
         )
     }
 }

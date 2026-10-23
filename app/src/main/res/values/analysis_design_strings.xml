@@ -5,7 +5,7 @@
     <string name="plan_overview_error">Не удалось загрузить сводку. Разделы плана доступны ниже.</string>
     <string name="plan_overview_unset">План не задан</string>
     <string name="plan_overview_income">Доходы по плану</string>
-    <string name="plan_overview_received">Получено по плану: %1$s</string>
+    <string name="plan_overview_received">Получено всего: %1$s</string>
     <string name="plan_overview_remaining">Ещё ожидается по плану: %1$s</string>
     <string name="plan_overview_expenses">Лимиты статей на месяц</string>
     <string name="plan_overview_spent">Фактические расходы за месяц: %1$s</string>

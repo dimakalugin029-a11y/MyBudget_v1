@@ -3,7 +3,7 @@
 <string name="auto_editor_edit">Редактирование: %1$s</string>
 <string name="auto_editor_add">Добавить: %1$s</string>
 <string name="auto_editor_service">ТО</string><string name="auto_editor_repair">ремонт</string>
-<string name="auto_editor_fuel">бензин</string><string name="auto_editor_insurance">ОСАГО</string>
+<string name="auto_editor_fuel">топливо</string><string name="auto_editor_insurance">страховка</string>
 <string name="auto_editor_save_changes">Сохранить изменения</string>
 <string name="auto_editor_missing">Автомобиль или событие уже удалены</string>
 <string name="auto_editor_event">Событие</string><string name="auto_editor_works">Работы и запчасти</string>
