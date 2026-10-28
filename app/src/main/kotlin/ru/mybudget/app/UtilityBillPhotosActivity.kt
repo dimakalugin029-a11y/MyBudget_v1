@@ -14,6 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.room.withTransaction
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
@@ -77,8 +78,37 @@ class UtilityBillPhotosActivity : AppCompatActivity() {
     private fun loadPhotos() {
         lifecycleScope.launch {
             val loaded = withContext(Dispatchers.IO) {
-                val billEntity = dao().getBillById(billId) ?: return@withContext null
-                val photos = dao().getPhotosForBill(billId)
+                val loaded = manager.database.withTransaction {
+                    val currentBill = dao().getBillById(billId) ?: return@withTransaction null
+                    val currentPhotos = dao().getPhotosForBill(billId)
+                    val legacyUri = currentBill.receiptPhotoUri
+                    if (!legacyUri.isNullOrBlank()) {
+                        // Show the same legacy attachment that full export includes, so it can be repaired or removed.
+                        if (currentPhotos.none { it.photoType == UtilityBillPhotoEntity.TYPE_RECEIPT }) {
+                            dao().insertBillPhoto(UtilityBillPhotoEntity(billId = billId,
+                                photoType = UtilityBillPhotoEntity.TYPE_RECEIPT, storedUri = legacyUri,
+                                sortOrder = dao().getMaxPhotoSortOrder(billId) + 1))
+                        }
+                        dao().updateBill(currentBill.copy(receiptPhotoUri = null))
+                    }
+                    currentBill.copy(receiptPhotoUri = null) to dao().getPhotosForBill(billId)
+                } ?: return@withContext null
+                val (billEntity, storedPhotos) = loaded
+                val photos = storedPhotos.map { photo ->
+                    val protectedUri = UtilityPhotoStorage.protectExistingPhoto(this@UtilityBillPhotosActivity, photo.storedUri)
+                    if (protectedUri == null) photo else {
+                        val replaced = try {
+                            dao().replacePhotoUri(photo.id, photo.storedUri, protectedUri) == 1
+                        } catch (e: Exception) {
+                            UtilityPhotoStorage.deleteStoredPhoto(this@UtilityBillPhotosActivity, protectedUri)
+                            throw e
+                        }
+                        if (replaced) photo.copy(storedUri = protectedUri) else {
+                            UtilityPhotoStorage.deleteStoredPhoto(this@UtilityBillPhotosActivity, protectedUri)
+                            photo
+                        }
+                    }
+                }
                 billEntity to photos
             } ?: run {
                 Toast.makeText(this@UtilityBillPhotosActivity, R.string.utility_bill_load_error, Toast.LENGTH_LONG).show()
@@ -194,6 +224,9 @@ class UtilityBillPhotosActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT,
                     ).show()
                 }
+                if (saved < uris.size) {
+                    Toast.makeText(this@UtilityBillPhotosActivity, R.string.utility_photo_save_failed, Toast.LENGTH_LONG).show()
+                }
                 loadPhotos()
             }
         }
@@ -224,7 +257,7 @@ class UtilityBillPhotosActivity : AppCompatActivity() {
             } else {
                 R.string.utility_photo_type_receipt
             }
-            holder.badge.setText(badgeRes)
+            holder.badge.text = holder.itemView.context.getString(R.string.utility_photo_numbered_type, holder.itemView.context.getString(badgeRes), photo.sortOrder + 1)
             holder.itemView.setOnClickListener { onOpen(photo) }
             holder.itemView.setOnLongClickListener {
                 onLongClick(photo)

@@ -200,6 +200,7 @@ class MeterRepositoryTest {
         override suspend fun getPhotoById(id: Int): UtilityBillPhotoEntity? = TODO()
         override suspend fun getMaxPhotoSortOrder(billId: Int): Int = TODO()
         override suspend fun getAllBillPhotosForExport(): List<UtilityBillPhotoEntity> = TODO()
+        override suspend fun replacePhotoUri(id: Int, oldUri: String, newUri: String): Int = TODO()
         override suspend fun deleteBillPhotoById(id: Int) = TODO()
         override suspend fun deleteAllBillPhotos() = TODO()
         override suspend fun getBillByPeriod(propertyId: Int, year: Int, month: Int): UtilityBillEntity? = TODO()

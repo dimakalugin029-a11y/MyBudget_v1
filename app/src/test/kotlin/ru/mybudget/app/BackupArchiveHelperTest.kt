@@ -10,6 +10,17 @@ import java.util.zip.ZipOutputStream
 
 class BackupArchiveHelperTest {
     @Test
+    fun unreadablePhotoIdentifiesPropertyMonthAndNumberWithoutExposingUri() {
+        val photo = UtilityBillPhotoEntity(id = 7, billId = 3, photoType = UtilityBillPhotoEntity.TYPE_METER,
+            storedUri = "content://private-document", sortOrder = 2)
+        val message = BackupArchiveHelper.unreadablePhotoMessage(photo, 0, "Квартира, 2026-10")
+        assertTrue(message.contains("Квартира, 2026-10"))
+        assertTrue(message.contains("счётчик №3"))
+        assertTrue(message.contains("Полная копия не создана"))
+        org.junit.Assert.assertFalse(message.contains(photo.storedUri))
+    }
+
+    @Test
     fun readArchive_readsEmbeddedJson() {
         val output = ByteArrayOutputStream()
         ZipOutputStream(output).use { zip ->

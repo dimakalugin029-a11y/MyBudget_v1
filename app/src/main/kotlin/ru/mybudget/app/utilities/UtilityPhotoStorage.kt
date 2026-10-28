@@ -20,17 +20,54 @@ object UtilityPhotoStorage {
         sortOrder: Int,
     ): String? {
         val appContext = context.applicationContext
-        val folderUri = UtilityPhotoPreferences.folderUri(appContext)
-        if (folderUri != null) {
-            copyToMonthFolder(appContext, sourceUri, folderUri, bill, photoType, sortOrder)?.let { return it }
+        // Gallery grants and SAF folders are not reliable as the only copy of an attachment.
+        val stored = copyToPrivateStorage(appContext, sourceUri) ?: return null
+        mirrorToMonthFolder(appContext, Uri.parse(stored), bill, photoType, sortOrder)
+        return stored
+    }
+
+    /** Protect readable legacy attachments without removing or changing the original file. */
+    fun protectExistingPhoto(context: Context, storedUri: String): String? {
+        val uri = runCatching { Uri.parse(storedUri) }.getOrNull() ?: return null
+        if (uri.authority == "${context.packageName}.restoredphotos") return null
+        return copyToPrivateStorage(context.applicationContext, uri)
+    }
+
+    private fun copyToPrivateStorage(context: Context, uri: Uri): String? = runCatching {
+        context.contentResolver.openInputStream(uri)?.use { writePrivatePhoto(context, it) }
+    }.getOrNull()
+
+    private fun writePrivatePhoto(context: Context, input: java.io.InputStream): String {
+        val directory = java.io.File(context.filesDir, "restored_photos")
+        check(directory.isDirectory || directory.mkdirs()) { "Не удалось создать папку фотографий" }
+        val file = java.io.File(directory, "${java.util.UUID.randomUUID()}.jpg")
+        try {
+            file.outputStream().use { output ->
+                val buffer = ByteArray(8192)
+                var size = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    size += count
+                    require(size <= 32L * 1024 * 1024) { "Фотография больше 32 МБ" }
+                    output.write(buffer, 0, count)
+                }
+                require(size > 0) { "Фотография пуста" }
+            }
+            return androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.restoredphotos", file).toString()
+        } catch (e: Exception) {
+            file.delete()
+            throw e
         }
+    }
+
+    private fun mirrorToMonthFolder(context: Context, uri: Uri, bill: UtilityBillEntity, photoType: String, sortOrder: Int) {
+        // A revoked or unavailable optional folder must not prevent saving the private copy.
         runCatching {
-            appContext.contentResolver.takePersistableUriPermission(
-                sourceUri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
+            UtilityPhotoPreferences.folderUri(context)?.let { folder ->
+                copyToMonthFolder(context, uri, folder, bill, photoType, sortOrder)
+            }
         }
-        return sourceUri.toString()
     }
 
     fun deleteStoredPhoto(context: Context, storedUri: String) {
@@ -41,7 +78,7 @@ object UtilityPhotoStorage {
         }
         val folderUri = UtilityPhotoPreferences.folderUri(context.applicationContext) ?: return
         val tree = DocumentFile.fromTreeUri(context.applicationContext, folderUri) ?: return
-        if (!isUnderTree(tree, uri)) return
+        if (!runCatching { isUnderTree(tree, uri) }.getOrDefault(false)) return
         DocumentFile.fromSingleUri(context.applicationContext, uri)?.delete()
     }
 
@@ -60,56 +97,9 @@ object UtilityPhotoStorage {
     ): String? {
         if (bytes.isEmpty()) return null
         val appContext = context.applicationContext
-        val folderUri = UtilityPhotoPreferences.folderUri(appContext)
-        if (folderUri != null) {
-            runCatching { writeBytesToMonthFolder(appContext, folderUri, bill, photoType, sortOrder, bytes) }
-                .getOrNull()?.let { return it }
-        }
-        // A clean installation has no SAF permission. Keep restored attachments inside the app.
-        return runCatching {
-            val directory = java.io.File(appContext.filesDir, "restored_photos")
-            check(directory.isDirectory || directory.mkdirs()) { "Не удалось создать папку фотографий" }
-            val file = java.io.File(directory, "${java.util.UUID.randomUUID()}.jpg")
-            try {
-                file.outputStream().use { it.write(bytes) }
-                androidx.core.content.FileProvider.getUriForFile(appContext, "${appContext.packageName}.restoredphotos", file).toString()
-            } catch (e: Exception) { file.delete(); throw e }
-        }.getOrNull()
-    }
-
-    private fun writeBytesToMonthFolder(
-        context: Context,
-        folderUri: Uri,
-        bill: UtilityBillEntity,
-        photoType: String,
-        sortOrder: Int,
-        bytes: ByteArray,
-    ): String? {
-        val tree = DocumentFile.fromTreeUri(context, folderUri) ?: return null
-        if (!tree.canWrite()) return null
-        val monthDir = findOrCreateDir(tree, ROOT_DIR)
-            ?.let { findOrCreateDir(it, monthFolderLabel(bill.year, bill.month)) }
-            ?.let { findOrCreateDir(it, typeDirName(photoType)) }
-            ?: return null
-        val prefix = if (photoType == UtilityBillPhotoEntity.TYPE_METER) "meter" else "receipt"
-        val fileName = "${prefix}_${sortOrder + 1}_import_${System.currentTimeMillis()}.jpg"
-        val dest = monthDir.createFile("image/jpeg", fileName) ?: return null
-        val copied = runCatching {
-            context.contentResolver.openOutputStream(dest.uri)?.use { output ->
-                output.write(bytes)
-            } ?: error("no output")
-        }.isSuccess
-        if (!copied) {
-            dest.delete()
-            return null
-        }
-        runCatching {
-            context.contentResolver.takePersistableUriPermission(
-                dest.uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-        }
-        return dest.uri.toString()
+        val stored = runCatching { bytes.inputStream().use { writePrivatePhoto(appContext, it) } }.getOrNull() ?: return null
+        mirrorToMonthFolder(appContext, Uri.parse(stored), bill, photoType, sortOrder)
+        return stored
     }
 
     private fun copyToMonthFolder(

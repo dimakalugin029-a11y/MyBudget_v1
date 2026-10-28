@@ -54,14 +54,19 @@ class BackupManager internal constructor(context: Context, private val database:
     suspend fun buildFullBackup(password: String? = null): ByteArray = withContext(Dispatchers.IO) {
         val zip = database.withTransaction {
             val photos = utilityDao.getAllBillPhotosForExport().toMutableList()
-            utilityDao.getAllBillsForExport().forEach { bill ->
+            val bills = utilityDao.getAllBillsForExport()
+            val properties = utilityDao.getAllPropertiesForExport().associateBy { it.id }
+            bills.forEach { bill ->
                 val legacyUri = bill.receiptPhotoUri
                 if (!legacyUri.isNullOrBlank() && photos.none { it.billId == bill.id && it.photoType == UtilityBillPhotoEntity.TYPE_RECEIPT }) {
                     photos.add(UtilityBillPhotoEntity(billId = bill.id, photoType = UtilityBillPhotoEntity.TYPE_RECEIPT, storedUri = legacyUri))
                 }
             }
             val json = buildPlainJson(BackupArchiveHelper.rewritePhotosForArchive(photos))
-            BackupArchiveHelper.exportArchive(appContext, json, photos)
+            val billLabels = bills.associate { bill ->
+                bill.id to "${properties[bill.propertyId]?.name ?: "Объект #${bill.propertyId}"}, ${UtilityPhotoStorage.monthFolderLabel(bill.year, bill.month)}"
+            }
+            BackupArchiveHelper.exportArchive(appContext, json, photos, billLabels)
         }
         // Parse the generated archive before declaring it a complete backup.
         FullBackupContainer.validateAttachments(BackupArchiveHelper.readArchive(zip))

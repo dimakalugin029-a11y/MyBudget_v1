@@ -107,6 +107,9 @@ interface UtilityDao {
     @Query("SELECT * FROM utility_bill_photos")
     suspend fun getAllBillPhotosForExport(): List<UtilityBillPhotoEntity>
 
+    @Query("UPDATE utility_bill_photos SET storedUri = :newUri WHERE id = :id AND storedUri = :oldUri")
+    suspend fun replacePhotoUri(id: Int, oldUri: String, newUri: String): Int
+
     @Query("DELETE FROM utility_bill_photos WHERE id = :id")
     suspend fun deleteBillPhotoById(id: Int)
 

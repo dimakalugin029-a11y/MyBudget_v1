@@ -37,6 +37,7 @@ object BackupArchiveHelper {
         context: Context,
         plainJson: String,
         photos: List<UtilityBillPhotoEntity>,
+        billLabels: Map<Int, String> = emptyMap(),
     ): ByteArray {
         val output = ByteArrayOutputStream()
         require(plainJson.toByteArray(Charsets.UTF_8).size <= MAX_ENTRY_BYTES) { "Данные копии слишком большие" }
@@ -46,9 +47,20 @@ object BackupArchiveHelper {
             zip.write(plainJson.toByteArray(Charsets.UTF_8))
             zip.closeEntry()
             photos.forEachIndexed { index, photo ->
-                val bytes = readPhotoBytes(context, photo.storedUri)
-                    ?: error("Не удалось прочитать фотографию №${index + 1}; полная копия не создана")
-                require(bytes.isNotEmpty() && bytes.size <= MAX_ENTRY_BYTES) { "Некорректный размер фотографии №${index + 1}" }
+                val bytes = try {
+                    val contents = readPhotoBytes(context, photo.storedUri) ?: throw java.io.FileNotFoundException()
+                    if (contents.isEmpty()) throw java.io.EOFException()
+                    contents
+                } catch (e: Exception) {
+                    val reason = when (e) {
+                        is SecurityException -> "Нет доступа к файлу."
+                        is java.io.FileNotFoundException -> "Файл не найден или недоступен."
+                        is java.io.EOFException -> "Файл пуст."
+                        is IllegalArgumentException -> "Файл больше 32 МБ или ссылка некорректна."
+                        else -> "Ошибка чтения файла."
+                    }
+                    throw IllegalStateException(unreadablePhotoMessage(photo, index, billLabels[photo.billId], reason), e)
+                }
                 totalBytes += bytes.size
                 require(totalBytes <= MAX_ARCHIVE_BYTES) { "Архив слишком большой" }
                 zip.putNextEntry(ZipEntry(photoEntryName(index)))
@@ -57,6 +69,14 @@ object BackupArchiveHelper {
             }
         }
         return output.toByteArray()
+    }
+
+    internal fun unreadablePhotoMessage(photo: UtilityBillPhotoEntity, index: Int, billLabel: String?, reason: String = ""): String {
+        val type = if (photo.photoType == UtilityBillPhotoEntity.TYPE_METER) "счётчик" else "квитанция"
+        val location = billLabel ?: "платёж #${photo.billId}"
+        return "Недоступно фото №${index + 1} в копии: $location, $type №${photo.sortOrder + 1}. " +
+            "$reason Откройте Коммуналка → этот объект и месяц → Фото. " +
+            "Повторно выберите папку фото в настройках или добавьте фото заново вместо недоступного. Полная копия не создана."
     }
 
     fun rewritePhotosForArchive(
@@ -109,8 +129,6 @@ object BackupArchiveHelper {
     private fun readPhotoBytes(context: Context, storedUri: String): ByteArray? {
         if (storedUri.isBlank() || storedUri.startsWith(PHOTOS_PREFIX)) return null
         val uri = runCatching { Uri.parse(storedUri) }.getOrNull() ?: return null
-        return runCatching {
-            context.contentResolver.openInputStream(uri)?.use { readBounded(it, MAX_ENTRY_BYTES) }
-        }.getOrNull()
+        return context.contentResolver.openInputStream(uri)?.use { readBounded(it, MAX_ENTRY_BYTES) }
     }
 }
